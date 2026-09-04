@@ -93,3 +93,89 @@ export interface HabitLog {
   details: HabitDetails;
   photo_url: string | null;
 }
+
+export type AilmentStatus = "active" | "monitoring" | "resolved";
+
+export interface Ailment {
+  id: string;
+  pet_id: string;
+  name: string;
+  diagnosed_at: string | null;
+  diagnosing_vet: string | null;
+  status: AilmentStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AilmentNote {
+  id: string;
+  pet_id: string;
+  ailment_id: string;
+  occurred_at: string;
+  created_at: string;
+  note: string;
+  created_by: string;
+}
+
+export type VetQuestionStatus = "open" | "answered";
+
+export interface VetQuestion {
+  id: string;
+  pet_id: string;
+  ailment_id: string;
+  question: string;
+  status: VetQuestionStatus;
+  answer: string | null;
+  asked_at: string | null;
+  answered_at: string | null;
+  created_at: string;
+}
+
+/**
+ * times_per_day: fixed clock times every day, e.g. Keppra at 08:00 and 20:00.
+ * interval_hours: every N hours starting from a given time, e.g. every 8 hours from 06:00.
+ * specific_days: fixed clock times on selected weekdays only (0=Sunday..6=Saturday).
+ * as_needed: PRN — no schedule to compute due times or a refill burn rate from.
+ */
+export type MedicationSchedule =
+  | { kind: "times_per_day"; times: string[] }
+  | { kind: "interval_hours"; intervalHours: number; startTime: string }
+  | { kind: "specific_days"; daysOfWeek: number[]; times: string[] }
+  | { kind: "as_needed" };
+
+export interface Medication {
+  id: string;
+  pet_id: string;
+  ailment_id: string | null;
+  name: string;
+  dosage: string;
+  unit: string;
+  route: string | null;
+  schedule: MedicationSchedule;
+  active_from: string;
+  active_until: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MedicationDose {
+  id: string;
+  pet_id: string;
+  medication_id: string;
+  scheduled_at: string;
+  given_at: string | null;
+  created_at: string;
+  given_by: string | null;
+  skipped: boolean;
+  notes: string | null;
+}
+
+export interface MedicationRefill {
+  medication_id: string;
+  pet_id: string;
+  count_on_hand: number;
+  unit_per_dose: number;
+  low_stock_threshold: number;
+  last_updated_at: string;
+}

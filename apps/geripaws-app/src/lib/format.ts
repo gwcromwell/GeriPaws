@@ -2,6 +2,7 @@ import type {
   HabitLog,
   IncidentDetails,
   HabitType,
+  MedicationSchedule,
   WalkDetails,
   WaterDetails,
   FoodDetails,
@@ -76,6 +77,40 @@ export function summarizeHabitLog(log: HabitLog): string {
   }
 
   return parts.length > 0 ? parts.join(' · ') : 'No details';
+}
+
+const WEEKDAY_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export function formatTimeOfDay(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+  return `${displayHour}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
+export function summarizeSchedule(schedule: MedicationSchedule): string {
+  switch (schedule.kind) {
+    case 'times_per_day':
+      return schedule.times.map(formatTimeOfDay).join(', ');
+    case 'interval_hours':
+      return `Every ${schedule.intervalHours}h from ${formatTimeOfDay(schedule.startTime)}`;
+    case 'specific_days': {
+      const days = schedule.daysOfWeek
+        .slice()
+        .sort()
+        .map((d) => WEEKDAY_LABEL[d])
+        .join(', ');
+      return `${days} at ${schedule.times.map(formatTimeOfDay).join(', ')}`;
+    }
+    case 'as_needed':
+      return 'As needed';
+    default:
+      return '';
+  }
+}
+
+export function formatDate(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export const QUICK_TIME_OFFSETS = [
