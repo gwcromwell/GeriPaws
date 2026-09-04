@@ -20,7 +20,10 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerRight: () => <SignOutButton /> }}>
       <Stack.Screen name="index" options={{ title: 'My Dogs' }} />
       <Stack.Screen name="pets/new" options={{ title: 'Add a Dog', presentation: 'modal' }} />
-      <Stack.Screen name="pets/[id]/index" options={{ title: 'Dog Profile' }} />
+      <Stack.Screen name="pets/[id]/index" options={{ title: 'Today' }} />
+      <Stack.Screen name="pets/[id]/sharing" options={{ title: 'Sharing' }} />
+      <Stack.Screen name="pets/[id]/history" options={{ title: 'History' }} />
+      <Stack.Screen name="pets/[id]/log/[type]" options={{ title: 'Log Entry', presentation: 'modal' }} />
     </Stack>
   );
 }

@@ -1,80 +1,61 @@
-import type { Pet, PetInvite, PetMember, PetRole } from '@geripaws/shared';
-import { createInviteSchema } from '@geripaws/shared';
-import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import type { HabitLog, HabitType, Pet, PetRole } from '@geripaws/shared';
+import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
-import { supabase } from '@/lib/supabase';
-import {
-  fetchPendingInvites,
-  fetchPet,
-  fetchPetMembers,
-  inviteMember,
-  removeMember,
-  revokeInvite,
-} from '@/lib/pets';
+import { fetchLatestByType } from '@/lib/habits';
+import { formatRelativeTime, isOverdue } from '@/lib/format';
+import { fetchMyRole, fetchPet } from '@/lib/pets';
 
-export default function PetDetailScreen() {
+const TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label: string }[] = [
+  { type: 'walk', label: 'Walk' },
+  { type: 'water', label: 'Water' },
+  { type: 'food', label: 'Food' },
+];
+
+export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [pet, setPet] = useState<Pet | null>(null);
-  const [members, setMembers] = useState<PetMember[]>([]);
-  const [invites, setInvites] = useState<PetInvite[]>([]);
-  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<PetRole | null>(null);
+  const [latest, setLatest] = useState<Record<HabitType, HabitLog | null>>({
+    walk: null,
+    water: null,
+    food: null,
+    incident: null,
+  });
   const [error, setError] = useState<string | null>(null);
-
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<Exclude<PetRole, 'owner'>>('caregiver');
-  const [isInviting, setIsInviting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!id) return;
+    setIsLoading(true);
     try {
-      const [petData, memberData, { data: userData }] = await Promise.all([
+      const [petData, roleData, latestData] = await Promise.all([
         fetchPet(id),
-        fetchPetMembers(id),
-        supabase.auth.getUser(),
+        fetchMyRole(id),
+        fetchLatestByType(id),
       ]);
       setPet(petData);
-      setMembers(memberData);
-      setMyUserId(userData.user?.id ?? null);
-
-      const myRole = memberData.find((m) => m.user_id === userData.user?.id)?.role;
-      if (myRole === 'owner') {
-        setInvites(await fetchPendingInvites(id));
-      }
+      setRole(roleData);
+      setLatest(latestData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
+    } finally {
+      setIsLoading(false);
     }
   }, [id]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
-  const myRole = members.find((m) => m.user_id === myUserId)?.role;
-  const isOwner = myRole === 'owner';
-
-  async function handleInvite() {
-    const result = createInviteSchema.safeParse({ petId: id, email: inviteEmail, role: inviteRole });
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? 'Invalid invite');
-      return;
-    }
-    setIsInviting(true);
-    try {
-      await inviteMember(result.data.petId, result.data.email, result.data.role);
-      setInviteEmail('');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send invite');
-    } finally {
-      setIsInviting(false);
-    }
-  }
+  const canLog = role === 'owner' || role === 'caregiver';
 
   if (!pet) {
     return (
@@ -86,87 +67,64 @@ export default function PetDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>
-        {pet.name}
-      </ThemedText>
-      {pet.breed ? <ThemedText themeColor="textSecondary">{pet.breed}</ThemedText> : null}
-
-      <ThemedText type="subtitle" style={styles.sectionTitle}>
-        Caregivers
-      </ThemedText>
-      {members.map((m) => (
-        <ThemedView key={m.user_id} style={styles.row}>
-          <ThemedText>{m.user_id === myUserId ? 'You' : m.user_id}</ThemedText>
-          <ThemedText themeColor="textSecondary">{m.role}</ThemedText>
-          {isOwner && m.role !== 'owner' ? (
-            <Pressable onPress={() => removeMember(pet.id, m.user_id).then(load)}>
-              <ThemedText themeColor="error" type="small">
-                Remove
-              </ThemedText>
-            </Pressable>
-          ) : null}
-        </ThemedView>
-      ))}
-
-      {isOwner ? (
-        <>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Invite someone
+      <ThemedView style={styles.headerRow}>
+        <ThemedText type="title" style={styles.title}>
+          {pet.name}
+        </ThemedText>
+        <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
+          <ThemedText type="link" themeColor="tint">
+            Sharing
           </ThemedText>
-          <ThemedTextInput
-            label="Email address"
-            helperText="They'll get an invite to join as a caregiver or viewer"
-            placeholder="you@example.com"
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            value={inviteEmail}
-            onChangeText={setInviteEmail}
-          />
-          <ThemedText type="smallBold">Role</ThemedText>
-          <ThemedView style={styles.roleRow}>
-            {(['caregiver', 'viewer'] as const).map((role) => (
-              <Pressable key={role} onPress={() => setInviteRole(role)} style={styles.roleOption}>
-                <ThemedText themeColor={inviteRole === role ? 'tint' : 'textSecondary'}>
-                  {inviteRole === role ? '● ' : '○ '}
-                  {role}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </ThemedView>
-          <ThemedText type="small" themeColor="textSecondary">
-            Caregiver can log habits and manage medications. Viewer can only see the dog's information.
-          </ThemedText>
-          <Pressable style={styles.button} onPress={handleInvite} disabled={isInviting}>
-            <ThemedText themeColor="background" type="smallBold">
-              {isInviting ? 'Sending…' : 'Send invite'}
+        </Link>
+      </ThemedView>
+
+      {role === 'viewer' ? (
+        <ThemedText themeColor="textSecondary" type="small">
+          You have view-only access to {pet.name}.
+        </ThemedText>
+      ) : null}
+
+      {TILES.map(({ type, label }) => {
+        const log = latest[type];
+        const overdue = log ? isOverdue(log.occurred_at, type) : false;
+        return (
+          <Pressable
+            key={type}
+            disabled={!canLog}
+            onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type } })}
+            style={[styles.tile, overdue && styles.tileOverdue]}>
+            <ThemedText type="subtitle">{label}</ThemedText>
+            <ThemedText themeColor={overdue ? 'error' : 'textSecondary'}>
+              {log ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)}` : 'Not logged yet'}
             </ThemedText>
           </Pressable>
+        );
+      })}
 
-          {invites.length > 0 ? (
-            <>
-              <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Pending invites
-              </ThemedText>
-              {invites.map((invite) => (
-                <ThemedView key={invite.id} style={styles.row}>
-                  <ThemedText>{invite.email}</ThemedText>
-                  <ThemedText themeColor="textSecondary">{invite.role}</ThemedText>
-                  <Pressable onPress={() => revokeInvite(invite.id).then(load)}>
-                    <ThemedText themeColor="error" type="small">
-                      Revoke
-                    </ThemedText>
-                  </Pressable>
-                </ThemedView>
-              ))}
-            </>
-          ) : null}
-        </>
+      {canLog ? (
+        <Pressable
+          style={styles.incidentButton}
+          onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}>
+          <ThemedText themeColor="error" type="smallBold">
+            Log an accident / incident
+          </ThemedText>
+        </Pressable>
       ) : null}
+
+      <Link href={{ pathname: '/pets/[id]/history', params: { id: pet.id } }} style={styles.historyLink}>
+        <ThemedText type="link" themeColor="tint">
+          View history
+        </ThemedText>
+      </Link>
 
       {error ? (
         <ThemedText themeColor="error" style={styles.message}>
           {error}
+        </ThemedText>
+      ) : null}
+      {isLoading ? (
+        <ThemedText themeColor="textSecondary" type="small" style={styles.message}>
+          Refreshing…
         </ThemedText>
       ) : null}
     </ThemedView>
@@ -174,26 +132,27 @@ export default function PetDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8 },
+  container: { flex: 1, padding: 16, gap: 12 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 28 },
-  sectionTitle: { marginTop: 20, marginBottom: 4 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    gap: 8,
+  tile: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    gap: 4,
   },
-  roleRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
-  roleOption: { paddingVertical: 4 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
+  tileOverdue: {
+    borderColor: '#D33A3A',
+  },
+  incidentButton: {
     padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D33A3A',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 4,
   },
+  historyLink: { alignSelf: 'center', marginTop: 12 },
   message: { textAlign: 'center', marginTop: 12 },
 });

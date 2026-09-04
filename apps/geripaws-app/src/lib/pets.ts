@@ -52,6 +52,20 @@ export async function fetchPet(petId: string): Promise<Pet> {
   return data as Pet;
 }
 
+export async function fetchMyRole(petId: string): Promise<PetRole | null> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+
+  const { data, error } = await supabase
+    .from("pet_members")
+    .select("role")
+    .eq("pet_id", petId)
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.role as PetRole | undefined) ?? null;
+}
+
 export async function fetchPetMembers(petId: string): Promise<PetMember[]> {
   const { data, error } = await supabase
     .from("pet_members")

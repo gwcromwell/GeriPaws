@@ -37,3 +37,59 @@ export interface PetInvite {
   created_at: string;
   expires_at: string;
 }
+
+export type HabitType = "walk" | "water" | "food" | "incident";
+
+export type EliminationResult = "pee" | "poop" | "both" | "none";
+export type StoolQuality = "normal" | "soft" | "diarrhea" | "hard" | "bloody";
+export type AppetiteLevel = "normal" | "reduced" | "refused" | "increased";
+export type IncidentCategory =
+  | "urine"
+  | "stool"
+  | "vomit"
+  | "fall"
+  | "seizure"
+  | "disorientation"
+  | "other";
+export type IncidentSeverity = "mild" | "moderate" | "severe";
+
+export interface WalkDetails {
+  durationMin?: number;
+  elimination?: EliminationResult;
+  stoolQuality?: StoolQuality;
+  diaperNeeded?: boolean;
+  diaperChanged?: boolean;
+  notes?: string;
+}
+
+export interface WaterDetails {
+  amount?: string;
+  notes?: string;
+}
+
+export interface FoodDetails {
+  amount?: string;
+  appetite?: AppetiteLevel;
+  notes?: string;
+}
+
+export interface IncidentDetails {
+  category: IncidentCategory;
+  location?: string;
+  severity?: IncidentSeverity;
+  durationMin?: number;
+  notes?: string;
+}
+
+export type HabitDetails = WalkDetails | WaterDetails | FoodDetails | IncidentDetails;
+
+export interface HabitLog {
+  id: string;
+  pet_id: string;
+  type: HabitType;
+  occurred_at: string;
+  created_at: string;
+  logged_by: string;
+  details: HabitDetails;
+  photo_url: string | null;
+}

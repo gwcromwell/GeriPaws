@@ -32,3 +32,61 @@ export type SignUpInput = z.infer<typeof signUpSchema>;
 
 export const signInSchema = signUpSchema;
 export type SignInInput = z.infer<typeof signInSchema>;
+
+const notes = z.string().trim().max(500).optional();
+
+export const walkDetailsSchema = z.object({
+  durationMin: z.number().int().positive().max(600).optional(),
+  elimination: z.enum(["pee", "poop", "both", "none"]).optional(),
+  stoolQuality: z.enum(["normal", "soft", "diarrhea", "hard", "bloody"]).optional(),
+  diaperNeeded: z.boolean().optional(),
+  diaperChanged: z.boolean().optional(),
+  notes,
+});
+
+export const waterDetailsSchema = z.object({
+  amount: z.string().trim().max(50).optional(),
+  notes,
+});
+
+export const foodDetailsSchema = z.object({
+  amount: z.string().trim().max(50).optional(),
+  appetite: z.enum(["normal", "reduced", "refused", "increased"]).optional(),
+  notes,
+});
+
+export const incidentDetailsSchema = z.object({
+  category: z.enum(["urine", "stool", "vomit", "fall", "seizure", "disorientation", "other"]),
+  location: z.string().trim().max(100).optional(),
+  severity: z.enum(["mild", "moderate", "severe"]).optional(),
+  durationMin: z.number().int().positive().max(600).optional(),
+  notes,
+});
+
+export const habitLogInputSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("walk"),
+    petId: z.string().uuid(),
+    occurredAt: z.string().datetime({ offset: true }),
+    details: walkDetailsSchema,
+  }),
+  z.object({
+    type: z.literal("water"),
+    petId: z.string().uuid(),
+    occurredAt: z.string().datetime({ offset: true }),
+    details: waterDetailsSchema,
+  }),
+  z.object({
+    type: z.literal("food"),
+    petId: z.string().uuid(),
+    occurredAt: z.string().datetime({ offset: true }),
+    details: foodDetailsSchema,
+  }),
+  z.object({
+    type: z.literal("incident"),
+    petId: z.string().uuid(),
+    occurredAt: z.string().datetime({ offset: true }),
+    details: incidentDetailsSchema,
+  }),
+]);
+export type HabitLogInput = z.infer<typeof habitLogInputSchema>;
