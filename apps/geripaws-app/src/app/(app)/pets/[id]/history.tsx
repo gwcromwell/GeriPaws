@@ -3,12 +3,13 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
 
+import { DoseRow } from '@/components/dose-row';
 import { TabBar } from '@/components/tab-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { deleteHabitLog, fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, summarizeHabitLog } from '@/lib/format';
-import { deleteDose, fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
+import { fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
 
 const TYPE_LABEL: Record<HabitLog['type'], string> = {
@@ -81,7 +82,7 @@ export default function HistoryScreen() {
         <>
           {canEdit && doses.length > 0 ? (
             <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
-              Tap a medication to see its full details
+              Tap Edit to adjust when a dose was given, or Delete to remove it
             </ThemedText>
           ) : null}
           <FlatList
@@ -98,38 +99,18 @@ export default function HistoryScreen() {
               ) : null
             }
             renderItem={({ item }) => (
-              <Pressable
-                style={styles.row}
-                onPress={() =>
+              <DoseRow
+                dose={item}
+                canEdit={canEdit}
+                title={`${item.medication?.name} — ${item.medication?.dosage} ${item.medication?.unit}`}
+                onPressTitle={() =>
                   router.push({
                     pathname: '/pets/[id]/medications/[medicationId]',
                     params: { id, medicationId: item.medication_id },
                   })
-                }>
-                <ThemedView style={styles.rowMain}>
-                  <ThemedText type="smallBold">
-                    {item.medication?.name} — {item.medication?.dosage} {item.medication?.unit}
-                  </ThemedText>
-                  <ThemedText themeColor="textSecondary" type="small">
-                    {formatDateTime(item.scheduled_at)}
-                  </ThemedText>
-                  <ThemedText type="small" themeColor={item.skipped ? 'error' : 'textSecondary'}>
-                    {item.skipped ? 'Skipped' : 'Given'}
-                  </ThemedText>
-                </ThemedView>
-                {canEdit ? (
-                  <Pressable
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      deleteDose(item.id).then(load);
-                    }}
-                    hitSlop={8}>
-                    <ThemedText themeColor="error" type="small">
-                      Delete
-                    </ThemedText>
-                  </Pressable>
-                ) : null}
-              </Pressable>
+                }
+                onChanged={load}
+              />
             )}
           />
         </>

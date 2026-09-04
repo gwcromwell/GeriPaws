@@ -4,10 +4,11 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { useCallback, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { DoseRow } from '@/components/dose-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
-import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
+import { formatDate, summarizeSchedule } from '@/lib/format';
 import { fetchAilment } from '@/lib/ailments';
 import {
   deleteMedication,
@@ -221,12 +222,7 @@ export default function MedicationDetailScreen() {
           Recent doses
         </ThemedText>
         {doses.map((dose) => (
-          <ThemedView key={dose.id} style={styles.row}>
-            <ThemedText type="small">{formatDateTime(dose.scheduled_at)}</ThemedText>
-            <ThemedText type="small" themeColor={dose.skipped ? 'error' : 'textSecondary'}>
-              {dose.skipped ? 'Skipped' : 'Given'}
-            </ThemedText>
-          </ThemedView>
+          <DoseRow key={dose.id} dose={dose} canEdit={canEdit} onChanged={load} />
         ))}
         {doses.length === 0 ? (
           <ThemedText type="small" themeColor="textSecondary">
@@ -266,13 +262,6 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 8 },
   title: { fontSize: 28 },
   sectionTitle: { marginTop: 20, marginBottom: 4 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
   restockRow: { gap: 8, marginTop: 8 },
   secondaryButton: {
     borderWidth: 1,

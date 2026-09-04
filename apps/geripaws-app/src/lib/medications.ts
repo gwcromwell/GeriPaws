@@ -156,6 +156,18 @@ async function decrementRefill(medicationId: string): Promise<void> {
     .eq('medication_id', medicationId);
 }
 
+async function incrementRefill(medicationId: string): Promise<void> {
+  const refill = await fetchRefill(medicationId);
+  if (!refill) return;
+  await supabase
+    .from('medication_refills')
+    .update({
+      count_on_hand: refill.count_on_hand + refill.unit_per_dose,
+      last_updated_at: new Date().toISOString(),
+    })
+    .eq('medication_id', medicationId);
+}
+
 export async function markDoseGiven(
   petId: string,
   medicationId: string,
@@ -208,5 +220,53 @@ export async function markDoseSkipped(
     .select()
     .single();
   if (error) throw error;
+  return data as MedicationDose;
+}
+
+/**
+ * Adjusts when a dose was actually given, or converts a skipped dose into a
+ * given one. Refill count is only adjusted on a skipped->given transition —
+ * moving the time on an already-given dose doesn't change what was consumed.
+ */
+export async function updateDoseGivenAt(id: string, givenAt: Date): Promise<MedicationDose> {
+  const { data: existing, error: fetchError } = await supabase
+    .from('medication_doses')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (fetchError) throw fetchError;
+  const wasSkipped = (existing as MedicationDose).skipped;
+
+  const { data, error } = await supabase
+    .from('medication_doses')
+    .update({ given_at: givenAt.toISOString(), skipped: false })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+
+  if (wasSkipped) await decrementRefill((existing as MedicationDose).medication_id);
+  return data as MedicationDose;
+}
+
+/** Converts a given dose into a skipped one, restoring its refill count if it had decremented one. */
+export async function updateDoseSkipped(id: string): Promise<MedicationDose> {
+  const { data: existing, error: fetchError } = await supabase
+    .from('medication_doses')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (fetchError) throw fetchError;
+  const wasGiven = !(existing as MedicationDose).skipped;
+
+  const { data, error } = await supabase
+    .from('medication_doses')
+    .update({ given_at: null, skipped: true })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+
+  if (wasGiven) await incrementRefill((existing as MedicationDose).medication_id);
   return data as MedicationDose;
 }
