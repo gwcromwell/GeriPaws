@@ -90,3 +90,78 @@ export const habitLogInputSchema = z.discriminatedUnion("type", [
   }),
 ]);
 export type HabitLogInput = z.infer<typeof habitLogInputSchema>;
+
+const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24-hour)");
+
+export const ailmentStatusSchema = z.enum(["active", "monitoring", "resolved"]);
+
+export const createAilmentSchema = z.object({
+  petId: z.string().uuid(),
+  name: z.string().trim().min(1, "Name is required").max(120),
+  diagnosedAt: z.string().date().optional(),
+  diagnosingVet: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+export type CreateAilmentInput = z.infer<typeof createAilmentSchema>;
+
+export const updateAilmentSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  status: ailmentStatusSchema.optional(),
+  diagnosedAt: z.string().date().optional(),
+  diagnosingVet: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+export type UpdateAilmentInput = z.infer<typeof updateAilmentSchema>;
+
+export const createAilmentNoteSchema = z.object({
+  ailmentId: z.string().uuid(),
+  occurredAt: z.string().datetime({ offset: true }),
+  note: z.string().trim().min(1, "Note can't be empty").max(1000),
+});
+export type CreateAilmentNoteInput = z.infer<typeof createAilmentNoteSchema>;
+
+export const createVetQuestionSchema = z.object({
+  ailmentId: z.string().uuid(),
+  question: z.string().trim().min(1, "Question can't be empty").max(500),
+});
+export type CreateVetQuestionInput = z.infer<typeof createVetQuestionSchema>;
+
+export const answerVetQuestionSchema = z.object({
+  answer: z.string().trim().min(1, "Answer can't be empty").max(1000),
+});
+export type AnswerVetQuestionInput = z.infer<typeof answerVetQuestionSchema>;
+
+export const medicationScheduleSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("times_per_day"), times: z.array(timeString).min(1).max(6) }),
+  z.object({ kind: z.literal("interval_hours"), intervalHours: z.number().int().min(1).max(48), startTime: timeString }),
+  z.object({
+    kind: z.literal("specific_days"),
+    daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+    times: z.array(timeString).min(1).max(6),
+  }),
+  z.object({ kind: z.literal("as_needed") }),
+]);
+export type MedicationScheduleInput = z.infer<typeof medicationScheduleSchema>;
+
+export const createMedicationSchema = z.object({
+  petId: z.string().uuid(),
+  ailmentId: z.string().uuid().optional(),
+  name: z.string().trim().min(1, "Name is required").max(120),
+  dosage: z.string().trim().min(1, "Dosage is required").max(50),
+  unit: z.string().trim().min(1, "Unit is required").max(30),
+  route: z.string().trim().max(50).optional(),
+  schedule: medicationScheduleSchema,
+  activeFrom: z.string().date().optional(),
+  activeUntil: z.string().date().optional(),
+});
+export type CreateMedicationInput = z.infer<typeof createMedicationSchema>;
+
+export const updateMedicationSchema = createMedicationSchema.omit({ petId: true }).partial();
+export type UpdateMedicationInput = z.infer<typeof updateMedicationSchema>;
+
+export const refillSetupSchema = z.object({
+  countOnHand: z.number().nonnegative(),
+  unitPerDose: z.number().positive().default(1),
+  lowStockThreshold: z.number().nonnegative().default(7),
+});
+export type RefillSetupInput = z.infer<typeof refillSetupSchema>;

@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
+import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
-import { formatDateTime, QUICK_TIME_OFFSETS } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 
 type Props = {
   value: Date;
@@ -15,21 +16,7 @@ export function OccurredAtField({ value, onChange }: Props) {
       <ThemedText themeColor="textSecondary" type="small">
         Defaults to now — pick how long ago it actually happened
       </ThemedText>
-      <View style={styles.row}>
-        {QUICK_TIME_OFFSETS.map((option) => {
-          const isSelected = Math.abs(Date.now() - option.minutesAgo * 60000 - value.getTime()) < 30000;
-          return (
-            <Pressable
-              key={option.label}
-              onPress={() => onChange(new Date(Date.now() - option.minutesAgo * 60000))}
-              style={[styles.chip, isSelected && styles.chipSelected]}>
-              <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
-                {option.label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+      <QuickTimeChips value={value} onChange={onChange} />
       <ThemedText themeColor="textSecondary" type="small">
         {formatDateTime(value.toISOString())}
       </ThemedText>
@@ -39,16 +26,4 @@ export function OccurredAtField({ value, onChange }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: 6 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  chipSelected: {
-    backgroundColor: '#208AEF',
-    borderColor: '#208AEF',
-  },
 });

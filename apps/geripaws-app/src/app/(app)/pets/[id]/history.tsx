@@ -3,11 +3,13 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
 
+import { DoseRow } from '@/components/dose-row';
 import { TabBar } from '@/components/tab-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { deleteHabitLog, fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, summarizeHabitLog } from '@/lib/format';
+import { fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
 
 const TYPE_LABEL: Record<HabitLog['type'], string> = {
@@ -17,7 +19,7 @@ const TYPE_LABEL: Record<HabitLog['type'], string> = {
   incident: 'Incident',
 };
 
-type Tab = 'all' | HabitType;
+type Tab = 'all' | HabitType | 'medications';
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -25,6 +27,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'water', label: 'Water' },
   { value: 'food', label: 'Food' },
   { value: 'incident', label: 'Incidents' },
+  { value: 'medications', label: 'Meds' },
 ];
 
 export default function HistoryScreen() {
@@ -32,6 +35,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('all');
   const [logs, setLogs] = useState<HabitLog[]>([]);
+  const [doses, setDoses] = useState<MedicationDoseWithMedication[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,12 +44,18 @@ export default function HistoryScreen() {
     if (!id) return;
     setIsLoading(true);
     try {
-      const [logData, roleData] = await Promise.all([
-        fetchHabitLogs(id, 50, tab === 'all' ? undefined : tab),
-        fetchMyRole(id),
-      ]);
-      setLogs(logData);
-      setRole(roleData);
+      if (tab === 'medications') {
+        const [doseData, roleData] = await Promise.all([fetchAllDosesForPet(id, 50), fetchMyRole(id)]);
+        setDoses(doseData);
+        setRole(roleData);
+      } else {
+        const [logData, roleData] = await Promise.all([
+          fetchHabitLogs(id, 50, tab === 'all' ? undefined : tab),
+          fetchMyRole(id),
+        ]);
+        setLogs(logData);
+        setRole(roleData);
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load history');
@@ -67,53 +77,94 @@ export default function HistoryScreen() {
       <TabBar tabs={TABS} value={tab} onChange={setTab} />
       <ThemedView style={styles.body}>
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
-      {canEdit && logs.length > 0 ? (
-        <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
-          Tap an entry to edit it
-        </ThemedText>
-      ) : null}
-      <FlatList
-        data={logs}
-        keyExtractor={(log) => log.id}
-        refreshing={isLoading}
-        onRefresh={load}
-        contentContainerStyle={logs.length === 0 ? styles.emptyContainer : styles.list}
-        ListEmptyComponent={
-          !isLoading ? (
-            <ThemedText themeColor="textSecondary" style={styles.message}>
-              {tab === 'all' ? 'Nothing logged yet.' : `No ${TYPE_LABEL[tab].toLowerCase()} entries yet.`}
+
+      {tab === 'medications' ? (
+        <>
+          {canEdit && doses.length > 0 ? (
+            <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
+              Tap Edit to adjust when a dose was given, or Delete to remove it
             </ThemedText>
-          ) : null
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.row}
-            disabled={!canEdit}
-            onPress={() =>
-              router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: item.type, logId: item.id } })
-            }>
-            <ThemedView style={styles.rowMain}>
-              {tab === 'all' ? <ThemedText type="smallBold">{TYPE_LABEL[item.type]}</ThemedText> : null}
-              <ThemedText themeColor="textSecondary" type="small">
-                {formatDateTime(item.occurred_at)}
-              </ThemedText>
-              <ThemedText type="small">{summarizeHabitLog(item)}</ThemedText>
-            </ThemedView>
-            {canEdit ? (
-              <Pressable
-                onPress={(e) => {
-                  e.stopPropagation();
-                  deleteHabitLog(item.id).then(load);
-                }}
-                hitSlop={8}>
-                <ThemedText themeColor="error" type="small">
-                  Delete
+          ) : null}
+          <FlatList
+            data={doses}
+            keyExtractor={(dose) => dose.id}
+            refreshing={isLoading}
+            onRefresh={load}
+            contentContainerStyle={doses.length === 0 ? styles.emptyContainer : styles.list}
+            ListEmptyComponent={
+              !isLoading ? (
+                <ThemedText themeColor="textSecondary" style={styles.message}>
+                  No medications given or skipped yet.
                 </ThemedText>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <DoseRow
+                dose={item}
+                canEdit={canEdit}
+                title={`${item.medication?.name} — ${item.medication?.dosage} ${item.medication?.unit}`}
+                onPressTitle={() =>
+                  router.push({
+                    pathname: '/pets/[id]/medications/[medicationId]',
+                    params: { id, medicationId: item.medication_id },
+                  })
+                }
+                onChanged={load}
+              />
+            )}
+          />
+        </>
+      ) : (
+        <>
+          {canEdit && logs.length > 0 ? (
+            <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
+              Tap an entry to edit it
+            </ThemedText>
+          ) : null}
+          <FlatList
+            data={logs}
+            keyExtractor={(log) => log.id}
+            refreshing={isLoading}
+            onRefresh={load}
+            contentContainerStyle={logs.length === 0 ? styles.emptyContainer : styles.list}
+            ListEmptyComponent={
+              !isLoading ? (
+                <ThemedText themeColor="textSecondary" style={styles.message}>
+                  {tab === 'all' ? 'Nothing logged yet.' : `No ${TYPE_LABEL[tab].toLowerCase()} entries yet.`}
+                </ThemedText>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                style={styles.row}
+                disabled={!canEdit}
+                onPress={() =>
+                  router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: item.type, logId: item.id } })
+                }>
+                <ThemedView style={styles.rowMain}>
+                  {tab === 'all' ? <ThemedText type="smallBold">{TYPE_LABEL[item.type]}</ThemedText> : null}
+                  <ThemedText themeColor="textSecondary" type="small">
+                    {formatDateTime(item.occurred_at)}
+                  </ThemedText>
+                  <ThemedText type="small">{summarizeHabitLog(item)}</ThemedText>
+                </ThemedView>
+                {canEdit ? (
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      deleteHabitLog(item.id).then(load);
+                    }}
+                    hitSlop={8}>
+                    <ThemedText themeColor="error" type="small">
+                      Delete
+                    </ThemedText>
+                  </Pressable>
+                ) : null}
               </Pressable>
-            ) : null}
-          </Pressable>
-        )}
-      />
+            )}
+          />
+        </>
+      )}
       </ThemedView>
     </ThemedView>
   );
