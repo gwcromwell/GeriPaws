@@ -1,0 +1,22 @@
+node_modules/
+.pnpm-store/
+dist/
+.expo/
+.expo-shared/
+web-build/
+*.log
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
