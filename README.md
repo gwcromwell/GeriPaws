@@ -1,0 +1,120 @@
+# GeriPaws
+
+A multiuser habit, ailment, and quality-of-life tracker for geriatric dogs — one
+codebase that ships as both an iPhone app and a webapp. Multiple caregivers
+(e.g. you and your spouse) can share a single dog, while a completely separate
+household sharing their own dog never sees your data.
+
+Canine-only for now. Built for personal/family use first, architected so it
+could be opened up publicly later without a rewrite.
+
+## Status
+
+| Phase | What it covers | Status |
+| --- | --- | --- |
+| 0 | Auth, dog profiles, sharing/invites, Supabase schema + RLS | ✅ Done |
+| 1 | Daily habit tracker: walk/water/food/incident logging, history, editing | ✅ Done |
+| 2 | Ailments, medications, schedules, refill tracking | ✅ Done |
+| 3 | Quality of Life check-ins (HHHHHMM scale), email reminders | ✅ Done |
+| 4 | Native iOS build (App Store), real push notifications | Not started |
+| 5 | Subscriptions/billing, vet-visit export, condition templates, memorial/archive state | Not started |
+
+## Tech stack
+
+- **App**: [Expo Router](https://docs.expo.dev/router/introduction/) (React
+  Native + `react-native-web`) — one codebase targets iOS and the web.
+- **Backend**: [Supabase](https://supabase.com) — Postgres with Row Level
+  Security for multi-tenancy, Auth, and Edge Functions for scheduled jobs.
+- **Monorepo**: pnpm workspaces.
+- **Language**: TypeScript throughout, including the Deno-based Edge Function.
+
+## Repo structure
+
+```
+apps/geripaws-app/       Expo Router app (mobile + web)
+packages/shared/         Shared types, zod schemas, and pure business logic
+                          (medication schedule math, refill projection, QOL
+                          scoring, timezone handling) — used by the app and
+                          mirrored into the Edge Function below.
+supabase/migrations/     SQL migrations, applied in order via the Supabase
+                          SQL Editor (see "Database setup").
+supabase/functions/      Edge Functions. Currently: send-reminders, an hourly
+                          job that emails caregivers about overdue
+                          medications, low refills, and overdue QOL check-ins.
+```
+
+## Getting started
+
+**Prerequisites**: Node 22 (see `.nvmrc`), pnpm (via `corepack enable pnpm`).
+
+```bash
+pnpm install
+```
+
+Copy the env template and fill in your Supabase project's URL and anon key
+(Supabase dashboard → Settings → API):
+
+```bash
+cp apps/geripaws-app/.env.example apps/geripaws-app/.env
+```
+
+Run it:
+
+```bash
+pnpm web    # or: pnpm --filter geripaws-app ios
+```
+
+## Database setup
+
+Run the files in `supabase/migrations/` **in order** via the Supabase
+dashboard's SQL Editor (they're numbered; there's no CLI-based migration
+runner wired up yet, so apply them manually).
+
+### Reminders Edge Function
+
+`supabase/functions/send-reminders` needs:
+
+1. A `RESEND_API_KEY` secret (Supabase dashboard → Edge Functions → Manage
+   secrets) — used to send reminder emails via [Resend](https://resend.com).
+   The sending domain is hardcoded in the function (`FROM_EMAIL`); update it
+   if you're not using `obi1.nyc`.
+2. Deployed via the Supabase CLI (the dashboard's browser-based function
+   editor has repeatedly mis-bundled this file — CLI deploy is the reliable
+   path):
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <your-project-ref>
+   npx supabase functions deploy send-reminders
+   ```
+3. An hourly cron schedule, set up by running
+   `supabase/migrations/00000000000005_reminders_cron.sql` in the SQL Editor
+   **after** the function is deployed (it references the function's URL).
+
+## Architecture notes
+
+- **Multi-tenancy**: every pet-scoped table is protected by Postgres RLS keyed
+  off the `pet_members` join table via an `is_pet_member()` security-definer
+  function (see `supabase/migrations/00000000000002_rls_policies.sql`). A
+  new pet's creator becomes its owner via an `AFTER INSERT` trigger.
+- **Timezones**: medication schedule times (`"08:00"`) are only meaningful
+  relative to a timezone. Each pet stores an IANA timezone (captured
+  automatically from the creating device), and both the app and the
+  server-side reminders function use the same timezone-aware date math
+  (`packages/shared/src/tz.ts`) to interpret them identically regardless of
+  where the code runs — client device or server, whatever timezone each is
+  physically in.
+- **Shared business logic**: anything that needs to produce the *same*
+  answer on both the client and the reminders Edge Function (due-dose
+  computation, refill run-out projection, QOL scoring) lives in
+  `packages/shared` as pure functions. The Edge Function duplicates a copy of
+  this logic rather than importing it, since Edge Functions deploy as a
+  single self-contained file — keep the two in sync if you change either.
+
+## Known gaps / not yet built
+
+- No native iOS binary yet (Phase 4) — real push notifications need this.
+- No vet-visit summary export, condition templates, or memorial/archive
+  state for a pet's passing (Phase 5).
+- Editing a medication doesn't support reassigning it to a different
+  condition (dose/schedule/refill fields only).
+- Restocking a medication sets an absolute new count rather than "add N."

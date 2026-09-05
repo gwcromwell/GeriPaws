@@ -45,7 +45,7 @@ export default function TodayScreen() {
     setIsLoading(true);
     try {
       const petData = await fetchPet(id);
-      const dayStart = getDayStart(new Date(), petData.day_boundary_hour);
+      const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
       const [roleData, latestData, medications, dosesToday] = await Promise.all([
         fetchMyRole(id),
@@ -57,7 +57,7 @@ export default function TodayScreen() {
       setPet(petData);
       setRole(roleData);
       setLatest(latestData);
-      setDueDoses(computeTodayDueDoses(petData.day_boundary_hour, medications, dosesToday));
+      setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
@@ -120,6 +120,11 @@ export default function TodayScreen() {
           <Link href={{ pathname: '/pets/[id]/ailments', params: { id: pet.id } }}>
             <ThemedText type="link" themeColor="tint">
               Ailments
+            </ThemedText>
+          </Link>
+          <Link href={{ pathname: '/pets/[id]/qol', params: { id: pet.id } }}>
+            <ThemedText type="link" themeColor="tint">
+              QOL
             </ThemedText>
           </Link>
           <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>

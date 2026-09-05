@@ -1,4 +1,6 @@
-import { computeDueTimesForDay, type Medication, type MedicationDose } from '@geripaws/shared';
+import { computeDueTimesForDay, getDayStart, type Medication, type MedicationDose } from '@geripaws/shared';
+
+export { getDayStart };
 
 export type DueDoseStatus = 'due' | 'overdue' | 'given' | 'skipped';
 
@@ -7,13 +9,6 @@ export interface DueDose {
   scheduledAt: Date;
   status: DueDoseStatus;
   dose?: MedicationDose;
-}
-
-export function getDayStart(now: Date, dayBoundaryHour: number): Date {
-  const start = new Date(now);
-  start.setHours(dayBoundaryHour, 0, 0, 0);
-  if (start > now) start.setDate(start.getDate() - 1);
-  return start;
 }
 
 function isMedicationActive(medication: Medication, now: Date): boolean {
@@ -27,19 +22,19 @@ function isMedicationActive(medication: Medication, now: Date): boolean {
 }
 
 export function computeTodayDueDoses(
-  dayBoundaryHour: number,
+  pet: { day_boundary_hour: number; timezone: string },
   medications: Medication[],
   dosesToday: MedicationDose[],
   now: Date = new Date()
 ): DueDose[] {
-  const dayStart = getDayStart(now, dayBoundaryHour);
+  const dayStart = getDayStart(now, pet.day_boundary_hour, pet.timezone);
   const result: DueDose[] = [];
 
   for (const medication of medications) {
     if (medication.schedule.kind === 'as_needed') continue;
     if (!isMedicationActive(medication, now)) continue;
 
-    for (const scheduledAt of computeDueTimesForDay(medication.schedule, dayStart)) {
+    for (const scheduledAt of computeDueTimesForDay(medication.schedule, dayStart, pet.timezone)) {
       // Compare by instant, not string equality — Postgres returns timestamptz as
       // "...+00:00" while JS's toISOString() produces "...Z", so a round-tripped
       // timestamp never matches its original string even for the same instant.

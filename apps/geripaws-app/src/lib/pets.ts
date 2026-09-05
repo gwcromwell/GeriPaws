@@ -37,6 +37,10 @@ export async function createPet(input: {
       sex: input.sex ?? null,
       weight_unit: input.weightUnit,
       day_boundary_hour: input.dayBoundaryHour,
+      // Medication schedule times ("08:00") are only meaningful relative to a
+      // timezone — capture the creating device's zone so both the app and any
+      // server-side job interpret them the same way, regardless of where they run.
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       created_by: userData.user.id,
     })
     .select()

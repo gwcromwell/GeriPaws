@@ -13,6 +13,8 @@ export interface Pet {
   photo_url: string | null;
   status: PetStatus;
   day_boundary_hour: number;
+  /** IANA timezone (e.g. "America/New_York") — what medication schedule times are relative to. */
+  timezone: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -178,4 +180,51 @@ export interface MedicationRefill {
   unit_per_dose: number;
   low_stock_threshold: number;
   last_updated_at: string;
+}
+
+export type QolCadence = "daily" | "weekly" | "monthly";
+export type QolScaleType = "full" | "quick";
+
+export interface QolSettings {
+  pet_id: string;
+  enabled: boolean;
+  cadence: QolCadence;
+  updated_at: string;
+}
+
+/** The established veterinary end-of-life scale — 7 dimensions, 0-10 each, out of 70. */
+export interface QolFullScores {
+  scale: "full";
+  hurt: number;
+  hunger: number;
+  hydration: number;
+  hygiene: number;
+  happiness: number;
+  mobility: number;
+  moreGoodDaysThanBad: number;
+}
+
+/** A shorter check-in for busy days — 5 dimensions, 0-10 each, normalized onto the same 0-70 scale as "full". */
+export interface QolQuickScores {
+  scale: "quick";
+  comfort: number;
+  appetite: number;
+  happiness: number;
+  mobility: number;
+  overall: number;
+}
+
+export type QolScores = QolFullScores | QolQuickScores;
+
+export interface QolResponse {
+  id: string;
+  pet_id: string;
+  survey_date: string;
+  occurred_at: string;
+  created_at: string;
+  answered_by: string;
+  scores: QolScores;
+  /** Always normalized to a 0-70 scale so full and quick check-ins plot on one trend line. */
+  total_score: number;
+  notes: string | null;
 }
