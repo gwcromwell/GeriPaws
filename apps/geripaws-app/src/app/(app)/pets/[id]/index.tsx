@@ -32,6 +32,7 @@ export default function TodayScreen() {
     water: null,
     food: null,
     incident: null,
+    weight: null,
   });
   const [dueDoses, setDueDoses] = useState<DueDose[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +158,17 @@ export default function TodayScreen() {
           </Pressable>
         );
       })}
+
+      <Link href={{ pathname: '/pets/[id]/weight', params: { id: pet.id } }} asChild>
+        <Pressable style={styles.tile}>
+          <ThemedText type="subtitle">Weight</ThemedText>
+          <ThemedText themeColor="textSecondary">
+            {latest.weight
+              ? `${(latest.weight.details as { value: number; unit: string }).value} ${(latest.weight.details as { value: number; unit: string }).unit} · ${formatRelativeTime(latest.weight.occurred_at)}`
+              : 'Not logged yet'}
+          </ThemedText>
+        </Pressable>
+      </Link>
 
       {canLog ? (
         <Pressable

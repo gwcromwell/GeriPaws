@@ -40,7 +40,7 @@ export interface PetInvite {
   expires_at: string;
 }
 
-export type HabitType = "walk" | "water" | "food" | "incident";
+export type HabitType = "walk" | "water" | "food" | "incident" | "weight";
 
 export type EliminationResult = "pee" | "poop" | "both" | "none";
 export type StoolQuality = "normal" | "soft" | "diarrhea" | "hard" | "bloody";
@@ -83,7 +83,13 @@ export interface IncidentDetails {
   notes?: string;
 }
 
-export type HabitDetails = WalkDetails | WaterDetails | FoodDetails | IncidentDetails;
+export interface WeightDetails {
+  value: number;
+  unit: "lb" | "kg";
+  notes?: string;
+}
+
+export type HabitDetails = WalkDetails | WaterDetails | FoodDetails | IncidentDetails | WeightDetails;
 
 export interface HabitLog {
   id: string;

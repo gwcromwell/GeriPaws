@@ -34,6 +34,7 @@ function RootNavigator() {
       </Stack.Protected>
 
       <Stack.Screen name="accept-invite" options={{ title: 'Accept invite', presentation: 'modal' }} />
+      <Stack.Screen name="shared/[token]" options={{ title: 'GeriPaws' }} />
     </Stack>
   );
 }

@@ -63,6 +63,12 @@ export const incidentDetailsSchema = z.object({
   notes,
 });
 
+export const weightDetailsSchema = z.object({
+  value: z.number().positive().max(500),
+  unit: z.enum(["lb", "kg"]),
+  notes,
+});
+
 export const habitLogInputSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("walk"),
@@ -87,6 +93,12 @@ export const habitLogInputSchema = z.discriminatedUnion("type", [
     petId: z.string().uuid(),
     occurredAt: z.string().datetime({ offset: true }),
     details: incidentDetailsSchema,
+  }),
+  z.object({
+    type: z.literal("weight"),
+    petId: z.string().uuid(),
+    occurredAt: z.string().datetime({ offset: true }),
+    details: weightDetailsSchema,
   }),
 ]);
 export type HabitLogInput = z.infer<typeof habitLogInputSchema>;

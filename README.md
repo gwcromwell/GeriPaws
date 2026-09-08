@@ -17,7 +17,7 @@ could be opened up publicly later without a rewrite.
 | 2 | Ailments, medications, schedules, refill tracking | ✅ Done |
 | 3 | Quality of Life check-ins (HHHHHMM scale), email reminders | ✅ Done |
 | 4 | Native iOS build (App Store), real push notifications | 🚧 In progress |
-| 5 | Subscriptions/billing, vet-visit export, condition templates, memorial/archive state | Not started |
+| 5 | Weight tracking, condition templates, vet share links, combined timeline | ✅ Partially done — see below |
 
 ## Tech stack
 
@@ -38,9 +38,12 @@ packages/shared/         Shared types, zod schemas, and pure business logic
                           mirrored into the Edge Function below.
 supabase/migrations/     SQL migrations, applied in order via the Supabase
                           SQL Editor (see "Database setup").
-supabase/functions/      Edge Functions. Currently: send-reminders, an hourly
-                          job that emails caregivers about overdue
-                          medications, low refills, and overdue QOL check-ins.
+supabase/functions/      Edge Functions:
+                          - send-reminders: hourly job emailing/pushing
+                            caregivers about overdue medications, low
+                            refills, and overdue QOL check-ins.
+                          - get-shared-pet: public (no auth), read-only
+                            endpoint behind a vet share-link token.
 ```
 
 ## Getting started
@@ -129,6 +132,45 @@ What's still blocked on the accounts above: actually running `eas build`,
 installing on a physical device, and confirming a push notification is
 delivered end-to-end.
 
+## Phase 5: weight tracking, condition templates, vet share links, combined timeline
+
+Billing/subscriptions and the memorial/archive state (both originally scoped
+for Phase 5) are deferred — not urgent for personal use, and billing is
+awkward to build before Phase 4's native app exists anyway. What's done:
+
+- **Weight tracking** — reuses the habit_logs infrastructure (a new `weight`
+  value on the `habit_type` enum) rather than a dedicated table, since
+  structurally it's just another dated observation. Own screen
+  (`pets/[id]/weight.tsx`) with a trend chart; also appears in History's
+  Weight tab and the Today screen.
+- **Condition templates** — `src/lib/condition-templates.ts` pre-fills a
+  condition's name and general monitoring notes when adding an ailment.
+  Deliberately never suggests specific drugs or dosages — that stays the
+  vet's call, entered manually in the Medications form.
+- **Vet share links** — `pet_share_links` table (owner-only via RLS) plus the
+  public `get-shared-pet` Edge Function and a public `/shared/[token]` page
+  (outside the authenticated route group). A vet with the link sees active
+  conditions, current medications, and QOL/weight trends — no GeriPaws
+  account needed. Links are time-limited (30 days by default) and revocable
+  from the Ailments screen's "Share with your vet" section (owners only).
+- **Combined timeline** — History gained a "Timeline" tab
+  (`src/lib/timeline.ts`) that merges habit logs, medication doses, QOL
+  check-ins, and ailment notes into one chronologically sorted feed, so
+  patterns across categories are visible at a glance. The type-specific tabs
+  (Walk, Meds, etc.) are unchanged for focused views.
+
+`get-shared-pet` needs the same CLI deploy as `send-reminders`, but **must**
+be deployed with JWT verification disabled, since a vet with the link has no
+Supabase session at all:
+
+```bash
+npx supabase functions deploy get-shared-pet --no-verify-jwt
+```
+
+And its migration, like the others, is applied via the SQL Editor:
+`supabase/migrations/00000000000009_pet_share_links.sql` (weight tracking's
+enum addition is `00000000000008_weight_tracking.sql`).
+
 ## Architecture notes
 
 - **Multi-tenancy**: every pet-scoped table is protected by Postgres RLS keyed
@@ -154,8 +196,11 @@ delivered end-to-end.
 - No native iOS binary yet — push notification groundwork (Phase 4) is in
   place, but delivering a real push requires an Apple Developer account, an
   EAS build, and installing on a physical device (none of which exist yet).
-- No vet-visit summary export, condition templates, or memorial/archive
-  state for a pet's passing (Phase 5).
+- No vet-visit summary export, subscriptions/billing, or memorial/archive
+  state for a pet's passing (deferred Phase 5 items).
 - Editing a medication doesn't support reassigning it to a different
   condition (dose/schedule/refill fields only).
 - Restocking a medication sets an absolute new count rather than "add N."
+- Vet share links display a proper copyable URL on web (using the page's own
+  origin), but native has no fixed production web domain to build one from
+  yet — copy/share on native shows a placeholder path until that's decided.

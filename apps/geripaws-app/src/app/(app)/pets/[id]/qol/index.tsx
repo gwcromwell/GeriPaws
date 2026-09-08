@@ -1,10 +1,10 @@
 import type { PetRole, QolResponse, QolSettings } from '@geripaws/shared';
-import { computeQolDueStatus, computeQolTrend } from '@geripaws/shared';
+import { computeQolDueStatus, computeQolTrend, QOL_FULL_MAX } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
-import { QolTrendChart } from '@/components/qol-trend-chart';
+import { TrendChart } from '@/components/trend-chart';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { formatDate } from '@/lib/format';
@@ -135,7 +135,12 @@ export default function QolScreen() {
           </ThemedText>
         )}
 
-        {responses.length > 1 ? <QolTrendChart responses={responses} /> : null}
+        {responses.length > 1 ? (
+          <TrendChart
+            points={responses.map((r) => ({ id: r.id, date: r.survey_date, value: r.total_score }))}
+            maxValue={QOL_FULL_MAX}
+          />
+        ) : null}
 
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/new', params: { id } }} asChild>

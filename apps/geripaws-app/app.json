@@ -12,7 +12,9 @@
       "bundleIdentifier": "nyc.obi1.geripaws",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -49,6 +51,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "22472888-7845-41e8-9e4b-b2e629de8636"
+      }
     }
   }
 }

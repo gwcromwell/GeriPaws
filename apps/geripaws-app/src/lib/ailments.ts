@@ -62,6 +62,22 @@ export async function deleteAilment(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export type AilmentNoteWithAilment = AilmentNote & { ailment: { name: string } };
+
+export async function fetchAllAilmentNotesForPet(petId: string, limit = 50): Promise<AilmentNoteWithAilment[]> {
+  const { data, error } = await supabase
+    .from('ailment_notes')
+    .select('*, ailments(name)')
+    .eq('pet_id', petId)
+    .order('occurred_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const { ailments, ...note } = row as AilmentNote & { ailments: { name: string } };
+    return { ...note, ailment: ailments };
+  });
+}
+
 export async function fetchAilmentNotes(ailmentId: string): Promise<AilmentNote[]> {
   const { data, error } = await supabase
     .from('ailment_notes')

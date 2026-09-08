@@ -9,6 +9,7 @@ import type {
   StoolQuality,
   WalkDetails,
   WaterDetails,
+  WeightDetails,
 } from '@geripaws/shared';
 import { habitLogInputSchema } from '@geripaws/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -28,6 +29,7 @@ const TITLES: Record<HabitType, string> = {
   water: 'Log water',
   food: 'Log food',
   incident: 'Log an accident / incident',
+  weight: 'Log weight',
 };
 
 const EDIT_TITLES: Record<HabitType, string> = {
@@ -35,6 +37,7 @@ const EDIT_TITLES: Record<HabitType, string> = {
   water: 'Edit water',
   food: 'Edit food',
   incident: 'Edit incident',
+  weight: 'Edit weight',
 };
 
 export default function LogHabitScreen() {
@@ -66,6 +69,10 @@ export default function LogHabitScreen() {
   const [severity, setSeverity] = useState<IncidentSeverity>();
   const [incidentDurationMin, setIncidentDurationMin] = useState('');
 
+  // weight fields
+  const [weightValue, setWeightValue] = useState('');
+  const [weightUnit, setWeightUnit] = useState<'lb' | 'kg'>('lb');
+
   useEffect(() => {
     if (!logId) return;
     let cancelled = false;
@@ -96,6 +103,10 @@ export default function LogHabitScreen() {
           setLocation(details.location ?? '');
           setSeverity(details.severity);
           setIncidentDurationMin(details.durationMin ? String(details.durationMin) : '');
+        } else if (log.type === 'weight') {
+          const details = log.details as WeightDetails;
+          setWeightValue(String(details.value));
+          setWeightUnit(details.unit);
         }
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load entry'))
@@ -128,6 +139,12 @@ export default function LogHabitScreen() {
           location: location || undefined,
           severity,
           durationMin: incidentDurationMin ? Number(incidentDurationMin) : undefined,
+          notes: notes || undefined,
+        };
+      case 'weight':
+        return {
+          value: weightValue ? Number(weightValue) : undefined,
+          unit: weightUnit,
           notes: notes || undefined,
         };
       default:
@@ -308,6 +325,27 @@ export default function LogHabitScreen() {
             keyboardType="number-pad"
             value={incidentDurationMin}
             onChangeText={setIncidentDurationMin}
+          />
+        </>
+      ) : null}
+
+      {type === 'weight' ? (
+        <>
+          <ThemedTextInput
+            label="Weight"
+            placeholder="e.g. 42.5"
+            keyboardType="decimal-pad"
+            value={weightValue}
+            onChangeText={setWeightValue}
+          />
+          <ChoiceChips
+            label="Unit"
+            options={[
+              { value: 'lb', label: 'lb' },
+              { value: 'kg', label: 'kg' },
+            ]}
+            value={weightUnit}
+            onChange={(v) => v && setWeightUnit(v)}
           />
         </>
       ) : null}

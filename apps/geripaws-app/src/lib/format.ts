@@ -6,6 +6,7 @@ import type {
   WalkDetails,
   WaterDetails,
   FoodDetails,
+  WeightDetails,
 } from '@geripaws/shared';
 
 export const OVERDUE_HOURS: Record<Extract<HabitType, 'walk' | 'water' | 'food'>, number> = {
@@ -29,7 +30,7 @@ export function formatRelativeTime(isoDate: string): string {
 }
 
 export function isOverdue(isoDate: string, type: HabitType): boolean {
-  if (type === 'incident') return false;
+  if (type === 'incident' || type === 'weight') return false;
   const hoursSince = (Date.now() - new Date(isoDate).getTime()) / 3_600_000;
   return hoursSince >= OVERDUE_HOURS[type];
 }
@@ -74,6 +75,9 @@ export function summarizeHabitLog(log: HabitLog): string {
     parts.push(details.category);
     if (details.severity) parts.push(SEVERITY_LABEL[details.severity]);
     if (details.durationMin) parts.push(`${details.durationMin} min`);
+  } else if (log.type === 'weight') {
+    const details = log.details as WeightDetails;
+    parts.push(`${details.value} ${details.unit}`);
   }
 
   return parts.length > 0 ? parts.join(' · ') : 'No details';
