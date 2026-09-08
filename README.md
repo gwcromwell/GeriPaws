@@ -16,7 +16,7 @@ could be opened up publicly later without a rewrite.
 | 1 | Daily habit tracker: walk/water/food/incident logging, history, editing | ✅ Done |
 | 2 | Ailments, medications, schedules, refill tracking | ✅ Done |
 | 3 | Quality of Life check-ins (HHHHHMM scale), email reminders | ✅ Done |
-| 4 | Native iOS build (App Store), real push notifications | Not started |
+| 4 | Native iOS build (App Store), real push notifications | 🚧 In progress |
 | 5 | Subscriptions/billing, vet-visit export, condition templates, memorial/archive state | Not started |
 
 ## Tech stack
@@ -90,6 +90,45 @@ runner wired up yet, so apply them manually).
    `supabase/migrations/00000000000005_reminders_cron.sql` in the SQL Editor
    **after** the function is deployed (it references the function's URL).
 
+## Phase 4: native iOS build + push notifications
+
+Requires two accounts that don't exist yet as of this writing:
+
+- **Apple Developer Program** (developer.apple.com/programs/enroll, $99/year,
+  Individual enrollment) — needed to build a real device binary, get push
+  notifications working, and submit to TestFlight/the App Store.
+- **Expo/EAS account** (expo.dev/signup, free) — handles building and
+  submitting the iOS app.
+
+Once both exist:
+
+```bash
+npx eas login
+npx eas build:configure          # links the project, fills in extra.eas.projectId
+npx eas build --platform ios --profile development
+```
+
+The app already has the account-independent pieces in place:
+
+- `push_tokens` table (`supabase/migrations/00000000000007_push_tokens.sql`)
+  — one row per device per user, RLS-locked to that user only.
+- `expo-notifications` installed and configured (`app.json` plugin entry,
+  `ios.bundleIdentifier: "nyc.obi1.geripaws"`, background remote-notification
+  mode).
+- `src/lib/push.ts` — requests permission, gets the Expo push token, and
+  saves it to `push_tokens`. Registered once on entering the authenticated
+  app (`(app)/_layout.tsx`). No-ops safely (no crash, just a console warning)
+  on the Simulator or before `extra.eas.projectId` exists.
+- `supabase/functions/send-reminders` already sends push notifications
+  alongside email wherever tokens exist for a pet's caregivers — same
+  overdue-medication/low-refill/overdue-QOL triggers, same once-per-day
+  dedup. Nothing else to wire up once a real device is registered.
+- `eas.json` — development/preview/production build profiles.
+
+What's still blocked on the accounts above: actually running `eas build`,
+installing on a physical device, and confirming a push notification is
+delivered end-to-end.
+
 ## Architecture notes
 
 - **Multi-tenancy**: every pet-scoped table is protected by Postgres RLS keyed
@@ -112,7 +151,9 @@ runner wired up yet, so apply them manually).
 
 ## Known gaps / not yet built
 
-- No native iOS binary yet (Phase 4) — real push notifications need this.
+- No native iOS binary yet — push notification groundwork (Phase 4) is in
+  place, but delivering a real push requires an Apple Developer account, an
+  EAS build, and installing on a physical device (none of which exist yet).
 - No vet-visit summary export, condition templates, or memorial/archive
   state for a pet's passing (Phase 5).
 - Editing a medication doesn't support reassigning it to a different

@@ -197,6 +197,37 @@ async function sendEmail(to: string[], subject: string, html: string): Promise<v
   });
 }
 
+/**
+ * Push notifications are Phase 4 work-in-progress: this queries whatever
+ * tokens exist and sends to them, but no tokens will exist until the app has
+ * a real EAS project ID and has been built/installed on a device with Apple
+ * push credentials configured (see README). Harmless no-op until then.
+ */
+async function getPushTokens(petId: string): Promise<string[]> {
+  const { data: members } = await supabase
+    .from("pet_members")
+    .select("user_id")
+    .eq("pet_id", petId)
+    .in("role", ["owner", "caregiver"]);
+  if (!members) return [];
+
+  const tokens: string[] = [];
+  for (const member of members) {
+    const { data } = await supabase.from("push_tokens").select("token").eq("user_id", member.user_id);
+    for (const row of data ?? []) tokens.push(row.token);
+  }
+  return tokens;
+}
+
+async function sendPush(tokens: string[], title: string, body: string): Promise<void> {
+  if (tokens.length === 0) return;
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(tokens.map((to) => ({ to, title, body, sound: "default" }))),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -205,9 +236,10 @@ Deno.serve(async () => {
   const now = new Date();
   const { data: pets, error: petsError } = await supabase.from("pets").select("*").eq("status", "active");
   if (petsError) return new Response(petsError.message, { status: 500 });
-  if (!pets) return new Response(JSON.stringify({ petsChecked: 0, emailsSent: 0 }), { status: 200 });
+  if (!pets) return new Response(JSON.stringify({ petsChecked: 0, emailsSent: 0, pushSent: 0 }), { status: 200 });
 
   let emailsSent = 0;
+  let pushSent = 0;
 
   for (const pet of pets) {
     const timeZone = pet.timezone || "UTC";
@@ -294,19 +326,26 @@ Deno.serve(async () => {
 
     if (issues.length === 0) continue;
 
-    const emails = await getRecipientEmails(pet.id);
-    if (emails.length === 0) continue;
+    const [emails, pushTokens] = await Promise.all([getRecipientEmails(pet.id), getPushTokens(pet.id)]);
 
-    const html = `
-      <h2>GeriPaws reminder for ${pet.name}</h2>
-      <ul>${issues.map((issue) => `<li>${issue}</li>`).join("")}</ul>
-      <p>Open GeriPaws to take care of these.</p>
-    `;
-    await sendEmail(emails, `GeriPaws reminder: ${pet.name}`, html);
-    emailsSent++;
+    if (emails.length > 0) {
+      const html = `
+        <h2>GeriPaws reminder for ${pet.name}</h2>
+        <ul>${issues.map((issue) => `<li>${issue}</li>`).join("")}</ul>
+        <p>Open GeriPaws to take care of these.</p>
+      `;
+      await sendEmail(emails, `GeriPaws reminder: ${pet.name}`, html);
+      emailsSent++;
+    }
+
+    if (pushTokens.length > 0) {
+      const summary = issues.length === 1 ? issues[0] : `${issues.length} things need attention.`;
+      await sendPush(pushTokens, `GeriPaws reminder: ${pet.name}`, summary);
+      pushSent++;
+    }
   }
 
-  return new Response(JSON.stringify({ petsChecked: pets.length, emailsSent }), {
+  return new Response(JSON.stringify({ petsChecked: pets.length, emailsSent, pushSent }), {
     headers: { "Content-Type": "application/json" },
   });
 });

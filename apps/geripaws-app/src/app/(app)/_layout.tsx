@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/lib/auth-context';
+import { setupPushNotifications } from '@/lib/push';
 
 function SignOutButton() {
   const { signOut } = useAuth();
@@ -16,6 +18,12 @@ function SignOutButton() {
 }
 
 export default function AppLayout() {
+  useEffect(() => {
+    // Best-effort — no-ops until an EAS project ID and Apple push
+    // credentials exist (see README, Phase 4).
+    setupPushNotifications();
+  }, []);
+
   return (
     <Stack screenOptions={{ headerRight: () => <SignOutButton /> }}>
       <Stack.Screen name="index" options={{ title: 'My Dogs' }} />
