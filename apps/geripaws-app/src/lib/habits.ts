@@ -2,7 +2,7 @@ import type { HabitLog, HabitLogInput, HabitType } from '@geripaws/shared';
 
 import { supabase } from './supabase';
 
-const TILE_TYPES: HabitType[] = ['walk', 'water', 'food'];
+const TILE_TYPES: HabitType[] = ['walk', 'water', 'food', 'weight'];
 
 export async function fetchLatestByType(petId: string): Promise<Record<HabitType, HabitLog | null>> {
   const results = await Promise.all(
@@ -23,6 +23,7 @@ export async function fetchLatestByType(petId: string): Promise<Record<HabitType
     water: null,
     food: null,
     incident: null,
+    weight: null,
   };
 
   results.forEach((result, index) => {

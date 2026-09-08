@@ -7,35 +7,41 @@ import { DoseRow } from '@/components/dose-row';
 import { TabBar } from '@/components/tab-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { TimelineRow } from '@/components/timeline-row';
 import { deleteHabitLog, fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, summarizeHabitLog } from '@/lib/format';
 import { fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
+import { fetchTimeline, type TimelineEntry } from '@/lib/timeline';
 
 const TYPE_LABEL: Record<HabitLog['type'], string> = {
   walk: 'Walk',
   water: 'Water',
   food: 'Food',
   incident: 'Incident',
+  weight: 'Weight',
 };
 
-type Tab = 'all' | HabitType | 'medications';
+type Tab = 'timeline' | 'all' | HabitType | 'medications';
 
 const TABS: { value: Tab; label: string }[] = [
-  { value: 'all', label: 'All' },
+  { value: 'timeline', label: 'Timeline' },
+  { value: 'all', label: 'Habits' },
   { value: 'walk', label: 'Walk' },
   { value: 'water', label: 'Water' },
   { value: 'food', label: 'Food' },
   { value: 'incident', label: 'Incidents' },
+  { value: 'weight', label: 'Weight' },
   { value: 'medications', label: 'Meds' },
 ];
 
 export default function HistoryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: Tab }>();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useState<Tab>(initialTab ?? 'timeline');
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [doses, setDoses] = useState<MedicationDoseWithMedication[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +50,11 @@ export default function HistoryScreen() {
     if (!id) return;
     setIsLoading(true);
     try {
-      if (tab === 'medications') {
+      if (tab === 'timeline') {
+        const [timelineData, roleData] = await Promise.all([fetchTimeline(id, 100), fetchMyRole(id)]);
+        setTimeline(timelineData);
+        setRole(roleData);
+      } else if (tab === 'medications') {
         const [doseData, roleData] = await Promise.all([fetchAllDosesForPet(id, 50), fetchMyRole(id)]);
         setDoses(doseData);
         setRole(roleData);
@@ -78,7 +88,47 @@ export default function HistoryScreen() {
       <ThemedView style={styles.body}>
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
 
-      {tab === 'medications' ? (
+      {tab === 'timeline' ? (
+        <FlatList
+          data={timeline}
+          keyExtractor={(entry) => `${entry.kind}-${entry.id}`}
+          refreshing={isLoading}
+          onRefresh={load}
+          contentContainerStyle={timeline.length === 0 ? styles.emptyContainer : styles.list}
+          ListEmptyComponent={
+            !isLoading ? (
+              <ThemedText themeColor="textSecondary" style={styles.message}>
+                Nothing to show yet.
+              </ThemedText>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <TimelineRow
+              entry={item}
+              onPress={() => {
+                if (item.kind === 'habit') {
+                  router.push({
+                    pathname: '/pets/[id]/log/[type]',
+                    params: { id, type: item.log.type, logId: item.log.id },
+                  });
+                } else if (item.kind === 'dose') {
+                  router.push({
+                    pathname: '/pets/[id]/medications/[medicationId]',
+                    params: { id, medicationId: item.dose.medication_id },
+                  });
+                } else if (item.kind === 'qol') {
+                  router.push({ pathname: '/pets/[id]/qol/new', params: { id, responseId: item.response.id } });
+                } else if (item.kind === 'ailment_note') {
+                  router.push({
+                    pathname: '/pets/[id]/ailments/[ailmentId]',
+                    params: { id, ailmentId: item.note.ailment_id },
+                  });
+                }
+              }}
+            />
+          )}
+        />
+      ) : tab === 'medications' ? (
         <>
           {canEdit && doses.length > 0 ? (
             <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>

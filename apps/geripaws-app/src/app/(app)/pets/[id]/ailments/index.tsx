@@ -1,14 +1,22 @@
 import type { Ailment, AilmentStatus, Medication, PetRole } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { fetchAilments } from '@/lib/ailments';
-import { summarizeSchedule } from '@/lib/format';
+import { formatDate, summarizeSchedule } from '@/lib/format';
 import { fetchMedications } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
+import { createShareLink, fetchShareLinks, revokeShareLink, type PetShareLink } from '@/lib/share-links';
+
+function buildShareUrl(token: string): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/shared/${token}`;
+  }
+  return `[open the web version]/shared/${token}`;
+}
 
 const STATUS_LABEL: Record<AilmentStatus, string> = {
   active: 'Active',
@@ -23,9 +31,12 @@ export default function AilmentsScreen() {
   const router = useRouter();
   const [ailments, setAilments] = useState<Ailment[]>([]);
   const [generalMeds, setGeneralMeds] = useState<Medication[]>([]);
+  const [shareLinks, setShareLinks] = useState<PetShareLink[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isCreatingLink, setIsCreatingLink] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -39,6 +50,9 @@ export default function AilmentsScreen() {
       setAilments(ailmentData);
       setGeneralMeds(medData.filter((m) => m.ailment_id === null));
       setRole(roleData);
+      if (roleData === 'owner') {
+        setShareLinks(await fetchShareLinks(id));
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -54,9 +68,41 @@ export default function AilmentsScreen() {
   );
 
   const canEdit = role === 'owner' || role === 'caregiver';
+  const isOwner = role === 'owner';
+
+  async function handleCreateShareLink() {
+    setIsCreatingLink(true);
+    try {
+      await createShareLink(id);
+      setShareLinks(await fetchShareLinks(id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create link');
+    } finally {
+      setIsCreatingLink(false);
+    }
+  }
+
+  async function handleShareLink(link: PetShareLink) {
+    const url = buildShareUrl(link.token);
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(link.id);
+      setTimeout(() => setCopiedId((current) => (current === link.id ? null : current)), 2000);
+    } else {
+      await Share.share({ message: url });
+    }
+  }
+
+  async function handleRevokeLink(id_: string) {
+    await revokeShareLink(id_);
+    setShareLinks(await fetchShareLinks(id));
+  }
+
+  const activeLinks = shareLinks.filter((l) => !l.revoked && new Date(l.expires_at) > new Date());
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.flex}>
+      <ScrollView contentContainerStyle={styles.container}>
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
 
       {STATUS_ORDER.map((status) => {
@@ -139,12 +185,64 @@ export default function AilmentsScreen() {
           </Link>
         ) : null}
       </ThemedView>
+
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Vet visit summary
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
+          A printable/shareable summary of conditions, medications, recent incidents, and QOL/weight trends.
+        </ThemedText>
+        <Link href={{ pathname: '/pets/[id]/vet-summary', params: { id } }} asChild>
+          <Pressable style={styles.secondaryButton}>
+            <ThemedText themeColor="tint" type="smallBold">
+              View / export summary
+            </ThemedText>
+          </Pressable>
+        </Link>
+      </ThemedView>
+
+      {isOwner ? (
+        <ThemedView style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Share with your vet
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
+            A read-only link showing active conditions, medications, and QOL/weight trends. No account needed to
+            view it.
+          </ThemedText>
+          {activeLinks.map((link) => (
+            <ThemedView key={link.id} style={styles.shareLinkRow}>
+              <ThemedText type="small">Expires {formatDate(link.expires_at)}</ThemedText>
+              <ThemedView style={styles.shareLinkActions}>
+                <Pressable onPress={() => handleShareLink(link)} hitSlop={8}>
+                  <ThemedText type="link" themeColor="tint">
+                    {copiedId === link.id ? 'Copied!' : 'Copy link'}
+                  </ThemedText>
+                </Pressable>
+                <Pressable onPress={() => handleRevokeLink(link.id)} hitSlop={8}>
+                  <ThemedText type="link" themeColor="error">
+                    Revoke
+                  </ThemedText>
+                </Pressable>
+              </ThemedView>
+            </ThemedView>
+          ))}
+          <Pressable style={styles.secondaryButton} onPress={handleCreateShareLink} disabled={isCreatingLink}>
+            <ThemedText themeColor="tint" type="smallBold">
+              {isCreatingLink ? 'Creating…' : '+ Create share link'}
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
+      ) : null}
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8 },
+  flex: { flex: 1 },
+  container: { padding: 16, gap: 8 },
   section: { gap: 4, marginTop: 16 },
   sectionTitle: { marginBottom: 2 },
   hint: { marginBottom: 4 },
@@ -155,6 +253,16 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     gap: 2,
   },
+  shareLinkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    gap: 8,
+  },
+  shareLinkActions: { flexDirection: 'row', gap: 16 },
   addButton: {
     backgroundColor: '#208AEF',
     borderRadius: 8,

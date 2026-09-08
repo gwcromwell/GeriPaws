@@ -1,23 +1,35 @@
 import { createAilmentSchema } from '@geripaws/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { createAilment } from '@/lib/ailments';
+import { CONDITION_TEMPLATES } from '@/lib/condition-templates';
 
 export default function NewAilmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
+  const [templateKey, setTemplateKey] = useState<string>();
   const [name, setName] = useState('');
   const [diagnosedAt, setDiagnosedAt] = useState('');
   const [diagnosingVet, setDiagnosingVet] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function applyTemplate(key: string | undefined) {
+    setTemplateKey(key);
+    const template = CONDITION_TEMPLATES.find((t) => t.key === key);
+    if (template) {
+      setName(template.name);
+      setNotes(template.notes);
+    }
+  }
 
   async function handleSubmit() {
     const result = createAilmentSchema.safeParse({
@@ -45,8 +57,17 @@ export default function NewAilmentScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.flex}>
+      <ScrollView contentContainerStyle={styles.container}>
       <ThemedText type="subtitle">Add a condition</ThemedText>
+
+      <ChoiceChips
+        label="Start from a template"
+        helperText="Optional — fills in the name and general monitoring notes below, which you can edit. Never fills in medications or dosages; that's always your vet's call."
+        options={CONDITION_TEMPLATES.map((t) => ({ value: t.key, label: t.name }))}
+        value={templateKey}
+        onChange={applyTemplate}
+      />
 
       <ThemedTextInput
         label="Condition"
@@ -89,12 +110,14 @@ export default function NewAilmentScreen() {
           {isSubmitting ? 'Saving…' : 'Save condition'}
         </ThemedText>
       </Pressable>
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 16 },
+  flex: { flex: 1 },
+  container: { padding: 24, gap: 16 },
   button: {
     backgroundColor: '#208AEF',
     borderRadius: 8,

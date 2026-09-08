@@ -32,6 +32,7 @@ export default function TodayScreen() {
     water: null,
     food: null,
     incident: null,
+    weight: null,
   });
   const [dueDoses, setDueDoses] = useState<DueDose[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +46,7 @@ export default function TodayScreen() {
     setIsLoading(true);
     try {
       const petData = await fetchPet(id);
-      const dayStart = getDayStart(new Date(), petData.day_boundary_hour);
+      const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
       const [roleData, latestData, medications, dosesToday] = await Promise.all([
         fetchMyRole(id),
@@ -57,7 +58,7 @@ export default function TodayScreen() {
       setPet(petData);
       setRole(roleData);
       setLatest(latestData);
-      setDueDoses(computeTodayDueDoses(petData.day_boundary_hour, medications, dosesToday));
+      setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
@@ -122,6 +123,11 @@ export default function TodayScreen() {
               Ailments
             </ThemedText>
           </Link>
+          <Link href={{ pathname: '/pets/[id]/qol', params: { id: pet.id } }}>
+            <ThemedText type="link" themeColor="tint">
+              QOL
+            </ThemedText>
+          </Link>
           <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
             <ThemedText type="link" themeColor="tint">
               Sharing
@@ -152,6 +158,17 @@ export default function TodayScreen() {
           </Pressable>
         );
       })}
+
+      <Link href={{ pathname: '/pets/[id]/weight', params: { id: pet.id } }} asChild>
+        <Pressable style={styles.tile}>
+          <ThemedText type="subtitle">Weight</ThemedText>
+          <ThemedText themeColor="textSecondary">
+            {latest.weight
+              ? `${(latest.weight.details as { value: number; unit: string }).value} ${(latest.weight.details as { value: number; unit: string }).unit} · ${formatRelativeTime(latest.weight.occurred_at)}`
+              : 'Not logged yet'}
+          </ThemedText>
+        </Pressable>
+      </Link>
 
       {canLog ? (
         <Pressable

@@ -63,6 +63,12 @@ export const incidentDetailsSchema = z.object({
   notes,
 });
 
+export const weightDetailsSchema = z.object({
+  value: z.number().positive().max(500),
+  unit: z.enum(["lb", "kg"]),
+  notes,
+});
+
 export const habitLogInputSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("walk"),
@@ -87,6 +93,12 @@ export const habitLogInputSchema = z.discriminatedUnion("type", [
     petId: z.string().uuid(),
     occurredAt: z.string().datetime({ offset: true }),
     details: incidentDetailsSchema,
+  }),
+  z.object({
+    type: z.literal("weight"),
+    petId: z.string().uuid(),
+    occurredAt: z.string().datetime({ offset: true }),
+    details: weightDetailsSchema,
   }),
 ]);
 export type HabitLogInput = z.infer<typeof habitLogInputSchema>;
@@ -165,3 +177,42 @@ export const refillSetupSchema = z.object({
   lowStockThreshold: z.number().nonnegative().default(7),
 });
 export type RefillSetupInput = z.infer<typeof refillSetupSchema>;
+
+const qolDimension = z.number().int().min(0).max(10);
+
+export const qolCadenceSchema = z.enum(["daily", "weekly", "monthly"]);
+
+export const qolSettingsSchema = z.object({
+  enabled: z.boolean(),
+  cadence: qolCadenceSchema,
+});
+export type QolSettingsInput = z.infer<typeof qolSettingsSchema>;
+
+export const qolFullScoresSchema = z.object({
+  scale: z.literal("full"),
+  hurt: qolDimension,
+  hunger: qolDimension,
+  hydration: qolDimension,
+  hygiene: qolDimension,
+  happiness: qolDimension,
+  mobility: qolDimension,
+  moreGoodDaysThanBad: qolDimension,
+});
+
+export const qolQuickScoresSchema = z.object({
+  scale: z.literal("quick"),
+  comfort: qolDimension,
+  appetite: qolDimension,
+  happiness: qolDimension,
+  mobility: qolDimension,
+  overall: qolDimension,
+});
+
+export const qolScoresSchema = z.discriminatedUnion("scale", [qolFullScoresSchema, qolQuickScoresSchema]);
+
+export const createQolResponseSchema = z.object({
+  petId: z.string().uuid(),
+  scores: qolScoresSchema,
+  notes: z.string().trim().max(1000).optional(),
+});
+export type CreateQolResponseInput = z.infer<typeof createQolResponseSchema>;
