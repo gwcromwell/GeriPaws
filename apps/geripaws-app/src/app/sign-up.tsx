@@ -54,6 +54,7 @@ export default function SignUpScreen() {
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
+        returnKeyType="next"
         value={email}
         onChangeText={setEmail}
       />
@@ -63,6 +64,8 @@ export default function SignUpScreen() {
         placeholder="Choose a password"
         autoComplete="password-new"
         secureTextEntry
+        returnKeyType="go"
+        onSubmitEditing={handleSubmit}
         value={password}
         onChangeText={setPassword}
       />

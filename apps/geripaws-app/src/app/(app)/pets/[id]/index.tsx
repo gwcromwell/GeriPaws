@@ -14,7 +14,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useTheme, type Theme } from '@/hooks/use-theme';
 import { fetchLatestByType } from '@/lib/habits';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
-import { computeTodayDueDoses, getDayStart, type DueDose } from '@/lib/medication-schedule';
+import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
 import { fetchMyRole, fetchPet } from '@/lib/pets';
 import { fetchQolResponses } from '@/lib/qol';
@@ -423,86 +423,122 @@ function MedicationList({
   onConfirmGive: (medication: Medication, scheduledAt: Date) => void;
   onSkip: (medication: Medication, scheduledAt: Date) => void;
 }) {
+  const [showSettled, setShowSettled] = useState(false);
+
   if (dueDoses.length === 0) return null;
+
+  const { overdue, upcoming, settled } = groupDueDoses(dueDoses);
+
+  function renderDose(due: DueDose, emphasize: boolean) {
+    const key = doseKey(due);
+    const isGiving = givingKey === key;
+    const dotColor = due.status === 'given' ? tokens.good : due.status === 'overdue' ? tokens.overdue : tokens.accent;
+
+    return (
+      <View
+        key={key}
+        style={[
+          styles.doseRow,
+          emphasize
+            ? { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0 }
+            : { backgroundColor: tokens.panel, borderColor: tokens.border },
+        ]}>
+        <View style={styles.doseRowTop}>
+          {emphasize ? null : <View style={[styles.doseDot, { backgroundColor: dotColor }]} />}
+          <View style={styles.flexOne}>
+            <ThemedText type="smallBold" style={emphasize ? { color: tokens.overdue } : undefined}>
+              {due.medication.name} — {due.medication.dosage} {due.medication.unit}
+            </ThemedText>
+            <ThemedText type="small" style={{ color: emphasize || due.status === 'overdue' ? tokens.overdue : tokens.textSecondary }}>
+              {formatTimeOfDay(
+                `${String(due.scheduledAt.getHours()).padStart(2, '0')}:${String(due.scheduledAt.getMinutes()).padStart(2, '0')}`
+              )}
+              {due.status === 'given' ? ' · Given' : due.status === 'skipped' ? ' · Skipped' : due.status === 'overdue' ? ' · Overdue' : ''}
+            </ThemedText>
+          </View>
+          {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (
+            <View style={styles.doseActions}>
+              <Pressable onPress={() => onStartGive(due)} hitSlop={8}>
+                <ThemedText type="link" style={{ color: emphasize ? tokens.overdue : tokens.accent }}>
+                  Give
+                </ThemedText>
+              </Pressable>
+              <Pressable onPress={() => onSkip(due.medication, due.scheduledAt)} hitSlop={8}>
+                <ThemedText type="link" themeColor="textSecondary">
+                  Skip
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+
+        {isGiving ? (
+          <View style={styles.giveForm}>
+            <ThemedText type="small" themeColor="textSecondary">
+              When was it given?
+            </ThemedText>
+            <QuickTimeChips value={givenAtDraft} onChange={onGivenAtChange} />
+            <ThemedText type="small" themeColor="textSecondary">
+              {formatDateTime(givenAtDraft.toISOString())}
+            </ThemedText>
+            <View style={styles.giveFormActions}>
+              <Pressable onPress={onCancelGive} hitSlop={8}>
+                <ThemedText type="link" themeColor="textSecondary">
+                  Cancel
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                style={[styles.confirmButton, { backgroundColor: tokens.accent }]}
+                disabled={isSavingDose}
+                onPress={() => onConfirmGive(due.medication, due.scheduledAt)}>
+                <ThemedText themeColor="background" type="smallBold">
+                  {isSavingDose ? 'Saving…' : 'Confirm'}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <>
       <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 15, marginTop: 8 }}>Medications</ThemedText>
-      {dueDoses.map((due) => {
-        const key = doseKey(due);
-        const isGiving = givingKey === key;
-        const dotColor = due.status === 'given' ? tokens.good : due.status === 'overdue' ? tokens.overdue : tokens.accent;
-        return (
-          <View
-            key={key}
-            style={[
-              styles.doseRow,
-              { backgroundColor: tokens.panel, borderColor: due.status === 'overdue' ? tokens.overdue : tokens.border },
-            ]}>
-            <View style={styles.doseRowTop}>
-              <View style={[styles.doseDot, { backgroundColor: dotColor }]} />
-              <View style={styles.flexOne}>
-                <ThemedText type="smallBold">
-                  {due.medication.name} — {due.medication.dosage} {due.medication.unit}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: due.status === 'overdue' ? tokens.overdue : tokens.textSecondary }}>
-                  {formatTimeOfDay(
-                    `${String(due.scheduledAt.getHours()).padStart(2, '0')}:${String(due.scheduledAt.getMinutes()).padStart(2, '0')}`
-                  )}
-                  {due.status === 'given'
-                    ? ' · Given'
-                    : due.status === 'skipped'
-                      ? ' · Skipped'
-                      : due.status === 'overdue'
-                        ? ' · Overdue'
-                        : ''}
-                </ThemedText>
-              </View>
-              {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (
-                <View style={styles.doseActions}>
-                  <Pressable onPress={() => onStartGive(due)} hitSlop={8}>
-                    <ThemedText type="link" style={{ color: tokens.accent }}>
-                      Give
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable onPress={() => onSkip(due.medication, due.scheduledAt)} hitSlop={8}>
-                    <ThemedText type="link" themeColor="textSecondary">
-                      Skip
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
 
-            {isGiving ? (
-              <View style={styles.giveForm}>
-                <ThemedText type="small" themeColor="textSecondary">
-                  When was it given?
-                </ThemedText>
-                <QuickTimeChips value={givenAtDraft} onChange={onGivenAtChange} />
-                <ThemedText type="small" themeColor="textSecondary">
-                  {formatDateTime(givenAtDraft.toISOString())}
-                </ThemedText>
-                <View style={styles.giveFormActions}>
-                  <Pressable onPress={onCancelGive} hitSlop={8}>
-                    <ThemedText type="link" themeColor="textSecondary">
-                      Cancel
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.confirmButton, { backgroundColor: tokens.accent }]}
-                    disabled={isSavingDose}
-                    onPress={() => onConfirmGive(due.medication, due.scheduledAt)}>
-                    <ThemedText themeColor="background" type="smallBold">
-                      {isSavingDose ? 'Saving…' : 'Confirm'}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              </View>
-            ) : null}
+      {overdue.length > 0 ? (
+        <View style={[styles.overdueBanner, { backgroundColor: tokens.overdue + '17', borderColor: tokens.overdue }]}>
+          <View style={styles.overdueBannerHeader}>
+            <AlertIcon color={tokens.overdue} size={15} />
+            <ThemedText type="smallBold" style={{ color: tokens.overdue }}>
+              {overdue.length} missed {overdue.length === 1 ? 'dose' : 'doses'}
+            </ThemedText>
           </View>
-        );
-      })}
+          {overdue.map((due) => renderDose(due, true))}
+        </View>
+      ) : null}
+
+      {upcoming.length > 0 ? (
+        <>
+          {overdue.length > 0 ? (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.upcomingLabel}>
+              Up next
+            </ThemedText>
+          ) : null}
+          {upcoming.map((due) => renderDose(due, false))}
+        </>
+      ) : null}
+
+      {settled.length > 0 ? (
+        <>
+          <Pressable onPress={() => setShowSettled((v) => !v)} style={styles.settledToggle} hitSlop={8}>
+            <ThemedText type="link" style={{ color: tokens.accent }}>
+              {showSettled ? 'Hide' : 'Show'} {settled.length} completed
+            </ThemedText>
+          </Pressable>
+          {showSettled ? settled.map((due) => renderDose(due, false)) : null}
+        </>
+      ) : null}
     </>
   );
 }
@@ -526,6 +562,10 @@ const styles = StyleSheet.create({
   gdTile: { flexGrow: 1, flexBasis: '45%', borderRadius: 14, padding: 12, gap: 6 },
   gdIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
 
+  overdueBanner: { borderRadius: 12, borderWidth: 1.5, padding: 12, gap: 4 },
+  overdueBannerHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  upcomingLabel: { marginTop: 4 },
+  settledToggle: { marginTop: 4, alignSelf: 'flex-start' },
   doseRow: { padding: 12, borderRadius: 10, borderWidth: 1, gap: 8 },
   doseRowTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   doseDot: { width: 8, height: 8, borderRadius: 4 },

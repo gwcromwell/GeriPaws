@@ -79,6 +79,7 @@ export default function AcceptInviteScreen() {
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
+        returnKeyType="next"
         value={email}
         onChangeText={setEmail}
       />
@@ -88,6 +89,8 @@ export default function AcceptInviteScreen() {
         placeholder={mode === 'sign-up' ? 'Choose a password' : 'Your password'}
         autoComplete={mode === 'sign-up' ? 'password-new' : 'password'}
         secureTextEntry
+        returnKeyType="go"
+        onSubmitEditing={handleSubmit}
         value={password}
         onChangeText={setPassword}
       />

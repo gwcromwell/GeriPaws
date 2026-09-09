@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeTodayDueDoses } from "./medication-schedule";
+import { computeTodayDueDoses, groupDueDoses, type DueDose } from "./medication-schedule";
 import type { Medication, MedicationDose } from "@geripaws/shared";
 
 const PET = { day_boundary_hour: 0, timezone: "America/New_York" };
@@ -95,5 +95,29 @@ describe("computeTodayDueDoses", () => {
     const morning = medication({ id: "med-morning", schedule: { kind: "times_per_day", times: ["07:00"] } });
     const results = computeTodayDueDoses(PET, [evening, morning], [], NOW);
     expect(results.map((r) => r.medication.id)).toEqual(["med-morning", "med-evening"]);
+  });
+});
+
+describe("groupDueDoses", () => {
+  function due(status: DueDose["status"], id: string): DueDose {
+    return { medication: medication({ id }), scheduledAt: NOW, status };
+  }
+
+  it("buckets by status: overdue, upcoming (due), and settled (given + skipped)", () => {
+    const doses = [due("overdue", "a"), due("due", "b"), due("given", "c"), due("skipped", "d"), due("overdue", "e")];
+    const grouped = groupDueDoses(doses);
+    expect(grouped.overdue.map((d) => d.medication.id)).toEqual(["a", "e"]);
+    expect(grouped.upcoming.map((d) => d.medication.id)).toEqual(["b"]);
+    expect(grouped.settled.map((d) => d.medication.id)).toEqual(["c", "d"]);
+  });
+
+  it("preserves the input's chronological order within each bucket", () => {
+    const doses = [due("due", "first"), due("overdue", "second"), due("due", "third")];
+    const grouped = groupDueDoses(doses);
+    expect(grouped.upcoming.map((d) => d.medication.id)).toEqual(["first", "third"]);
+  });
+
+  it("returns empty arrays for an empty input, not undefined buckets", () => {
+    expect(groupDueDoses([])).toEqual({ overdue: [], upcoming: [], settled: [] });
   });
 });

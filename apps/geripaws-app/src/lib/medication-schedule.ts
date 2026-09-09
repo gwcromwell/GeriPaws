@@ -54,3 +54,27 @@ export function computeTodayDueDoses(
 
   return result.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
 }
+
+export interface GroupedDueDoses {
+  /** Past due, nothing logged — the thing a caregiver needs to see first. */
+  overdue: DueDose[];
+  /** Not yet due — the normal, low-urgency list. */
+  upcoming: DueDose[];
+  /** Given or skipped — already handled, no longer actionable. */
+  settled: DueDose[];
+}
+
+/** Buckets an already-time-sorted `DueDose[]` by urgency, preserving that order within each bucket. */
+export function groupDueDoses(dueDoses: DueDose[]): GroupedDueDoses {
+  const overdue: DueDose[] = [];
+  const upcoming: DueDose[] = [];
+  const settled: DueDose[] = [];
+
+  for (const due of dueDoses) {
+    if (due.status === 'overdue') overdue.push(due);
+    else if (due.status === 'given' || due.status === 'skipped') settled.push(due);
+    else upcoming.push(due);
+  }
+
+  return { overdue, upcoming, settled };
+}
