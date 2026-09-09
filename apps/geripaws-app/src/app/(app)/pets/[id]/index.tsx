@@ -89,18 +89,14 @@ export default function TodayScreen() {
       const petData = await fetchPet(id);
       const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
-      const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData, preferences, profileMap, userResult] =
-        await Promise.all([
-          fetchMyRole(id),
-          fetchLatestByType(id),
-          fetchMedications(id),
-          fetchDosesSince(id, dayStart),
-          fetchQolResponses(id, 1),
-          fetchQolSettings(id),
-          fetchMyPreferences(id),
-          fetchProfilesForPet(id),
-          supabase.auth.getUser(),
-        ]);
+      const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
+        fetchMyRole(id),
+        fetchLatestByType(id),
+        fetchMedications(id),
+        fetchDosesSince(id, dayStart),
+        fetchQolResponses(id, 1),
+        fetchQolSettings(id),
+      ]);
 
       setPet(petData);
       setRole(roleData);
@@ -108,10 +104,20 @@ export default function TodayScreen() {
       setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
       setLatestQol(qolResponses[0] ?? null);
       setQolSettings(qolSettingsData);
+      setError(null);
+
+      // Preferences/attribution are enhancements layered on top of the core
+      // screen (and depend on migrations that may not be applied to every
+      // environment yet) — a failure here must never block the screen a
+      // caregiver actually needs to log a dose or a walk.
+      const [preferences, profileMap, userResult] = await Promise.all([
+        fetchMyPreferences(id).catch(() => null),
+        fetchProfilesForPet(id).catch(() => ({})),
+        supabase.auth.getUser().catch(() => ({ data: { user: null } })),
+      ]);
       setMyPreferences(preferences);
       setProfiles(profileMap);
       setMyUserId(userResult.data.user?.id ?? null);
-      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
     } finally {
