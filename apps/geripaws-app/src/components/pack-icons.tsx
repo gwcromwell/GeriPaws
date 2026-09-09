@@ -64,6 +64,14 @@ export function WeightIcon({ size = 18, color = '#000', strokeWidth = 1.8 }: Pac
   );
 }
 
+export function CheckIcon({ size = 18, color = '#000', strokeWidth = 2 }: PackIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4.5 12.5l5 5 10-11" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function AlertIcon({ size = 18, color = '#000', strokeWidth = 1.8 }: PackIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

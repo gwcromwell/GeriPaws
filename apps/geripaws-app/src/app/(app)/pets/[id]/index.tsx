@@ -1,10 +1,10 @@
-import { QOL_FULL_MAX } from '@geripaws/shared';
+import { QOL_FULL_MAX, habitLogInputSchema } from '@geripaws/shared';
 import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AlertIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
+import { AlertIcon, CheckIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
 import { PetAvatar } from '@/components/pet-avatar';
 import { QolRing } from '@/components/qol-ring';
 import { QuickTimeChips } from '@/components/quick-time-chips';
@@ -12,7 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useNow } from '@/hooks/use-now';
 import { useTheme, type Theme } from '@/hooks/use-theme';
-import { fetchLatestByType } from '@/lib/habits';
+import { createHabitLog, fetchLatestByType } from '@/lib/habits';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
 import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
@@ -57,6 +57,10 @@ const HABIT_TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label:
   { type: 'food', label: 'Food', Icon: FoodIcon },
 ];
 
+/** Walk and food can be logged with zero detail beyond "it happened, just
+ * now" — water, weight, and incidents still open the full form. */
+const QUICK_LOGGABLE: ReadonlySet<HabitType> = new Set(['walk', 'food']);
+
 export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -83,6 +87,7 @@ export default function TodayScreen() {
   const [givingKey, setGivingKey] = useState<string | null>(null);
   const [givenAtDraft, setGivenAtDraft] = useState<Date>(new Date());
   const [isSavingDose, setIsSavingDose] = useState(false);
+  const [quickLogging, setQuickLogging] = useState<HabitType | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -159,6 +164,25 @@ export default function TodayScreen() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to record dose');
+    }
+  }
+
+  async function handleQuickLog(type: HabitType) {
+    setQuickLogging(type);
+    setError(null);
+    try {
+      const input = habitLogInputSchema.parse({
+        type,
+        petId: id,
+        occurredAt: new Date().toISOString(),
+        details: {},
+      });
+      await createHabitLog(input);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to log');
+    } finally {
+      setQuickLogging(null);
     }
   }
 
@@ -277,6 +301,8 @@ export default function TodayScreen() {
             showQol={qolSettings?.show_on_today ?? false}
             canLog={canLog}
             onTilePress={goToTile}
+            quickLogging={quickLogging}
+            onQuickLog={handleQuickLog}
             onIncidentPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}
             onEditPress={() => router.push({ pathname: '/pets/[id]/edit', params: { id: pet.id } })}
             doseSection={doseSection}
@@ -288,6 +314,8 @@ export default function TodayScreen() {
             tiles={tiles}
             canLog={canLog}
             onTilePress={goToTile}
+            quickLogging={quickLogging}
+            onQuickLog={handleQuickLog}
             onIncidentPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}
             onEditPress={() => router.push({ pathname: '/pets/[id]/edit', params: { id: pet.id } })}
             doseSection={doseSection}
@@ -322,6 +350,8 @@ function EveningWalkToday({
   tiles,
   canLog,
   onTilePress,
+  quickLogging,
+  onQuickLog,
   onIncidentPress,
   onEditPress,
   doseSection,
@@ -331,6 +361,8 @@ function EveningWalkToday({
   tiles: TileData[];
   canLog: boolean;
   onTilePress: (type: HabitType) => void;
+  quickLogging: HabitType | null;
+  onQuickLog: (type: HabitType) => void;
   onIncidentPress: () => void;
   onEditPress: () => void;
   doseSection: ReactNode;
@@ -348,23 +380,41 @@ function EveningWalkToday({
         </View>
       </Pressable>
 
-      {tiles.map(({ type, label, sub, overdue, Icon }) => (
-        <Pressable
-          key={type}
-          disabled={!canLog}
-          onPress={() => onTilePress(type)}
-          style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
-          <View style={[styles.ewIcon, { backgroundColor: overdue ? tokens.overdue + '22' : tokens.tileBg }]}>
-            <Icon color={overdue ? tokens.overdue : tokens.accentDeep} size={17} />
+      {tiles.map(({ type, label, sub, overdue, Icon }) => {
+        const isQuickLoggable = canLog && QUICK_LOGGABLE.has(type);
+        const isLogging = quickLogging === type;
+        return (
+          <View key={type} style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
+            <Pressable disabled={!canLog} onPress={() => onTilePress(type)} style={styles.ewRowMain}>
+              <View style={[styles.ewIcon, { backgroundColor: overdue ? tokens.overdue + '22' : tokens.tileBg }]}>
+                <Icon color={overdue ? tokens.overdue : tokens.accentDeep} size={17} />
+              </View>
+              <View style={styles.flexOne}>
+                <ThemedText type="smallBold">{label}</ThemedText>
+                <ThemedText
+                  type="small"
+                  style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
+                  {sub}
+                </ThemedText>
+              </View>
+            </Pressable>
+            {isQuickLoggable ? (
+              <Pressable
+                onPress={() => onQuickLog(type)}
+                disabled={isLogging}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Quick log ${label.toLowerCase()} now, no details`}
+                style={[styles.quickLogButton, { borderColor: tokens.accent }]}>
+                <CheckIcon color={tokens.accent} size={13} />
+                <ThemedText type="small" style={{ color: tokens.accent }}>
+                  {isLogging ? 'Logging…' : 'Quick log'}
+                </ThemedText>
+              </Pressable>
+            ) : null}
           </View>
-          <View style={styles.flexOne}>
-            <ThemedText type="smallBold">{label}</ThemedText>
-            <ThemedText type="small" style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
-              {sub}
-            </ThemedText>
-          </View>
-        </Pressable>
-      ))}
+        );
+      })}
 
       {canLog ? <IncidentRow tokens={tokens} onPress={onIncidentPress} /> : null}
 
@@ -382,6 +432,8 @@ function GoodDaysToday({
   showQol,
   canLog,
   onTilePress,
+  quickLogging,
+  onQuickLog,
   onIncidentPress,
   onEditPress,
   doseSection,
@@ -393,6 +445,8 @@ function GoodDaysToday({
   showQol: boolean;
   canLog: boolean;
   onTilePress: (type: HabitType) => void;
+  quickLogging: HabitType | null;
+  onQuickLog: (type: HabitType) => void;
   onIncidentPress: () => void;
   onEditPress: () => void;
   doseSection: ReactNode;
@@ -423,21 +477,41 @@ function GoodDaysToday({
       ) : null}
 
       <View style={styles.gdGrid}>
-        {tiles.map(({ type, label, sub, overdue, Icon }) => (
-          <Pressable
-            key={type}
-            disabled={!canLog}
-            onPress={() => onTilePress(type)}
-            style={[styles.gdTile, { backgroundColor: tokens.panel }, overdue && { borderColor: tokens.overdue, borderWidth: 1.5 }]}>
-            <View style={[styles.gdIcon, { backgroundColor: tokens.accent }]}>
-              <Icon color="#fff" size={15} />
+        {tiles.map(({ type, label, sub, overdue, Icon }) => {
+          const isQuickLoggable = canLog && QUICK_LOGGABLE.has(type);
+          const isLogging = quickLogging === type;
+          return (
+            <View
+              key={type}
+              style={[styles.gdTile, { backgroundColor: tokens.panel }, overdue && { borderColor: tokens.overdue, borderWidth: 1.5 }]}>
+              <Pressable disabled={!canLog} onPress={() => onTilePress(type)}>
+                <View style={[styles.gdIcon, { backgroundColor: tokens.accent }]}>
+                  <Icon color="#fff" size={15} />
+                </View>
+                <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 13 }}>{label}</ThemedText>
+                <ThemedText
+                  type="small"
+                  style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
+                  {sub}
+                </ThemedText>
+              </Pressable>
+              {isQuickLoggable ? (
+                <Pressable
+                  onPress={() => onQuickLog(type)}
+                  disabled={isLogging}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Quick log ${label.toLowerCase()} now, no details`}
+                  style={[styles.gdQuickLogButton, { borderColor: tokens.accent }]}>
+                  <CheckIcon color={tokens.accent} size={12} />
+                  <ThemedText type="small" style={{ color: tokens.accent }}>
+                    {isLogging ? 'Logging…' : 'Quick log'}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
             </View>
-            <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 13 }}>{label}</ThemedText>
-            <ThemedText type="small" style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
-              {sub}
-            </ThemedText>
-          </Pressable>
-        ))}
+          );
+        })}
       </View>
 
       {canLog ? <IncidentRow tokens={tokens} onPress={onIncidentPress} /> : null}
@@ -616,14 +690,34 @@ const styles = StyleSheet.create({
   nameplate: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14, borderBottomWidth: 1, marginBottom: 4 },
   gdNameplate: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
 
-  ewRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1 },
+  ewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1 },
+  ewRowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2 },
   ewIcon: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  quickLogButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
 
   ringWrap: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 16, padding: 14, marginTop: 4 },
 
   gdGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   gdTile: { flexGrow: 1, flexBasis: '45%', borderRadius: 14, padding: 12, gap: 6 },
   gdIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  gdQuickLogButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    marginTop: 2,
+  },
 
   overdueBanner: { borderRadius: 12, borderWidth: 1.5, padding: 12, gap: 4 },
   overdueBannerHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
