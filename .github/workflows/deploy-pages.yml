@@ -18,8 +18,54 @@ jobs:
   verify:
     uses: ./.github/workflows/verify.yml
 
-  build:
+  # Deliberately its own job in this main-only workflow, never in verify.yml —
+  # verify.yml is also called by test.yml on every branch/PR, and nothing
+  # touching the production database may run for those.
+  migrate:
     needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install postgresql client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Apply pending migrations
+        working-directory: supabase/migrations
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # The direct db.<ref>.supabase.co host is IPv6-only; GitHub-hosted
+          # runners' egress for it has been unreliable, so this uses the same
+          # IPv4 session pooler verified working by hand.
+          PGHOST: aws-0-us-west-2.pooler.supabase.com
+          PGPORT: "5432"
+          PGUSER: postgres.iwespdpcopwxdrmwzbsk
+          PGDATABASE: postgres
+          PGSSLMODE: require
+        run: |
+          set -e
+          # Migration files aren't written to be safely re-run (plain ALTER
+          # TABLE ADD COLUMN, not IF NOT EXISTS) — this tracks which have
+          # already been applied so only genuinely new files run each deploy.
+          psql -v ON_ERROR_STOP=1 -c "
+            create table if not exists public._schema_migrations (
+              version text primary key,
+              applied_at timestamptz not null default now()
+            );
+          "
+          for f in $(ls *.sql | sort); do
+            applied=$(psql -tA -c "select 1 from public._schema_migrations where version = '$f';")
+            if [ "$applied" = "1" ]; then
+              echo "skip (already applied): $f"
+            else
+              echo "applying: $f"
+              psql -v ON_ERROR_STOP=1 -f "$f"
+              psql -v ON_ERROR_STOP=1 -c "insert into public._schema_migrations (version) values ('$f');"
+            fi
+          done
+
+  build:
+    needs: [verify, migrate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
