@@ -4,13 +4,13 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { useCallback, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { PackSwitcher } from '@/components/pack-switcher';
 import { AlertIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
 import { PetAvatar } from '@/components/pet-avatar';
 import { QolRing } from '@/components/qol-ring';
 import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useNow } from '@/hooks/use-now';
 import { useTheme, type Theme } from '@/hooks/use-theme';
 import { fetchLatestByType } from '@/lib/habits';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
@@ -61,6 +61,8 @@ export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const tokens = useTheme();
+  // Keeps "3h ago"-style labels on the tiles below from freezing between fetches.
+  useNow(60_000);
   const [pet, setPet] = useState<Pet | null>(null);
   const [role, setRole] = useState<PetRole | null>(null);
   const [latest, setLatest] = useState<Record<HabitType, HabitLog | null>>({
@@ -258,7 +260,6 @@ export default function TodayScreen() {
               </ThemedText>
             </Link>
           </View>
-          <PackSwitcher />
         </View>
 
         {role === 'viewer' ? (

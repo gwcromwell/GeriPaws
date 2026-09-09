@@ -30,8 +30,16 @@ export function ChoiceChips<T extends string>({ label, helperText, options, valu
             <Pressable
               key={option.value}
               onPress={() => onChange(isSelected ? undefined : option.value)}
-              style={[styles.chip, isSelected && styles.chipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
-              <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              style={[
+                styles.chip,
+                isSelected
+                  ? { backgroundColor: theme.tint, borderColor: theme.tint }
+                  : { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
+              ]}>
+              <ThemedText type={isSelected ? 'smallBold' : 'small'} themeColor={isSelected ? 'background' : 'text'}>
+                {isSelected ? '✓ ' : ''}
                 {option.label}
               </ThemedText>
             </Pressable>
@@ -46,14 +54,9 @@ const styles = StyleSheet.create({
   container: { gap: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  chipSelected: {
-    backgroundColor: '#208AEF',
-    borderColor: '#208AEF',
+    borderWidth: 1.5,
   },
 });

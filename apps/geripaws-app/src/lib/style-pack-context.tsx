@@ -7,7 +7,7 @@ const STORAGE_KEY = 'geripaws.stylePack';
 const DEFAULT_PACK: StylePackId = 'evening-walk';
 
 function isStylePackId(value: string | null): value is StylePackId {
-  return value === 'evening-walk' || value === 'good-days';
+  return value === 'evening-walk' || value === 'good-days' || value === 'daylight';
 }
 
 interface StylePackContextValue {

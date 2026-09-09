@@ -35,7 +35,7 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
  * light/dark theme — accent/status colors, tile backgrounds, and display/body
  * fonts. Currently scoped to the Today and Ailments screens.
  */
-export type StylePackId = 'evening-walk' | 'good-days';
+export type StylePackId = 'evening-walk' | 'good-days' | 'daylight';
 
 export interface StylePackColors {
   /** Primary interactive/accent color for this pack. */
@@ -116,6 +116,32 @@ export const StylePacks: Record<StylePackId, StylePack> = {
       panel: '#2A1E1A',
       background: '#120D0A',
       border: '#3A281F',
+    },
+  },
+  daylight: {
+    id: 'daylight',
+    label: 'Daylight',
+    displayFont: 'WorkSans_600SemiBold',
+    bodyFont: 'Karla_400Regular',
+    light: {
+      accent: '#2563EB',
+      accentDeep: '#1D4ED8',
+      overdue: '#C22F2F',
+      good: '#2F8F5B',
+      tileBg: '#EAF1FE',
+      panel: '#FFFFFF',
+      background: '#FFFFFF',
+      border: '#E2E5EA',
+    },
+    dark: {
+      accent: '#5B9BFF',
+      accentDeep: '#8AB6FF',
+      overdue: '#FF6B6B',
+      good: '#4FCB86',
+      tileBg: '#1B2333',
+      panel: '#15181D',
+      background: '#0B0D10',
+      border: '#262B33',
     },
   },
 };

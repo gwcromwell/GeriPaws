@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { ChoiceChips } from '@/components/choice-chips';
+import { PackSwitcher } from '@/components/pack-switcher';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
@@ -90,6 +91,14 @@ export default function PreferencesScreen() {
         <ThemedText themeColor="textSecondary" type="small">
           These are personal to you — other caregivers can set their own.
         </ThemedText>
+
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Appearance
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
+          Saved on this device, across every dog you view here
+        </ThemedText>
+        <PackSwitcher />
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Quick-glance tiles

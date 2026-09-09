@@ -11,9 +11,12 @@ import { formatDateTime, formatRelativeTime } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 
 
+import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
 export default function WeightScreen() {
   const theme = useTheme();
+  // Keeps the "x ago" label on the latest weigh-in from freezing between fetches.
+  useNow(60_000);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [logs, setLogs] = useState<HabitLog[]>([]);
