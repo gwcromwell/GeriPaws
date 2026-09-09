@@ -202,6 +202,8 @@ export interface QolSettings {
   pet_id: string;
   enabled: boolean;
   cadence: QolCadence;
+  /** Whether the Today screen shows a QOL summary passively, or only on demand — off by default. */
+  show_on_today: boolean;
   updated_at: string;
 }
 

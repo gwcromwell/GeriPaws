@@ -5,6 +5,7 @@ import {
   habitLogInputSchema,
   medicationScheduleSchema,
   qolScoresSchema,
+  qolSettingsSchema,
   updatePetSchema,
 } from "./schemas";
 
@@ -166,6 +167,20 @@ describe("medicationScheduleSchema", () => {
 
   it("rejects times_per_day with no times", () => {
     expect(medicationScheduleSchema.safeParse({ kind: "times_per_day", times: [] }).success).toBe(false);
+  });
+});
+
+describe("qolSettingsSchema", () => {
+  it("defaults showOnToday to false when omitted — QOL should stay out of sight unless opted into", () => {
+    const result = qolSettingsSchema.safeParse({ enabled: true, cadence: "weekly" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.showOnToday).toBe(false);
+  });
+
+  it("accepts an explicit opt-in to showing it on Today", () => {
+    const result = qolSettingsSchema.safeParse({ enabled: true, cadence: "weekly", showOnToday: true });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.showOnToday).toBe(true);
   });
 });
 

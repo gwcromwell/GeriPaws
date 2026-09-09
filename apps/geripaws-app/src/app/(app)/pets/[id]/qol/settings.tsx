@@ -18,6 +18,7 @@ export default function QolSettingsScreen() {
 
   const [enabled, setEnabled] = useState(false);
   const [cadence, setCadence] = useState<QolCadence>('weekly');
+  const [showOnToday, setShowOnToday] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,6 +29,7 @@ export default function QolSettingsScreen() {
       if (settings) {
         setEnabled(settings.enabled);
         setCadence(settings.cadence);
+        setShowOnToday(settings.show_on_today);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -41,7 +43,7 @@ export default function QolSettingsScreen() {
   );
 
   async function handleSave() {
-    const result = qolSettingsSchema.safeParse({ enabled, cadence });
+    const result = qolSettingsSchema.safeParse({ enabled, cadence, showOnToday });
     if (!result.success) {
       setError(result.error.issues[0]?.message ?? 'Invalid settings');
       return;
@@ -74,17 +76,30 @@ export default function QolSettingsScreen() {
       />
 
       {enabled ? (
-        <ChoiceChips
-          label="Check-in cadence"
-          helperText="How often you'd like to be prompted for a check-in"
-          options={[
-            { value: 'daily', label: 'Daily' },
-            { value: 'weekly', label: 'Weekly' },
-            { value: 'monthly', label: 'Monthly' },
-          ]}
-          value={cadence}
-          onChange={(v) => v && setCadence(v)}
-        />
+        <>
+          <ChoiceChips
+            label="Check-in cadence"
+            helperText="How often you'd like to be prompted for a check-in"
+            options={[
+              { value: 'daily', label: 'Daily' },
+              { value: 'weekly', label: 'Weekly' },
+              { value: 'monthly', label: 'Monthly' },
+            ]}
+            value={cadence}
+            onChange={(v) => v && setCadence(v)}
+          />
+
+          <ChoiceChips
+            label="Today screen"
+            helperText="QOL can be a heavy thing to see every time you open the app — off keeps it out of sight until you go looking for it"
+            options={[
+              { value: 'show', label: 'Show it there' },
+              { value: 'hide', label: "Keep it off Today" },
+            ]}
+            value={showOnToday ? 'show' : 'hide'}
+            onChange={(v) => setShowOnToday(v === 'show')}
+          />
+        </>
       ) : null}
 
       {error ? (

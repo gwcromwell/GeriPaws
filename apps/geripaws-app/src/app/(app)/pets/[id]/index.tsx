@@ -1,5 +1,5 @@
 import { QOL_FULL_MAX } from '@geripaws/shared';
-import type { HabitLog, HabitType, Medication, Pet, PetRole, QolResponse } from '@geripaws/shared';
+import type { HabitLog, HabitType, Medication, Pet, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -17,7 +17,7 @@ import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverd
 import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
 import { fetchMyRole, fetchPet } from '@/lib/pets';
-import { fetchQolResponses } from '@/lib/qol';
+import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
 
 function IncidentRow({ tokens, onPress }: { tokens: Theme; onPress: () => void }) {
   return (
@@ -70,6 +70,7 @@ export default function TodayScreen() {
   });
   const [dueDoses, setDueDoses] = useState<DueDose[]>([]);
   const [latestQol, setLatestQol] = useState<QolResponse | null>(null);
+  const [qolSettings, setQolSettings] = useState<QolSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [givingKey, setGivingKey] = useState<string | null>(null);
@@ -83,12 +84,13 @@ export default function TodayScreen() {
       const petData = await fetchPet(id);
       const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
-      const [roleData, latestData, medications, dosesToday, qolResponses] = await Promise.all([
+      const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
         fetchMyRole(id),
         fetchLatestByType(id),
         fetchMedications(id),
         fetchDosesSince(id, dayStart),
         fetchQolResponses(id, 1),
+        fetchQolSettings(id),
       ]);
 
       setPet(petData);
@@ -96,6 +98,7 @@ export default function TodayScreen() {
       setLatest(latestData);
       setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
       setLatestQol(qolResponses[0] ?? null);
+      setQolSettings(qolSettingsData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
@@ -228,6 +231,7 @@ export default function TodayScreen() {
             tokens={tokens}
             tiles={tiles}
             latestQol={latestQol}
+            showQol={qolSettings?.show_on_today ?? false}
             canLog={canLog}
             onTilePress={goToTile}
             onIncidentPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}
@@ -332,6 +336,7 @@ function GoodDaysToday({
   tokens,
   tiles,
   latestQol,
+  showQol,
   canLog,
   onTilePress,
   onIncidentPress,
@@ -342,6 +347,7 @@ function GoodDaysToday({
   tokens: Theme;
   tiles: TileData[];
   latestQol: QolResponse | null;
+  showQol: boolean;
   canLog: boolean;
   onTilePress: (type: HabitType) => void;
   onIncidentPress: () => void;
@@ -361,7 +367,7 @@ function GoodDaysToday({
         </View>
       </Pressable>
 
-      {latestQol ? (
+      {showQol && latestQol ? (
         <View style={[styles.ringWrap, { backgroundColor: tokens.panel }]}>
           <QolRing score={latestQol.total_score} max={QOL_FULL_MAX} color={tokens.accent} trackColor={tokens.tileBg} />
           <View style={styles.flexOne}>

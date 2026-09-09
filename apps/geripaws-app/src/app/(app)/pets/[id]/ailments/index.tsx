@@ -144,8 +144,8 @@ export default function AilmentsScreen() {
 
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/ailments/new', params: { id } }} asChild>
-          <Pressable style={StyleSheet.flatten([styles.addButton, { backgroundColor: tokens.accent }])}>
-            <ThemedText themeColor="background" type="smallBold">
+          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
+            <ThemedText style={{ color: tokens.accent }} type="smallBold">
               + Add a condition
             </ThemedText>
           </Pressable>
@@ -181,8 +181,8 @@ export default function AilmentsScreen() {
         ) : null}
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/medications/new', params: { id } }} asChild>
-            <Pressable style={styles.secondaryButton}>
-              <ThemedText themeColor="tint" type="smallBold">
+            <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
+              <ThemedText style={{ color: tokens.accent }} type="smallBold">
                 + Add general medication
               </ThemedText>
             </Pressable>
@@ -274,12 +274,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shareLinkActions: { flexDirection: 'row', gap: 16 },
-  addButton: {
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
   secondaryButton: {
     borderWidth: 1,
     borderRadius: 8,

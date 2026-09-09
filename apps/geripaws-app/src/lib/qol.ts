@@ -12,7 +12,13 @@ export async function fetchQolSettings(petId: string): Promise<QolSettings | nul
 export async function upsertQolSettings(petId: string, input: QolSettingsInput): Promise<QolSettings> {
   const { data, error } = await supabase
     .from('qol_settings')
-    .upsert({ pet_id: petId, enabled: input.enabled, cadence: input.cadence, updated_at: new Date().toISOString() })
+    .upsert({
+      pet_id: petId,
+      enabled: input.enabled,
+      cadence: input.cadence,
+      show_on_today: input.showOnToday,
+      updated_at: new Date().toISOString(),
+    })
     .select()
     .single();
   if (error) throw error;

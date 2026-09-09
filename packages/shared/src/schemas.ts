@@ -203,6 +203,7 @@ export const qolCadenceSchema = z.enum(["daily", "weekly", "monthly"]);
 export const qolSettingsSchema = z.object({
   enabled: z.boolean(),
   cadence: qolCadenceSchema,
+  showOnToday: z.boolean().default(false),
 });
 export type QolSettingsInput = z.infer<typeof qolSettingsSchema>;
 
