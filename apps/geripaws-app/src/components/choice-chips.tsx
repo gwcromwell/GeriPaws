@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/use-theme';
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -13,6 +14,7 @@ type Props<T extends string> = {
 };
 
 export function ChoiceChips<T extends string>({ label, helperText, options, value, onChange }: Props<T>) {
+  const theme = useTheme();
   return (
     <View style={styles.container}>
       <ThemedText type="smallBold">{label}</ThemedText>
@@ -28,7 +30,7 @@ export function ChoiceChips<T extends string>({ label, helperText, options, valu
             <Pressable
               key={option.value}
               onPress={() => onChange(isSelected ? undefined : option.value)}
-              style={[styles.chip, isSelected && styles.chipSelected]}>
+              style={[styles.chip, isSelected && styles.chipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
               <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
                 {option.label}
               </ThemedText>

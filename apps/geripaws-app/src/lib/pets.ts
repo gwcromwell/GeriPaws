@@ -1,4 +1,4 @@
-import type { Pet, PetInvite, PetMember, PetRole } from "@geripaws/shared";
+import type { Pet, PetInvite, PetMember, PetRole, UpdatePetInput } from "@geripaws/shared";
 
 import { supabase } from "./supabase";
 
@@ -22,6 +22,7 @@ export async function createPet(input: {
   breed?: string;
   dob?: string;
   sex?: string;
+  neutered?: boolean;
   weightUnit: "lb" | "kg";
   dayBoundaryHour: number;
 }): Promise<Pet> {
@@ -35,6 +36,7 @@ export async function createPet(input: {
       breed: input.breed ?? null,
       dob: input.dob ?? null,
       sex: input.sex ?? null,
+      neutered: input.neutered ?? null,
       weight_unit: input.weightUnit,
       day_boundary_hour: input.dayBoundaryHour,
       // Medication schedule times ("08:00") are only meaningful relative to a
@@ -54,6 +56,46 @@ export async function fetchPet(petId: string): Promise<Pet> {
   const { data, error } = await supabase.from("pets").select("*").eq("id", petId).single();
   if (error) throw error;
   return data as Pet;
+}
+
+export async function updatePet(petId: string, input: UpdatePetInput): Promise<Pet> {
+  const patch: Record<string, unknown> = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.breed !== undefined) patch.breed = input.breed;
+  if (input.dob !== undefined) patch.dob = input.dob;
+  if (input.sex !== undefined) patch.sex = input.sex;
+  if (input.neutered !== undefined) patch.neutered = input.neutered;
+  if (input.photoUrl !== undefined) patch.photo_url = input.photoUrl;
+  if (input.weightUnit !== undefined) patch.weight_unit = input.weightUnit;
+  if (input.microchipNumber !== undefined) patch.microchip_number = input.microchipNumber;
+  if (input.vetName !== undefined) patch.vet_name = input.vetName;
+  if (input.vetPhone !== undefined) patch.vet_phone = input.vetPhone;
+  if (input.allergies !== undefined) patch.allergies = input.allergies;
+  if (input.insuranceProvider !== undefined) patch.insurance_provider = input.insuranceProvider;
+  if (input.insurancePolicyNumber !== undefined) patch.insurance_policy_number = input.insurancePolicyNumber;
+
+  const { data, error } = await supabase.from("pets").update(patch).eq("id", petId).select().single();
+  if (error) throw error;
+  return data as Pet;
+}
+
+/** Uploads a locally-picked photo (a file:// URI on native, a blob: URI on web) to the
+ * `pet-photos` bucket and returns its public URL. Does not update the pet record itself —
+ * callers should follow up with `updatePet(petId, { photoUrl })`. */
+export async function uploadPetPhoto(petId: string, localUri: string): Promise<string> {
+  const response = await fetch(localUri);
+  const arrayBuffer = await response.arrayBuffer();
+  const extMatch = /\.(\w+)(\?.*)?$/.exec(localUri);
+  const ext = extMatch?.[1]?.toLowerCase() ?? "jpg";
+  const path = `${petId}/avatar-${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("pet-photos")
+    .upload(path, arrayBuffer, { contentType: response.headers.get("content-type") ?? `image/${ext}`, upsert: true });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("pet-photos").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export async function fetchMyRole(petId: string): Promise<PetRole | null> {

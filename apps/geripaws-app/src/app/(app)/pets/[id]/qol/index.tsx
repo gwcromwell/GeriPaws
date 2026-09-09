@@ -11,6 +11,8 @@ import { formatDate } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
 
+import { useTheme } from '@/hooks/use-theme';
+
 const DUE_LABEL: Record<string, string> = {
   never: 'No check-ins yet',
   due: 'Check-in due',
@@ -19,6 +21,7 @@ const DUE_LABEL: Record<string, string> = {
 };
 
 export default function QolScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [settings, setSettings] = useState<QolSettings | null>(null);
@@ -67,7 +70,7 @@ export default function QolScreen() {
         </ThemedText>
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/settings', params: { id } }} asChild>
-            <Pressable style={styles.button}>
+            <Pressable style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
               <ThemedText themeColor="background" type="smallBold">
                 Turn on Quality of Life tracking
               </ThemedText>
@@ -144,7 +147,7 @@ export default function QolScreen() {
 
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/new', params: { id } }} asChild>
-            <Pressable style={styles.button}>
+            <Pressable style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
               <ThemedText themeColor="background" type="smallBold">
                 New check-in
               </ThemedText>

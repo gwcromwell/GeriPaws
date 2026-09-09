@@ -10,7 +10,10 @@ import { ThemedView } from '@/components/themed-view';
 import { createAilment } from '@/lib/ailments';
 import { CONDITION_TEMPLATES } from '@/lib/condition-templates';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function NewAilmentScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -105,7 +108,7 @@ export default function NewAilmentScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Saving…' : 'Save condition'}
         </ThemedText>

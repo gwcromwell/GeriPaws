@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, Share, StyleSheet } from 'react-native
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useTheme } from '@/hooks/use-theme';
 import { fetchAilments } from '@/lib/ailments';
 import { formatDate, summarizeSchedule } from '@/lib/format';
 import { fetchMedications } from '@/lib/medications';
@@ -29,6 +30,7 @@ const STATUS_ORDER: AilmentStatus[] = ['active', 'monitoring', 'resolved'];
 export default function AilmentsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const tokens = useTheme();
   const [ailments, setAilments] = useState<Ailment[]>([]);
   const [generalMeds, setGeneralMeds] = useState<Medication[]>([]);
   const [shareLinks, setShareLinks] = useState<PetShareLink[]>([]);
@@ -116,11 +118,11 @@ export default function AilmentsScreen() {
             {items.map((ailment) => (
               <Pressable
                 key={ailment.id}
-                style={styles.row}
+                style={[styles.chip, { backgroundColor: tokens.panel, borderColor: tokens.border }]}
                 onPress={() =>
                   router.push({ pathname: '/pets/[id]/ailments/[ailmentId]', params: { id, ailmentId: ailment.id } })
                 }>
-                <ThemedText type="smallBold">{ailment.name}</ThemedText>
+                <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 14 }}>{ailment.name}</ThemedText>
                 {ailment.diagnosing_vet ? (
                   <ThemedText themeColor="textSecondary" type="small">
                     Dx by {ailment.diagnosing_vet}
@@ -140,7 +142,7 @@ export default function AilmentsScreen() {
 
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/ailments/new', params: { id } }} asChild>
-          <Pressable style={styles.addButton}>
+          <Pressable style={StyleSheet.flatten([styles.addButton, { backgroundColor: tokens.accent }])}>
             <ThemedText themeColor="background" type="smallBold">
               + Add a condition
             </ThemedText>
@@ -194,8 +196,8 @@ export default function AilmentsScreen() {
           A printable/shareable summary of conditions, medications, recent incidents, and QOL/weight trends.
         </ThemedText>
         <Link href={{ pathname: '/pets/[id]/vet-summary', params: { id } }} asChild>
-          <Pressable style={styles.secondaryButton}>
-            <ThemedText themeColor="tint" type="smallBold">
+          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
+            <ThemedText style={{ color: tokens.accent }} type="smallBold">
               View / export summary
             </ThemedText>
           </Pressable>
@@ -228,8 +230,8 @@ export default function AilmentsScreen() {
               </ThemedView>
             </ThemedView>
           ))}
-          <Pressable style={styles.secondaryButton} onPress={handleCreateShareLink} disabled={isCreatingLink}>
-            <ThemedText themeColor="tint" type="smallBold">
+          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])} onPress={handleCreateShareLink} disabled={isCreatingLink}>
+            <ThemedText style={{ color: tokens.accent }} type="smallBold">
               {isCreatingLink ? 'Creating…' : '+ Create share link'}
             </ThemedText>
           </Pressable>
@@ -253,6 +255,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     gap: 2,
   },
+  chip: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 2,
+    marginBottom: 8,
+  },
   shareLinkRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -264,7 +273,6 @@ const styles = StyleSheet.create({
   },
   shareLinkActions: { flexDirection: 'row', gap: 16 },
   addButton: {
-    backgroundColor: '#208AEF',
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
@@ -272,7 +280,6 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: '#208AEF',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',

@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/lib/auth-context';
@@ -9,7 +9,10 @@ import { setupPushNotifications } from '@/lib/push';
 function SignOutButton() {
   const { signOut } = useAuth();
   return (
-    <Pressable onPress={() => signOut()} hitSlop={8}>
+    <Pressable
+      onPress={() => signOut()}
+      hitSlop={8}
+      style={Platform.OS === 'web' ? { marginRight: 16 } : undefined}>
       <ThemedText type="link" themeColor="tint">
         Sign out
       </ThemedText>
@@ -29,6 +32,7 @@ export default function AppLayout() {
       <Stack.Screen name="index" options={{ title: 'My Dogs' }} />
       <Stack.Screen name="pets/new" options={{ title: 'Add a Dog', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/index" options={{ title: 'Today' }} />
+      <Stack.Screen name="pets/[id]/edit" options={{ title: 'Edit Profile', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/sharing" options={{ title: 'Sharing' }} />
       <Stack.Screen name="pets/[id]/history" options={{ title: 'History' }} />
       <Stack.Screen name="pets/[id]/weight" options={{ title: 'Weight' }} />

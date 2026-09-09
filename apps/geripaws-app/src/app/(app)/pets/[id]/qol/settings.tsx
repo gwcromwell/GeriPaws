@@ -9,7 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function QolSettingsScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -90,7 +93,7 @@ export default function QolSettingsScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={styles.button} onPress={handleSave} disabled={isSubmitting}>
+      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSave} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Saving…' : 'Save'}
         </ThemedText>

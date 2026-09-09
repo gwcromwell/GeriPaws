@@ -17,6 +17,8 @@ import {
 } from '@/lib/medications';
 import { parseTimeInput } from '@/lib/time-input';
 
+import { useTheme } from '@/hooks/use-theme';
+
 const WEEKDAYS = [
   { value: 0, label: 'Sun' },
   { value: 1, label: 'Mon' },
@@ -30,6 +32,7 @@ const WEEKDAYS = [
 type ScheduleKind = MedicationScheduleInput['kind'];
 
 export default function NewMedicationScreen() {
+  const theme = useTheme();
   const { id, ailmentId, medicationId } = useLocalSearchParams<{
     id: string;
     ailmentId?: string;
@@ -292,7 +295,7 @@ export default function NewMedicationScreen() {
                       <Pressable
                         key={day.value}
                         onPress={() => toggleDay(day.value)}
-                        style={[styles.dayChip, isSelected && styles.dayChipSelected]}>
+                        style={[styles.dayChip, isSelected && styles.dayChipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
                         <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
                           {day.label}
                         </ThemedText>
@@ -321,7 +324,7 @@ export default function NewMedicationScreen() {
               </View>
             ))}
             {times.length < 6 ? (
-              <Pressable onPress={addTime} style={styles.secondaryButton}>
+              <Pressable onPress={addTime} style={[styles.secondaryButton, { borderColor: theme.tint }]}>
                 <ThemedText themeColor="tint" type="smallBold">
                   + Add another time
                 </ThemedText>
@@ -401,7 +404,7 @@ export default function NewMedicationScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
+        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Saving…' : 'Save medication'}
           </ThemedText>

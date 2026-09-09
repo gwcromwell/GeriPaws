@@ -9,7 +9,10 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
 import { acceptInvite } from '@/lib/pets';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function AcceptInviteScreen() {
+  const theme = useTheme();
   const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
   const { session, signIn, signUp } = useAuth();
@@ -91,7 +94,7 @@ export default function AcceptInviteScreen() {
 
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
 
-      <Pressable style={styles.button} onPress={handleSubmit}>
+      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit}>
         <ThemedText themeColor="background" type="smallBold">
           {mode === 'sign-in' ? 'Sign in' : 'Sign up'}
         </ThemedText>

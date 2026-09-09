@@ -8,7 +8,10 @@ import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function SignInScreen() {
+  const theme = useTheme();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,7 +68,7 @@ export default function SignInScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </ThemedText>

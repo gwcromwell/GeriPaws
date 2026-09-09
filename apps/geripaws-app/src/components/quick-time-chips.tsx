@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/use-theme';
 import { QUICK_TIME_OFFSETS } from '@/lib/format';
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function QuickTimeChips({ value, onChange }: Props) {
+  const theme = useTheme();
   return (
     <View style={styles.row}>
       {QUICK_TIME_OFFSETS.map((option) => {
@@ -17,7 +19,7 @@ export function QuickTimeChips({ value, onChange }: Props) {
           <Pressable
             key={option.label}
             onPress={() => onChange(new Date(Date.now() - option.minutesAgo * 60000))}
-            style={[styles.chip, isSelected && styles.chipSelected]}>
+            style={[styles.chip, isSelected && styles.chipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
             <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
               {option.label}
             </ThemedText>

@@ -21,9 +21,9 @@ import { OccurredAtField } from '@/components/occurred-at-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/hooks/use-theme';
 import { createHabitLog, fetchHabitLog, updateHabitLog } from '@/lib/habits';
 
+import { useTheme } from '@/hooks/use-theme';
 const TITLES: Record<HabitType, string> = {
   walk: 'Log a walk',
   water: 'Log water',
@@ -370,7 +370,7 @@ export default function LogHabitScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Saving…' : 'Save'}
         </ThemedText>

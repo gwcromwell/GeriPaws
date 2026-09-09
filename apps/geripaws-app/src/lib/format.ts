@@ -117,6 +117,12 @@ export function formatDate(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+export function formatAge(dob: string | null): string | null {
+  if (!dob) return null;
+  const years = (Date.now() - new Date(dob).getTime()) / (365.25 * 86_400_000);
+  return years < 1 ? `${Math.round(years * 12)} mo` : `${years.toFixed(1)} yrs`;
+}
+
 export const QUICK_TIME_OFFSETS = [
   { label: 'Now', minutesAgo: 0 },
   { label: '15m ago', minutesAgo: 15 },

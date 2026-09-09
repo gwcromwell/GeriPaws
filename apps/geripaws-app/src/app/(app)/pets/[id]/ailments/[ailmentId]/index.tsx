@@ -22,6 +22,8 @@ import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
 import { fetchMedications } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
 
+import { useTheme } from '@/hooks/use-theme';
+
 const STATUS_OPTIONS: { value: AilmentStatus; label: string }[] = [
   { value: 'active', label: 'Active' },
   { value: 'monitoring', label: 'Monitoring' },
@@ -41,6 +43,7 @@ function confirm(title: string, message: string, onConfirm: () => void) {
 }
 
 export default function AilmentDetailScreen() {
+  const theme = useTheme();
   const { id, ailmentId } = useLocalSearchParams<{ id: string; ailmentId: string }>();
   const router = useRouter();
 
@@ -216,7 +219,7 @@ export default function AilmentDetailScreen() {
       ) : null}
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, ailmentId } }} asChild>
-          <Pressable style={styles.secondaryButton}>
+          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
             <ThemedText themeColor="tint" type="smallBold">
               + Add medication
             </ThemedText>
@@ -241,7 +244,7 @@ export default function AilmentDetailScreen() {
       {canEdit ? (
         <ThemedView style={styles.inlineForm}>
           <ThemedTextInput placeholder="Add a note about this condition" multiline value={noteText} onChangeText={setNoteText} />
-          <Pressable style={styles.secondaryButton} onPress={handleAddNote}>
+          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddNote}>
             <ThemedText themeColor="tint" type="smallBold">
               Add note
             </ThemedText>
@@ -258,7 +261,7 @@ export default function AilmentDetailScreen() {
           {answeringId === q.id ? (
             <ThemedView style={styles.inlineForm}>
               <ThemedTextInput placeholder="What did the vet say?" multiline value={answerText} onChangeText={setAnswerText} />
-              <Pressable style={styles.secondaryButton} onPress={() => handleAnswer(q.id)}>
+              <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={() => handleAnswer(q.id)}>
                 <ThemedText themeColor="tint" type="smallBold">
                   Save answer
                 </ThemedText>
@@ -276,7 +279,7 @@ export default function AilmentDetailScreen() {
       {canEdit ? (
         <ThemedView style={styles.inlineForm}>
           <ThemedTextInput placeholder="A question to ask at the next visit" value={questionText} onChangeText={setQuestionText} />
-          <Pressable style={styles.secondaryButton} onPress={handleAddQuestion}>
+          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddQuestion}>
             <ThemedText themeColor="tint" type="smallBold">
               Add question
             </ThemedText>

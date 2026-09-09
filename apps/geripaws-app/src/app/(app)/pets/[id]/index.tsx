@@ -1,30 +1,64 @@
-import type { HabitLog, HabitType, Medication, Pet, PetRole } from '@geripaws/shared';
+import { QOL_FULL_MAX } from '@geripaws/shared';
+import type { HabitLog, HabitType, Medication, Pet, PetRole, QolResponse } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useCallback, useState, type ComponentType, type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { PackSwitcher } from '@/components/pack-switcher';
+import { AlertIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
+import { PetAvatar } from '@/components/pet-avatar';
+import { QolRing } from '@/components/qol-ring';
 import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useTheme, type Theme } from '@/hooks/use-theme';
 import { fetchLatestByType } from '@/lib/habits';
-import { formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
+import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
 import { computeTodayDueDoses, getDayStart, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
 import { fetchMyRole, fetchPet } from '@/lib/pets';
+import { fetchQolResponses } from '@/lib/qol';
+
+function IncidentRow({ tokens, onPress }: { tokens: Theme; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
+      <View style={[styles.ewIcon, { backgroundColor: tokens.error + '1f' }]}>
+        <AlertIcon color={tokens.error} size={17} />
+      </View>
+      <View style={styles.flexOne}>
+        <ThemedText type="smallBold" themeColor="error">
+          Log an accident / incident
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Vomiting, a fall, a seizure — anything worth remembering
+        </ThemedText>
+      </View>
+    </Pressable>
+  );
+}
 
 function doseKey(due: DueDose): string {
   return `${due.medication.id}-${due.scheduledAt.toISOString()}`;
 }
 
-const TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label: string }[] = [
-  { type: 'walk', label: 'Walk' },
-  { type: 'water', label: 'Water' },
-  { type: 'food', label: 'Food' },
+interface TileData {
+  type: HabitType;
+  label: string;
+  sub: string;
+  overdue: boolean;
+  Icon: ComponentType<PackIconProps>;
+}
+
+const HABIT_TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label: string; Icon: ComponentType<PackIconProps> }[] = [
+  { type: 'walk', label: 'Walk', Icon: WalkIcon },
+  { type: 'water', label: 'Water', Icon: WaterIcon },
+  { type: 'food', label: 'Food', Icon: FoodIcon },
 ];
 
 export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const tokens = useTheme();
   const [pet, setPet] = useState<Pet | null>(null);
   const [role, setRole] = useState<PetRole | null>(null);
   const [latest, setLatest] = useState<Record<HabitType, HabitLog | null>>({
@@ -35,6 +69,7 @@ export default function TodayScreen() {
     weight: null,
   });
   const [dueDoses, setDueDoses] = useState<DueDose[]>([]);
+  const [latestQol, setLatestQol] = useState<QolResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [givingKey, setGivingKey] = useState<string | null>(null);
@@ -48,17 +83,19 @@ export default function TodayScreen() {
       const petData = await fetchPet(id);
       const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
-      const [roleData, latestData, medications, dosesToday] = await Promise.all([
+      const [roleData, latestData, medications, dosesToday, qolResponses] = await Promise.all([
         fetchMyRole(id),
         fetchLatestByType(id),
         fetchMedications(id),
         fetchDosesSince(id, dayStart),
+        fetchQolResponses(id, 1),
       ]);
 
       setPet(petData);
       setRole(roleData);
       setLatest(latestData);
       setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
+      setLatestQol(qolResponses[0] ?? null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
@@ -110,219 +147,392 @@ export default function TodayScreen() {
     );
   }
 
+  const weightLog = latest.weight;
+  const weightDetails = weightLog?.details as { value: number; unit: string } | undefined;
+
+  const tiles: TileData[] = [
+    ...HABIT_TILES.map(({ type, label, Icon }) => {
+      const log = latest[type];
+      const overdue = log ? isOverdue(log.occurred_at, type) : false;
+      return {
+        type,
+        label,
+        Icon,
+        overdue,
+        sub: log ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)}` : 'Not logged yet',
+      };
+    }),
+    {
+      type: 'weight' as HabitType,
+      label: 'Weight',
+      Icon: WeightIcon,
+      overdue: false,
+      sub: weightDetails ? `${weightDetails.value} ${weightDetails.unit} · ${formatRelativeTime(weightLog!.occurred_at)}` : 'Not logged yet',
+    },
+  ];
+
+  const goToTile = (type: HabitType) =>
+    type === 'weight'
+      ? router.push({ pathname: '/pets/[id]/weight', params: { id: pet.id } })
+      : router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type } });
+
+  const doseSection = (
+    <MedicationList
+      tokens={tokens}
+      dueDoses={dueDoses}
+      canLog={canLog}
+      givingKey={givingKey}
+      givenAtDraft={givenAtDraft}
+      isSavingDose={isSavingDose}
+      onStartGive={startGivingDose}
+      onCancelGive={() => setGivingKey(null)}
+      onGivenAtChange={setGivenAtDraft}
+      onConfirmGive={confirmGiveDose}
+      onSkip={handleSkipDose}
+    />
+  );
+
   return (
     <ThemedView style={styles.flex}>
       <ScrollView contentContainerStyle={styles.container}>
-      <ThemedView style={styles.headerRow}>
-        <ThemedText type="title" style={styles.title}>
-          {pet.name}
-        </ThemedText>
-        <ThemedView style={styles.headerLinks}>
-          <Link href={{ pathname: '/pets/[id]/ailments', params: { id: pet.id } }}>
-            <ThemedText type="link" themeColor="tint">
-              Ailments
-            </ThemedText>
-          </Link>
-          <Link href={{ pathname: '/pets/[id]/qol', params: { id: pet.id } }}>
-            <ThemedText type="link" themeColor="tint">
-              QOL
-            </ThemedText>
-          </Link>
-          <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
-            <ThemedText type="link" themeColor="tint">
-              Sharing
-            </ThemedText>
-          </Link>
-        </ThemedView>
-      </ThemedView>
+        <View style={styles.headerBar}>
+          <View style={styles.headerLinks}>
+            <Link href={{ pathname: '/pets/[id]/ailments', params: { id: pet.id } }}>
+              <ThemedText type="link" style={{ color: tokens.accent }}>
+                Ailments
+              </ThemedText>
+            </Link>
+            <Link href={{ pathname: '/pets/[id]/qol', params: { id: pet.id } }}>
+              <ThemedText type="link" style={{ color: tokens.accent }}>
+                QOL
+              </ThemedText>
+            </Link>
+            <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
+              <ThemedText type="link" style={{ color: tokens.accent }}>
+                Sharing
+              </ThemedText>
+            </Link>
+          </View>
+          <PackSwitcher />
+        </View>
 
-      {role === 'viewer' ? (
-        <ThemedText themeColor="textSecondary" type="small">
-          You have view-only access to {pet.name}.
-        </ThemedText>
-      ) : null}
-
-      {TILES.map(({ type, label }) => {
-        const log = latest[type];
-        const overdue = log ? isOverdue(log.occurred_at, type) : false;
-        return (
-          <Pressable
-            key={type}
-            disabled={!canLog}
-            onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type } })}
-            style={[styles.tile, overdue && styles.tileOverdue]}>
-            <ThemedText type="subtitle">{label}</ThemedText>
-            <ThemedText themeColor={overdue ? 'error' : 'textSecondary'}>
-              {log ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)}` : 'Not logged yet'}
-            </ThemedText>
-          </Pressable>
-        );
-      })}
-
-      <Link href={{ pathname: '/pets/[id]/weight', params: { id: pet.id } }} asChild>
-        <Pressable style={styles.tile}>
-          <ThemedText type="subtitle">Weight</ThemedText>
-          <ThemedText themeColor="textSecondary">
-            {latest.weight
-              ? `${(latest.weight.details as { value: number; unit: string }).value} ${(latest.weight.details as { value: number; unit: string }).unit} · ${formatRelativeTime(latest.weight.occurred_at)}`
-              : 'Not logged yet'}
+        {role === 'viewer' ? (
+          <ThemedText themeColor="textSecondary" type="small">
+            You have view-only access to {pet.name}.
           </ThemedText>
-        </Pressable>
-      </Link>
+        ) : null}
 
-      {canLog ? (
-        <Pressable
-          style={styles.incidentButton}
-          onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}>
-          <ThemedText themeColor="error" type="smallBold">
-            Log an accident / incident
+        {tokens.pack.id === 'good-days' ? (
+          <GoodDaysToday
+            pet={pet}
+            tokens={tokens}
+            tiles={tiles}
+            latestQol={latestQol}
+            canLog={canLog}
+            onTilePress={goToTile}
+            onIncidentPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}
+            onEditPress={() => router.push({ pathname: '/pets/[id]/edit', params: { id: pet.id } })}
+            doseSection={doseSection}
+          />
+        ) : (
+          <EveningWalkToday
+            pet={pet}
+            tokens={tokens}
+            tiles={tiles}
+            canLog={canLog}
+            onTilePress={goToTile}
+            onIncidentPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type: 'incident' } })}
+            onEditPress={() => router.push({ pathname: '/pets/[id]/edit', params: { id: pet.id } })}
+            doseSection={doseSection}
+          />
+        )}
+
+        <Link href={{ pathname: '/pets/[id]/history', params: { id: pet.id } }} style={styles.historyLink}>
+          <ThemedText type="link" style={{ color: tokens.accent }}>
+            View history
           </ThemedText>
-        </Pressable>
-      ) : null}
+        </Link>
 
-      {dueDoses.length > 0 ? (
-        <>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Medications
+        {error ? (
+          <ThemedText themeColor="error" style={styles.message}>
+            {error}
           </ThemedText>
-          {dueDoses.map((due) => {
-            const key = doseKey(due);
-            const isGiving = givingKey === key;
-            return (
-              <ThemedView
-                key={key}
-                style={[styles.doseRow, due.status === 'overdue' && styles.doseRowOverdue]}>
-                <ThemedView style={styles.doseRowTop}>
-                  <ThemedView style={styles.doseInfo}>
-                    <ThemedText type="smallBold">
-                      {due.medication.name} — {due.medication.dosage} {due.medication.unit}
-                    </ThemedText>
-                    <ThemedText type="small" themeColor={due.status === 'overdue' ? 'error' : 'textSecondary'}>
-                      {formatTimeOfDay(
-                        `${String(due.scheduledAt.getHours()).padStart(2, '0')}:${String(due.scheduledAt.getMinutes()).padStart(2, '0')}`
-                      )}
-                      {due.status === 'given'
-                        ? ' · Given'
-                        : due.status === 'skipped'
-                          ? ' · Skipped'
-                          : due.status === 'overdue'
-                            ? ' · Overdue'
-                            : ''}
-                    </ThemedText>
-                  </ThemedView>
-                  {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (
-                    <ThemedView style={styles.doseActions}>
-                      <Pressable onPress={() => startGivingDose(due)} hitSlop={8}>
-                        <ThemedText type="link" themeColor="tint">
-                          Give
-                        </ThemedText>
-                      </Pressable>
-                      <Pressable onPress={() => handleSkipDose(due.medication, due.scheduledAt)} hitSlop={8}>
-                        <ThemedText type="link" themeColor="textSecondary">
-                          Skip
-                        </ThemedText>
-                      </Pressable>
-                    </ThemedView>
-                  ) : null}
-                </ThemedView>
-
-                {isGiving ? (
-                  <ThemedView style={styles.giveForm}>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      When was it given?
-                    </ThemedText>
-                    <QuickTimeChips value={givenAtDraft} onChange={setGivenAtDraft} />
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {formatDateTime(givenAtDraft.toISOString())}
-                    </ThemedText>
-                    <ThemedView style={styles.giveFormActions}>
-                      <Pressable onPress={() => setGivingKey(null)} hitSlop={8}>
-                        <ThemedText type="link" themeColor="textSecondary">
-                          Cancel
-                        </ThemedText>
-                      </Pressable>
-                      <Pressable
-                        style={styles.confirmButton}
-                        disabled={isSavingDose}
-                        onPress={() => confirmGiveDose(due.medication, due.scheduledAt)}>
-                        <ThemedText themeColor="background" type="smallBold">
-                          {isSavingDose ? 'Saving…' : 'Confirm'}
-                        </ThemedText>
-                      </Pressable>
-                    </ThemedView>
-                  </ThemedView>
-                ) : null}
-              </ThemedView>
-            );
-          })}
-        </>
-      ) : null}
-
-      <Link href={{ pathname: '/pets/[id]/history', params: { id: pet.id } }} style={styles.historyLink}>
-        <ThemedText type="link" themeColor="tint">
-          View history
-        </ThemedText>
-      </Link>
-
-      {error ? (
-        <ThemedText themeColor="error" style={styles.message}>
-          {error}
-        </ThemedText>
-      ) : null}
-      {isLoading ? (
-        <ThemedText themeColor="textSecondary" type="small" style={styles.message}>
-          Refreshing…
-        </ThemedText>
-      ) : null}
+        ) : null}
+        {isLoading ? (
+          <ThemedText themeColor="textSecondary" type="small" style={styles.message}>
+            Refreshing…
+          </ThemedText>
+        ) : null}
       </ScrollView>
     </ThemedView>
   );
 }
 
+/** "Evening Walk" — a quiet nameplate, then a list of low-contrast rows. */
+function EveningWalkToday({
+  pet,
+  tokens,
+  tiles,
+  canLog,
+  onTilePress,
+  onIncidentPress,
+  onEditPress,
+  doseSection,
+}: {
+  pet: Pet;
+  tokens: Theme;
+  tiles: TileData[];
+  canLog: boolean;
+  onTilePress: (type: HabitType) => void;
+  onIncidentPress: () => void;
+  onEditPress: () => void;
+  doseSection: ReactNode;
+}) {
+  const age = formatAge(pet.dob);
+  return (
+    <>
+      <Pressable onPress={onEditPress} style={[styles.nameplate, { borderBottomColor: tokens.border }]}>
+        <PetAvatar uri={pet.photo_url} size={44} />
+        <View>
+          <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 20 }}>{pet.name}</ThemedText>
+          <ThemedText themeColor="textSecondary" type="small">
+            {[age, pet.breed].filter(Boolean).join(' · ')}
+          </ThemedText>
+        </View>
+      </Pressable>
+
+      {tiles.map(({ type, label, sub, overdue, Icon }) => (
+        <Pressable
+          key={type}
+          disabled={!canLog}
+          onPress={() => onTilePress(type)}
+          style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
+          <View style={[styles.ewIcon, { backgroundColor: overdue ? tokens.overdue + '22' : tokens.tileBg }]}>
+            <Icon color={overdue ? tokens.overdue : tokens.accentDeep} size={17} />
+          </View>
+          <View style={styles.flexOne}>
+            <ThemedText type="smallBold">{label}</ThemedText>
+            <ThemedText type="small" style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
+              {sub}
+            </ThemedText>
+          </View>
+        </Pressable>
+      ))}
+
+      {canLog ? <IncidentRow tokens={tokens} onPress={onIncidentPress} /> : null}
+
+      {doseSection}
+    </>
+  );
+}
+
+/** "Good Days" — a QOL ring hero, then a scannable 2×2 tile grid. */
+function GoodDaysToday({
+  pet,
+  tokens,
+  tiles,
+  latestQol,
+  canLog,
+  onTilePress,
+  onIncidentPress,
+  onEditPress,
+  doseSection,
+}: {
+  pet: Pet;
+  tokens: Theme;
+  tiles: TileData[];
+  latestQol: QolResponse | null;
+  canLog: boolean;
+  onTilePress: (type: HabitType) => void;
+  onIncidentPress: () => void;
+  onEditPress: () => void;
+  doseSection: ReactNode;
+}) {
+  const age = formatAge(pet.dob);
+  return (
+    <>
+      <Pressable onPress={onEditPress} style={styles.gdNameplate}>
+        <PetAvatar uri={pet.photo_url} size={40} />
+        <View>
+          <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 21 }}>{pet.name}</ThemedText>
+          <ThemedText themeColor="textSecondary" type="small">
+            {[age, pet.breed].filter(Boolean).join(' · ')}
+          </ThemedText>
+        </View>
+      </Pressable>
+
+      {latestQol ? (
+        <View style={[styles.ringWrap, { backgroundColor: tokens.panel }]}>
+          <QolRing score={latestQol.total_score} max={QOL_FULL_MAX} color={tokens.accent} trackColor={tokens.tileBg} />
+          <View style={styles.flexOne}>
+            <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 14 }}>Quality of life</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {Math.round(latestQol.total_score)} / {QOL_FULL_MAX} as of last check-in
+            </ThemedText>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.gdGrid}>
+        {tiles.map(({ type, label, sub, overdue, Icon }) => (
+          <Pressable
+            key={type}
+            disabled={!canLog}
+            onPress={() => onTilePress(type)}
+            style={[styles.gdTile, { backgroundColor: tokens.panel }, overdue && { borderColor: tokens.overdue, borderWidth: 1.5 }]}>
+            <View style={[styles.gdIcon, { backgroundColor: tokens.accent }]}>
+              <Icon color="#fff" size={15} />
+            </View>
+            <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 13 }}>{label}</ThemedText>
+            <ThemedText type="small" style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
+              {sub}
+            </ThemedText>
+          </Pressable>
+        ))}
+      </View>
+
+      {canLog ? <IncidentRow tokens={tokens} onPress={onIncidentPress} /> : null}
+
+      {doseSection}
+    </>
+  );
+}
+
+function MedicationList({
+  tokens,
+  dueDoses,
+  canLog,
+  givingKey,
+  givenAtDraft,
+  isSavingDose,
+  onStartGive,
+  onCancelGive,
+  onGivenAtChange,
+  onConfirmGive,
+  onSkip,
+}: {
+  tokens: Theme;
+  dueDoses: DueDose[];
+  canLog: boolean;
+  givingKey: string | null;
+  givenAtDraft: Date;
+  isSavingDose: boolean;
+  onStartGive: (due: DueDose) => void;
+  onCancelGive: () => void;
+  onGivenAtChange: (date: Date) => void;
+  onConfirmGive: (medication: Medication, scheduledAt: Date) => void;
+  onSkip: (medication: Medication, scheduledAt: Date) => void;
+}) {
+  if (dueDoses.length === 0) return null;
+
+  return (
+    <>
+      <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 15, marginTop: 8 }}>Medications</ThemedText>
+      {dueDoses.map((due) => {
+        const key = doseKey(due);
+        const isGiving = givingKey === key;
+        const dotColor = due.status === 'given' ? tokens.good : due.status === 'overdue' ? tokens.overdue : tokens.accent;
+        return (
+          <View
+            key={key}
+            style={[
+              styles.doseRow,
+              { backgroundColor: tokens.panel, borderColor: due.status === 'overdue' ? tokens.overdue : tokens.border },
+            ]}>
+            <View style={styles.doseRowTop}>
+              <View style={[styles.doseDot, { backgroundColor: dotColor }]} />
+              <View style={styles.flexOne}>
+                <ThemedText type="smallBold">
+                  {due.medication.name} — {due.medication.dosage} {due.medication.unit}
+                </ThemedText>
+                <ThemedText type="small" style={{ color: due.status === 'overdue' ? tokens.overdue : tokens.textSecondary }}>
+                  {formatTimeOfDay(
+                    `${String(due.scheduledAt.getHours()).padStart(2, '0')}:${String(due.scheduledAt.getMinutes()).padStart(2, '0')}`
+                  )}
+                  {due.status === 'given'
+                    ? ' · Given'
+                    : due.status === 'skipped'
+                      ? ' · Skipped'
+                      : due.status === 'overdue'
+                        ? ' · Overdue'
+                        : ''}
+                </ThemedText>
+              </View>
+              {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (
+                <View style={styles.doseActions}>
+                  <Pressable onPress={() => onStartGive(due)} hitSlop={8}>
+                    <ThemedText type="link" style={{ color: tokens.accent }}>
+                      Give
+                    </ThemedText>
+                  </Pressable>
+                  <Pressable onPress={() => onSkip(due.medication, due.scheduledAt)} hitSlop={8}>
+                    <ThemedText type="link" themeColor="textSecondary">
+                      Skip
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+
+            {isGiving ? (
+              <View style={styles.giveForm}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  When was it given?
+                </ThemedText>
+                <QuickTimeChips value={givenAtDraft} onChange={onGivenAtChange} />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {formatDateTime(givenAtDraft.toISOString())}
+                </ThemedText>
+                <View style={styles.giveFormActions}>
+                  <Pressable onPress={onCancelGive} hitSlop={8}>
+                    <ThemedText type="link" themeColor="textSecondary">
+                      Cancel
+                    </ThemedText>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.confirmButton, { backgroundColor: tokens.accent }]}
+                    disabled={isSavingDose}
+                    onPress={() => onConfirmGive(due.medication, due.scheduledAt)}>
+                    <ThemedText themeColor="background" type="smallBold">
+                      {isSavingDose ? 'Saving…' : 'Confirm'}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  flexOne: { flex: 1 },
   container: { padding: 16, gap: 12 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLinks: { flexDirection: 'row', gap: 16 },
-  title: { fontSize: 28 },
-  sectionTitle: { marginTop: 8 },
-  tile: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    gap: 4,
-  },
-  tileOverdue: {
-    borderColor: '#D33A3A',
-  },
-  incidentButton: {
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D33A3A',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  doseRow: {
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    gap: 8,
-  },
-  doseRowOverdue: { borderColor: '#D33A3A' },
-  doseRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  doseInfo: { flex: 1, gap: 2 },
+
+  nameplate: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14, borderBottomWidth: 1, marginBottom: 4 },
+  gdNameplate: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+
+  ewRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1 },
+  ewIcon: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+
+  ringWrap: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 16, padding: 14, marginTop: 4 },
+
+  gdGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  gdTile: { flexGrow: 1, flexBasis: '45%', borderRadius: 14, padding: 12, gap: 6 },
+  gdIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+
+  doseRow: { padding: 12, borderRadius: 10, borderWidth: 1, gap: 8 },
+  doseRowTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  doseDot: { width: 8, height: 8, borderRadius: 4 },
   doseActions: { flexDirection: 'row', gap: 16 },
   giveForm: { gap: 8, marginTop: 4 },
   giveFormActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
-  confirmButton: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
+  confirmButton: { borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 },
   historyLink: { alignSelf: 'center', marginTop: 12 },
   message: { textAlign: 'center', marginTop: 12 },
 });

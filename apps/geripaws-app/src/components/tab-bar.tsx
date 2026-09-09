@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/use-theme';
 
 type Tab<T extends string> = { value: T; label: string };
 
@@ -11,6 +12,7 @@ type Props<T extends string> = {
 };
 
 export function TabBar<T extends string>({ tabs, value, onChange }: Props<T>) {
+  const theme = useTheme();
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
@@ -20,7 +22,7 @@ export function TabBar<T extends string>({ tabs, value, onChange }: Props<T>) {
             <ThemedText type="smallBold" themeColor={isActive ? 'tint' : 'textSecondary'}>
               {tab.label}
             </ThemedText>
-            <View style={[styles.indicator, isActive && styles.indicatorActive]} />
+            <View style={[styles.indicator, isActive && { backgroundColor: theme.tint }]} />
           </Pressable>
         );
       })}
@@ -45,8 +47,5 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 1,
     backgroundColor: 'transparent',
-  },
-  indicatorActive: {
-    backgroundColor: '#208AEF',
   },
 });

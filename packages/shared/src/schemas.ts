@@ -7,10 +7,28 @@ export const createPetSchema = z.object({
   breed: z.string().trim().max(80).optional(),
   dob: z.string().date().optional(),
   sex: z.string().trim().max(20).optional(),
+  neutered: z.boolean().optional(),
   weightUnit: z.enum(["lb", "kg"]).default("lb"),
   dayBoundaryHour: z.number().int().min(0).max(23).default(0),
 });
 export type CreatePetInput = z.infer<typeof createPetSchema>;
+
+export const updatePetSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(80).optional(),
+  breed: z.string().trim().max(80).nullable().optional(),
+  dob: z.string().date().nullable().optional(),
+  sex: z.string().trim().max(20).nullable().optional(),
+  neutered: z.boolean().nullable().optional(),
+  photoUrl: z.string().url().nullable().optional(),
+  weightUnit: z.enum(["lb", "kg"]).optional(),
+  microchipNumber: z.string().trim().max(40).nullable().optional(),
+  vetName: z.string().trim().max(120).nullable().optional(),
+  vetPhone: z.string().trim().max(30).nullable().optional(),
+  allergies: z.string().trim().max(500).nullable().optional(),
+  insuranceProvider: z.string().trim().max(120).nullable().optional(),
+  insurancePolicyNumber: z.string().trim().max(60).nullable().optional(),
+});
+export type UpdatePetInput = z.infer<typeof updatePetSchema>;
 
 export const createInviteSchema = z.object({
   petId: z.string().uuid(),

@@ -6,7 +6,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { fetchMyPets, type PetWithRole } from '@/lib/pets';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function PetListScreen() {
+  const theme = useTheme();
   const router = useRouter();
   const [pets, setPets] = useState<PetWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +67,7 @@ export default function PetListScreen() {
       />
 
       <Link href="/pets/new" asChild>
-        <Pressable style={styles.addButton}>
+        <Pressable style={StyleSheet.flatten([styles.addButton, { backgroundColor: theme.tint }])}>
           <ThemedText themeColor="background" type="smallBold">
             + Add a dog
           </ThemedText>

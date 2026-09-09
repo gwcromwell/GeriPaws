@@ -9,8 +9,15 @@ export interface Pet {
   breed: string | null;
   dob: string | null;
   sex: string | null;
+  neutered: boolean | null;
   weight_unit: "lb" | "kg";
   photo_url: string | null;
+  microchip_number: string | null;
+  vet_name: string | null;
+  vet_phone: string | null;
+  allergies: string | null;
+  insurance_provider: string | null;
+  insurance_policy_number: string | null;
   status: PetStatus;
   day_boundary_hour: number;
   /** IANA timezone (e.g. "America/New_York") — what medication schedule times are relative to. */

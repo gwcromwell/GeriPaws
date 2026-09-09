@@ -8,6 +8,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/hooks/use-theme';
+
 import {
   fetchPendingInvites,
   fetchPet,
@@ -18,6 +20,7 @@ import {
 } from '@/lib/pets';
 
 export default function SharingScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pet, setPet] = useState<Pet | null>(null);
   const [members, setMembers] = useState<PetMember[]>([]);
@@ -137,7 +140,7 @@ export default function SharingScreen() {
           <ThemedText type="small" themeColor="textSecondary">
             Caregiver can log habits and manage medications. Viewer can only see the dog's information.
           </ThemedText>
-          <Pressable style={styles.button} onPress={handleInvite} disabled={isInviting}>
+          <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleInvite} disabled={isInviting}>
             <ThemedText themeColor="background" type="smallBold">
               {isInviting ? 'Sending…' : 'Send invite'}
             </ThemedText>

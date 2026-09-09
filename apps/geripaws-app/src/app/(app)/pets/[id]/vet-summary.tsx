@@ -9,7 +9,10 @@ import { ThemedView } from '@/components/themed-view';
 import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
 import { buildVetSummaryHtml, fetchVetSummaryData, type VetSummaryData } from '@/lib/vet-summary';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function VetSummaryScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<VetSummaryData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export default function VetSummaryScreen() {
           print or share before your next appointment.
         </ThemedText>
 
-        <Pressable style={styles.button} onPress={handleExport} disabled={isExporting}>
+        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleExport} disabled={isExporting}>
           <ThemedText themeColor="background" type="smallBold">
             {isExporting ? 'Preparing…' : Platform.OS === 'web' ? 'Print / Save as PDF' : 'Export PDF'}
           </ThemedText>

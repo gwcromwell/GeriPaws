@@ -11,6 +11,8 @@ import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { createQolResponse, deleteQolResponse, fetchQolResponse, updateQolResponse } from '@/lib/qol';
 
+import { useTheme } from '@/hooks/use-theme';
+
 function confirm(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
     // eslint-disable-next-line no-alert
@@ -24,6 +26,7 @@ function confirm(title: string, message: string, onConfirm: () => void) {
 }
 
 export default function QolCheckInScreen() {
+  const theme = useTheme();
   const { id, responseId } = useLocalSearchParams<{ id: string; responseId?: string }>();
   const router = useRouter();
   const isEditing = Boolean(responseId);
@@ -143,7 +146,7 @@ export default function QolCheckInScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
+        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Saving…' : 'Save check-in'}
           </ThemedText>

@@ -10,7 +10,10 @@ import { fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, formatRelativeTime } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 
+
+import { useTheme } from '@/hooks/use-theme';
 export default function WeightScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [logs, setLogs] = useState<HabitLog[]>([]);
@@ -80,7 +83,7 @@ export default function WeightScreen() {
 
         {canLog ? (
           <Pressable
-            style={styles.button}
+            style={[styles.button, { backgroundColor: theme.tint }]}
             onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: 'weight' } })}>
             <ThemedText themeColor="background" type="smallBold">
               Log weight

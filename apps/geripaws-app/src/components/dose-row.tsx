@@ -5,6 +5,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useTheme } from '@/hooks/use-theme';
 import { formatDateTime } from '@/lib/format';
 import { deleteDose, updateDoseGivenAt, updateDoseSkipped } from '@/lib/medications';
 
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props) {
+  const theme = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<Date>(() => new Date(dose.given_at ?? dose.scheduled_at));
   const [isSaving, setIsSaving] = useState(false);
@@ -108,7 +110,7 @@ export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props
                 </ThemedText>
               </Pressable>
             ) : null}
-            <Pressable style={styles.saveButton} onPress={saveGivenAt} disabled={isSaving}>
+            <Pressable style={[styles.saveButton, { backgroundColor: theme.tint }]} onPress={saveGivenAt} disabled={isSaving}>
               <ThemedText themeColor="background" type="smallBold">
                 {isSaving ? 'Saving…' : 'Save'}
               </ThemedText>

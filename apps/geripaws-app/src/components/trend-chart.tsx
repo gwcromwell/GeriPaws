@@ -13,9 +13,11 @@ type Props = {
   points: TrendPoint[];
   /** Fixed scale (bars relative to [0, maxValue]) — omit to auto-scale to the data's own min/max, which better highlights fluctuation for values that live in a narrow band (e.g. weight). */
   maxValue?: number;
+  /** Bar color override — defaults to the theme's tint. */
+  color?: string;
 };
 
-export function TrendChart({ points: rawPoints, maxValue }: Props) {
+export function TrendChart({ points: rawPoints, maxValue, color }: Props) {
   const theme = useTheme();
 
   const points = [...rawPoints].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_POINTS);
@@ -34,7 +36,7 @@ export function TrendChart({ points: rawPoints, maxValue }: Props) {
           return (
             <View key={point.id} style={styles.barColumn}>
               <View style={styles.barTrack}>
-                <View style={[styles.bar, { height: `${heightPct}%`, backgroundColor: theme.tint }]} />
+                <View style={[styles.bar, { height: `${heightPct}%`, backgroundColor: color ?? theme.tint }]} />
               </View>
             </View>
           );

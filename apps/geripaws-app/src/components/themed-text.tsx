@@ -16,10 +16,10 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
       style={[
         { color: theme[themeColor ?? 'text'] },
         type === 'default' && styles.default,
-        type === 'title' && styles.title,
+        type === 'title' && [styles.title, { fontFamily: theme.pack.displayFont, fontWeight: '400' }],
         type === 'small' && styles.small,
         type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
+        type === 'subtitle' && [styles.subtitle, { fontFamily: theme.pack.displayFont, fontWeight: '400' }],
         type === 'link' && styles.link,
         type === 'linkPrimary' && styles.linkPrimary,
         type === 'code' && styles.code,

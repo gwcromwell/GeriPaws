@@ -46,6 +46,12 @@
           "icon": "./assets/images/icon.png",
           "color": "#208AEF"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GeriPaws uses your photo library to set a picture of your dog."
+        }
       ]
     ],
     "experiments": {
