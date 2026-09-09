@@ -33,6 +33,20 @@ export interface PetMember {
   role: PetRole;
   invited_by: string | null;
   joined_at: string;
+  /** Personal display preferences for the Today screen — default to showing everything. */
+  show_walk_tile: boolean;
+  show_water_tile: boolean;
+  show_food_tile: boolean;
+  show_weight_tile: boolean;
+  hide_given_doses: boolean;
+}
+
+/** Display-safe mirror of the caregiver's account, for attributing an action to a name. */
+export interface Profile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  created_at: string;
 }
 
 export interface PetInvite {

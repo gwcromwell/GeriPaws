@@ -40,6 +40,15 @@ export type CreateInviteInput = z.infer<typeof createInviteSchema>;
 export const acceptInviteSchema = z.object({
   token: z.string().uuid(),
 });
+
+export const memberPreferencesSchema = z.object({
+  showWalkTile: z.boolean().optional(),
+  showWaterTile: z.boolean().optional(),
+  showFoodTile: z.boolean().optional(),
+  showWeightTile: z.boolean().optional(),
+  hideGivenDoses: z.boolean().optional(),
+});
+export type MemberPreferencesInput = z.infer<typeof memberPreferencesSchema>;
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 
 export const signUpSchema = z.object({

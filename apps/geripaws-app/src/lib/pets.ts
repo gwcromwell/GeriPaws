@@ -1,4 +1,4 @@
-import type { Pet, PetInvite, PetMember, PetRole, UpdatePetInput } from "@geripaws/shared";
+import type { MemberPreferencesInput, Pet, PetInvite, PetMember, PetRole, UpdatePetInput } from "@geripaws/shared";
 
 import { supabase } from "./supabase";
 
@@ -110,6 +110,40 @@ export async function fetchMyRole(petId: string): Promise<PetRole | null> {
     .maybeSingle();
   if (error) throw error;
   return (data?.role as PetRole | undefined) ?? null;
+}
+
+/** The signed-in caregiver's own pet_members row — role plus their personal display preferences. */
+export async function fetchMyPreferences(petId: string): Promise<PetMember | null> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+
+  const { data, error } = await supabase
+    .from("pet_members")
+    .select("*")
+    .eq("pet_id", petId)
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as PetMember | null) ?? null;
+}
+
+export async function updateMyPreferences(petId: string, input: MemberPreferencesInput): Promise<void> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+
+  const patch: Record<string, boolean> = {};
+  if (input.showWalkTile !== undefined) patch.show_walk_tile = input.showWalkTile;
+  if (input.showWaterTile !== undefined) patch.show_water_tile = input.showWaterTile;
+  if (input.showFoodTile !== undefined) patch.show_food_tile = input.showFoodTile;
+  if (input.showWeightTile !== undefined) patch.show_weight_tile = input.showWeightTile;
+  if (input.hideGivenDoses !== undefined) patch.hide_given_doses = input.hideGivenDoses;
+
+  const { error } = await supabase
+    .from("pet_members")
+    .update(patch)
+    .eq("pet_id", petId)
+    .eq("user_id", userData.user.id);
+  if (error) throw error;
 }
 
 export async function fetchPetMembers(petId: string): Promise<PetMember[]> {

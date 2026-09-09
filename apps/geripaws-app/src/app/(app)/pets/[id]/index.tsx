@@ -1,5 +1,5 @@
 import { QOL_FULL_MAX } from '@geripaws/shared';
-import type { HabitLog, HabitType, Medication, Pet, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
+import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -16,8 +16,10 @@ import { fetchLatestByType } from '@/lib/habits';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
 import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
-import { fetchMyRole, fetchPet } from '@/lib/pets';
+import { fetchMyPreferences, fetchMyRole, fetchPet } from '@/lib/pets';
+import { displayNameFor, fetchProfilesForPet, type ProfileMap } from '@/lib/profiles';
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
+import { supabase } from '@/lib/supabase';
 
 function IncidentRow({ tokens, onPress }: { tokens: Theme; onPress: () => void }) {
   return (
@@ -71,6 +73,9 @@ export default function TodayScreen() {
   const [dueDoses, setDueDoses] = useState<DueDose[]>([]);
   const [latestQol, setLatestQol] = useState<QolResponse | null>(null);
   const [qolSettings, setQolSettings] = useState<QolSettings | null>(null);
+  const [myPreferences, setMyPreferences] = useState<PetMember | null>(null);
+  const [profiles, setProfiles] = useState<ProfileMap>({});
+  const [myUserId, setMyUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [givingKey, setGivingKey] = useState<string | null>(null);
@@ -84,14 +89,18 @@ export default function TodayScreen() {
       const petData = await fetchPet(id);
       const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
-      const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
-        fetchMyRole(id),
-        fetchLatestByType(id),
-        fetchMedications(id),
-        fetchDosesSince(id, dayStart),
-        fetchQolResponses(id, 1),
-        fetchQolSettings(id),
-      ]);
+      const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData, preferences, profileMap, userResult] =
+        await Promise.all([
+          fetchMyRole(id),
+          fetchLatestByType(id),
+          fetchMedications(id),
+          fetchDosesSince(id, dayStart),
+          fetchQolResponses(id, 1),
+          fetchQolSettings(id),
+          fetchMyPreferences(id),
+          fetchProfilesForPet(id),
+          supabase.auth.getUser(),
+        ]);
 
       setPet(petData);
       setRole(roleData);
@@ -99,6 +108,9 @@ export default function TodayScreen() {
       setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
       setLatestQol(qolResponses[0] ?? null);
       setQolSettings(qolSettingsData);
+      setMyPreferences(preferences);
+      setProfiles(profileMap);
+      setMyUserId(userResult.data.user?.id ?? null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
@@ -152,6 +164,15 @@ export default function TodayScreen() {
 
   const weightLog = latest.weight;
   const weightDetails = weightLog?.details as { value: number; unit: string } | undefined;
+  const who = (userId: string | null | undefined) => displayNameFor(profiles, userId, myUserId);
+
+  const TILE_VISIBILITY: Record<HabitType, boolean> = {
+    walk: myPreferences?.show_walk_tile ?? true,
+    water: myPreferences?.show_water_tile ?? true,
+    food: myPreferences?.show_food_tile ?? true,
+    weight: myPreferences?.show_weight_tile ?? true,
+    incident: true,
+  };
 
   const tiles: TileData[] = [
     ...HABIT_TILES.map(({ type, label, Icon }) => {
@@ -162,7 +183,9 @@ export default function TodayScreen() {
         label,
         Icon,
         overdue,
-        sub: log ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)}` : 'Not logged yet',
+        sub: log
+          ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)} · ${who(log.logged_by)}`
+          : 'Not logged yet',
       };
     }),
     {
@@ -170,9 +193,11 @@ export default function TodayScreen() {
       label: 'Weight',
       Icon: WeightIcon,
       overdue: false,
-      sub: weightDetails ? `${weightDetails.value} ${weightDetails.unit} · ${formatRelativeTime(weightLog!.occurred_at)}` : 'Not logged yet',
+      sub: weightDetails
+        ? `${weightDetails.value} ${weightDetails.unit} · ${formatRelativeTime(weightLog!.occurred_at)} · ${who(weightLog!.logged_by)}`
+        : 'Not logged yet',
     },
-  ];
+  ].filter((tile) => TILE_VISIBILITY[tile.type]);
 
   const goToTile = (type: HabitType) =>
     type === 'weight'
@@ -181,9 +206,15 @@ export default function TodayScreen() {
 
   const doseSection = (
     <MedicationList
+      // Remounts (resetting the "show completed" toggle to the new default)
+      // whenever the loaded preference actually changes, rather than only once.
+      key={String(myPreferences?.hide_given_doses ?? 'loading')}
       tokens={tokens}
       dueDoses={dueDoses}
       canLog={canLog}
+      hideGivenByDefault={myPreferences?.hide_given_doses ?? false}
+      profiles={profiles}
+      myUserId={myUserId}
       givingKey={givingKey}
       givenAtDraft={givenAtDraft}
       isSavingDose={isSavingDose}
@@ -213,6 +244,11 @@ export default function TodayScreen() {
             <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
               <ThemedText type="link" style={{ color: tokens.accent }}>
                 Sharing
+              </ThemedText>
+            </Link>
+            <Link href={{ pathname: '/pets/[id]/preferences', params: { id: pet.id } }}>
+              <ThemedText type="link" style={{ color: tokens.accent }}>
+                Preferences
               </ThemedText>
             </Link>
           </View>
@@ -408,6 +444,9 @@ function MedicationList({
   tokens,
   dueDoses,
   canLog,
+  hideGivenByDefault,
+  profiles,
+  myUserId,
   givingKey,
   givenAtDraft,
   isSavingDose,
@@ -420,6 +459,9 @@ function MedicationList({
   tokens: Theme;
   dueDoses: DueDose[];
   canLog: boolean;
+  hideGivenByDefault: boolean;
+  profiles: ProfileMap;
+  myUserId: string | null;
   givingKey: string | null;
   givenAtDraft: Date;
   isSavingDose: boolean;
@@ -429,7 +471,7 @@ function MedicationList({
   onConfirmGive: (medication: Medication, scheduledAt: Date) => void;
   onSkip: (medication: Medication, scheduledAt: Date) => void;
 }) {
-  const [showSettled, setShowSettled] = useState(false);
+  const [showSettled, setShowSettled] = useState(!hideGivenByDefault);
 
   if (dueDoses.length === 0) return null;
 
@@ -459,7 +501,15 @@ function MedicationList({
               {formatTimeOfDay(
                 `${String(due.scheduledAt.getHours()).padStart(2, '0')}:${String(due.scheduledAt.getMinutes()).padStart(2, '0')}`
               )}
-              {due.status === 'given' ? ' · Given' : due.status === 'skipped' ? ' · Skipped' : due.status === 'overdue' ? ' · Overdue' : ''}
+              {due.status === 'given' && due.dose?.given_at
+                ? ` · Given ${formatTimeOfDay(
+                    `${String(new Date(due.dose.given_at).getHours()).padStart(2, '0')}:${String(new Date(due.dose.given_at).getMinutes()).padStart(2, '0')}`
+                  )} by ${displayNameFor(profiles, due.dose.given_by, myUserId)}`
+                : due.status === 'skipped'
+                  ? ` · Skipped by ${displayNameFor(profiles, due.dose?.given_by, myUserId)}`
+                  : due.status === 'overdue'
+                    ? ' · Overdue'
+                    : ''}
             </ThemedText>
           </View>
           {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (

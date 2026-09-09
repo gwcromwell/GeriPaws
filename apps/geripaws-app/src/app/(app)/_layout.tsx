@@ -33,6 +33,7 @@ export default function AppLayout() {
       <Stack.Screen name="pets/new" options={{ title: 'Add a Dog', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/index" options={{ title: 'Today' }} />
       <Stack.Screen name="pets/[id]/edit" options={{ title: 'Edit Profile', presentation: 'modal' }} />
+      <Stack.Screen name="pets/[id]/preferences" options={{ title: 'Preferences', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/sharing" options={{ title: 'Sharing' }} />
       <Stack.Screen name="pets/[id]/history" options={{ title: 'History' }} />
       <Stack.Screen name="pets/[id]/weight" options={{ title: 'Weight' }} />

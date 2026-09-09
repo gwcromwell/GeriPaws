@@ -49,3 +49,15 @@ jobs:
       - name: Unit tests for Edge Function schedule/timezone logic
         working-directory: supabase/functions
         run: deno test --allow-env send-reminders/schedule-lib.test.ts
+
+      - name: Unit tests for Edge Function CORS handling (pet-sharing invite/link functions)
+        working-directory: supabase/functions
+        env:
+          # get-shared-pet constructs a Supabase client at import time — these
+          # only need to be non-empty strings, no real call is made in the
+          # cases under test.
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: test-key
+        run: |
+          deno test --allow-env send-pet-invite/index.test.ts
+          deno test --allow-env get-shared-pet/index.test.ts

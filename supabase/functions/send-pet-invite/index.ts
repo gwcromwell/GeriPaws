@@ -26,15 +26,34 @@ const ROLE_LABEL: Record<string, string> = {
   viewer: "a viewer — they can see the dog's information",
 };
 
-Deno.serve(async (req) => {
+// The web build calls this from the browser (apps/geripaws-app/src/lib/pets.ts,
+// inviteMember()). A cross-origin POST with a JSON body and an Authorization
+// header isn't a CORS "simple request", so the browser sends an OPTIONS
+// preflight first — without a response to that (and these headers on every
+// response), the preflight fails and the browser never even sends the real
+// request. That's exactly what "the email quickly failed" looked like: this
+// function was never reached at all, on web.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Exported (rather than an inline Deno.serve callback) so index.test.ts can
+// call it directly — specifically to guard the CORS regression above without
+// needing a live Supabase/Resend round trip.
+export async function handleRequest(req: Request): Promise<Response> {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
+
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return new Response("Missing Authorization header", { status: 401 });
+  if (!authHeader) return new Response("Missing Authorization header", { status: 401, headers: CORS_HEADERS });
 
   const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: userData, error: userError } = await callerClient.auth.getUser();
-  if (userError || !userData.user) return new Response("Not signed in", { status: 401 });
+  if (userError || !userData.user) return new Response("Not signed in", { status: 401, headers: CORS_HEADERS });
 
   let inviteId: string | undefined;
   try {
@@ -42,7 +61,7 @@ Deno.serve(async (req) => {
   } catch {
     // fall through to the missing-inviteId check below
   }
-  if (!inviteId) return new Response("Missing inviteId", { status: 400 });
+  if (!inviteId) return new Response("Missing inviteId", { status: 400, headers: CORS_HEADERS });
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const { data: invite, error: inviteError } = await admin
@@ -50,8 +69,8 @@ Deno.serve(async (req) => {
     .select("*, pets(name)")
     .eq("id", inviteId)
     .single();
-  if (inviteError || !invite) return new Response("Invite not found", { status: 404 });
-  if (invite.invited_by !== userData.user.id) return new Response("Forbidden", { status: 403 });
+  if (inviteError || !invite) return new Response("Invite not found", { status: 404, headers: CORS_HEADERS });
+  if (invite.invited_by !== userData.user.id) return new Response("Forbidden", { status: 403, headers: CORS_HEADERS });
 
   const acceptUrl = `${APP_URL}/accept-invite?token=${invite.token}`;
   const petName = invite.pets?.name ?? "a dog";
@@ -80,8 +99,16 @@ Deno.serve(async (req) => {
 
   if (!resendResponse.ok) {
     const text = await resendResponse.text();
-    return new Response(`Resend error: ${text}`, { status: 502 });
+    return new Response(`Resend error: ${text}`, { status: 502, headers: CORS_HEADERS });
   }
 
-  return new Response(JSON.stringify({ sent: true }), { headers: { "Content-Type": "application/json" } });
-});
+  return new Response(JSON.stringify({ sent: true }), {
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
+// Guarded so importing this module for tests doesn't try to bind a listener
+// (which needs --allow-net and would otherwise start a real server per test run).
+if (import.meta.main) {
+  Deno.serve(handleRequest);
+}

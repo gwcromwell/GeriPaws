@@ -21,7 +21,8 @@ const CORS_HEADERS = {
   "Content-Type": "application/json",
 };
 
-Deno.serve(async (req) => {
+// Exported so index.test.ts can call it directly without a live network round trip.
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
   }
@@ -75,4 +76,10 @@ Deno.serve(async (req) => {
     }),
     { headers: CORS_HEADERS }
   );
-});
+}
+
+// Guarded so importing this module for tests doesn't try to bind a listener
+// (which needs --allow-net and would otherwise start a real server per test run).
+if (import.meta.main) {
+  Deno.serve(handleRequest);
+}
