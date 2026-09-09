@@ -133,17 +133,45 @@ export async function fetchPendingInvites(petId: string): Promise<PetInvite[]> {
   return (data ?? []) as PetInvite[];
 }
 
-export async function inviteMember(petId: string, email: string, role: Exclude<PetRole, "owner">) {
+/** Creates the invite row, then asks the send-pet-invite Edge Function to email it.
+ * The row is created either way — `emailSent: false` means the invite exists and can
+ * still be accepted, but the caller should offer the invitee its link some other way. */
+export async function inviteMember(
+  petId: string,
+  email: string,
+  role: Exclude<PetRole, "owner">
+): Promise<{ invite: PetInvite; emailSent: boolean }> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw userError ?? new Error("Not signed in");
 
-  const { error } = await supabase.from("pet_invites").insert({
-    pet_id: petId,
-    email,
-    role,
-    invited_by: userData.user.id,
-  });
+  const { data, error } = await supabase
+    .from("pet_invites")
+    .insert({
+      pet_id: petId,
+      email,
+      role,
+      invited_by: userData.user.id,
+    })
+    .select()
+    .single();
   if (error) throw error;
+
+  const { error: sendError } = await supabase.functions.invoke("send-pet-invite", {
+    body: { inviteId: data.id },
+  });
+
+  return { invite: data as PetInvite, emailSent: !sendError };
+}
+
+/** The link an invitee needs to accept a pending invite — usable as a manual
+ * fallback (e.g. texting it) if the invite email didn't arrive. Deployed web
+ * lives under a /GeriPaws subpath (GitHub Pages project site), so only a
+ * localhost dev server can safely use its own origin as-is. */
+export function buildInviteUrl(token: string): string {
+  if (typeof window !== "undefined" && window.location?.hostname === "localhost") {
+    return `${window.location.origin}/accept-invite?token=${token}`;
+  }
+  return `https://gwcromwell.github.io/GeriPaws/accept-invite?token=${token}`;
 }
 
 export async function revokeInvite(inviteId: string) {

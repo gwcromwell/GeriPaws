@@ -12,11 +12,13 @@ import { fetchMedications } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
 import { createShareLink, fetchShareLinks, revokeShareLink, type PetShareLink } from '@/lib/share-links';
 
+// Deployed web lives under a /GeriPaws subpath (GitHub Pages project site), so
+// only a localhost dev server can safely use its own origin as-is.
 function buildShareUrl(token: string): string {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
     return `${window.location.origin}/shared/${token}`;
   }
-  return `[open the web version]/shared/${token}`;
+  return `https://gwcromwell.github.io/GeriPaws/shared/${token}`;
 }
 
 const STATUS_LABEL: Record<AilmentStatus, string> = {

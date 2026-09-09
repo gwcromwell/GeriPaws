@@ -2,7 +2,7 @@ import type { Pet, PetInvite, PetMember, PetRole } from '@geripaws/shared';
 import { createInviteSchema } from '@geripaws/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/hooks/use-theme';
 
 import {
+  buildInviteUrl,
   fetchPendingInvites,
   fetchPet,
   fetchPetMembers,
@@ -27,10 +28,12 @@ export default function SharingScreen() {
   const [invites, setInvites] = useState<PetInvite[]>([]);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<Exclude<PetRole, 'owner'>>('caregiver');
   const [isInviting, setIsInviting] = useState(false);
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -68,14 +71,32 @@ export default function SharingScreen() {
       return;
     }
     setIsInviting(true);
+    setError(null);
+    setInfo(null);
     try {
-      await inviteMember(result.data.petId, result.data.email, result.data.role);
+      const { emailSent } = await inviteMember(result.data.petId, result.data.email, result.data.role);
       setInviteEmail('');
       await load();
+      if (emailSent) {
+        setInfo(`Invite sent to ${result.data.email}.`);
+      } else {
+        setError("Invite created, but the email couldn't be sent — copy its link below and share it directly.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invite');
     } finally {
       setIsInviting(false);
+    }
+  }
+
+  async function handleCopyInviteLink(invite: PetInvite) {
+    const url = buildInviteUrl(invite.token);
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setCopiedInviteId(invite.id);
+      setTimeout(() => setCopiedInviteId((current) => (current === invite.id ? null : current)), 2000);
+    } else {
+      await Share.share({ message: url });
     }
   }
 
@@ -155,11 +176,18 @@ export default function SharingScreen() {
                 <ThemedView key={invite.id} style={styles.row}>
                   <ThemedText>{invite.email}</ThemedText>
                   <ThemedText themeColor="textSecondary">{invite.role}</ThemedText>
-                  <Pressable onPress={() => revokeInvite(invite.id).then(load)}>
-                    <ThemedText themeColor="error" type="small">
-                      Revoke
-                    </ThemedText>
-                  </Pressable>
+                  <ThemedView style={styles.inviteActions}>
+                    <Pressable onPress={() => handleCopyInviteLink(invite)} hitSlop={8}>
+                      <ThemedText style={{ color: theme.tint }} type="small">
+                        {copiedInviteId === invite.id ? 'Copied!' : 'Copy link'}
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable onPress={() => revokeInvite(invite.id).then(load)} hitSlop={8}>
+                      <ThemedText themeColor="error" type="small">
+                        Revoke
+                      </ThemedText>
+                    </Pressable>
+                  </ThemedView>
                 </ThemedView>
               ))}
             </>
@@ -170,6 +198,11 @@ export default function SharingScreen() {
       {error ? (
         <ThemedText themeColor="error" style={styles.message}>
           {error}
+        </ThemedText>
+      ) : null}
+      {info ? (
+        <ThemedText themeColor="textSecondary" style={styles.message}>
+          {info}
         </ThemedText>
       ) : null}
     </ThemedView>
@@ -189,6 +222,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     gap: 8,
   },
+  inviteActions: { flexDirection: 'row', gap: 16 },
   roleRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
   roleOption: { paddingVertical: 4 },
   button: {
