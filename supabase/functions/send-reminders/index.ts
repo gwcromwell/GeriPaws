@@ -5,15 +5,17 @@
 // overdue medication doses, low medication supply, and overdue Quality of Life
 // check-ins, and emails the pet's owner/caregivers a summary via Resend.
 //
-// The schedule/refill math here intentionally duplicates the pure logic in
-// packages/shared/src/schedule.ts and qol.ts — Edge Functions deploy as a single
-// self-contained file, so it can't import from the rest of the monorepo.
+// The schedule/refill math in schedule-lib.ts intentionally duplicates the pure
+// logic in packages/shared/src/schedule.ts and qol.ts — Edge Functions can't
+// import from the rest of the monorepo, only from within their own directory.
+// See index.test.ts for the tests guarding that duplication against drift.
 //
 // Required secret: RESEND_API_KEY (set via the Supabase dashboard or
 // `supabase secrets set`). SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are
 // injected automatically by the platform — do not set those yourself.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { computeDosesPerDay, computeDueTimesForDay, getDayStart, isQolOverdue } from "./schedule-lib.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -21,131 +23,6 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const FROM_EMAIL = "GeriPaws <reminders@obi1.nyc>";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
-// ---------------------------------------------------------------------------
-// Pure schedule/refill/QOL logic (mirrors packages/shared/src/schedule.ts and
-// tz.ts). This must be timezone-aware, not just correct-looking: this function
-// runs on Supabase's servers (UTC), while a medication's "08:00" is only
-// meaningful relative to the *pet's* timezone. The naive `Date#setHours`
-// approach silently interprets clock times as UTC on the server while the
-// mobile app (correctly) interprets them in the device's local time — those
-// disagree by the pet owner's UTC offset, which either delays or completely
-// suppresses reminders depending on the sign of that offset.
-// ---------------------------------------------------------------------------
-
-function getTzOffsetMinutes(timeZone: string, instant: Date): number {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const parts: Record<string, string> = {};
-  for (const part of dtf.formatToParts(instant)) {
-    if (part.type !== "literal") parts[part.type] = part.value;
-  }
-  const asUtc = Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second)
-  );
-  return (asUtc - instant.getTime()) / 60_000;
-}
-
-function getZonedDateParts(instant: Date, timeZone: string): { year: number, month: number, day: number } {
-  const dtf = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
-  const parts: Record<string, string> = {};
-  for (const part of dtf.formatToParts(instant)) {
-    if (part.type !== "literal") parts[part.type] = part.value;
-  }
-  return { year: Number(parts.year), month: Number(parts.month) - 1, day: Number(parts.day) };
-}
-
-function getZonedDayOfWeek(instant: Date, timeZone: string): number {
-  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(instant);
-  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
-}
-
-function zonedTimeToUtc(year: number, month: number, day: number, hour: number, minute: number, timeZone: string): Date {
-  let guess = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
-  for (let i = 0; i < 2; i++) {
-    const offset = getTzOffsetMinutes(timeZone, guess);
-    const corrected = new Date(Date.UTC(year, month, day, hour, minute, 0, 0) - offset * 60_000);
-    if (corrected.getTime() === guess.getTime()) break;
-    guess = corrected;
-  }
-  return guess;
-}
-
-function applyTimeToDay(dayStart: Date, time: string, timeZone: string): Date {
-  const [hours, minutes] = time.split(":").map(Number);
-  const { year, month, day } = getZonedDateParts(dayStart, timeZone);
-  return zonedTimeToUtc(year, month, day, hours, minutes, timeZone);
-}
-
-// deno-lint-ignore no-explicit-any
-function computeDueTimesForDay(schedule: any, dayStart: Date, timeZone: string): Date[] {
-  switch (schedule.kind) {
-    case "times_per_day":
-      return schedule.times.map((t: string) => applyTimeToDay(dayStart, t, timeZone));
-    case "specific_days":
-      if (!schedule.daysOfWeek.includes(getZonedDayOfWeek(dayStart, timeZone))) return [];
-      return schedule.times.map((t: string) => applyTimeToDay(dayStart, t, timeZone));
-    case "interval_hours": {
-      const times: Date[] = [];
-      const dayEnd = new Date(dayStart.getTime() + 24 * 3_600_000);
-      let current = applyTimeToDay(dayStart, schedule.startTime, timeZone);
-      while (current < dayEnd) {
-        if (current >= dayStart) times.push(new Date(current));
-        current = new Date(current.getTime() + schedule.intervalHours * 3_600_000);
-      }
-      return times;
-    }
-    default:
-      return [];
-  }
-}
-
-// deno-lint-ignore no-explicit-any
-function computeDosesPerDay(schedule: any): number | null {
-  switch (schedule.kind) {
-    case "times_per_day":
-      return schedule.times.length;
-    case "interval_hours":
-      return 24 / schedule.intervalHours;
-    case "specific_days":
-      return (schedule.times.length * schedule.daysOfWeek.length) / 7;
-    default:
-      return null;
-  }
-}
-
-function getDayStart(now: Date, dayBoundaryHour: number, timeZone: string): Date {
-  const today = getZonedDateParts(now, timeZone);
-  let start = zonedTimeToUtc(today.year, today.month, today.day, dayBoundaryHour, 0, timeZone);
-  if (start > now) {
-    const yesterday = getZonedDateParts(new Date(now.getTime() - 24 * 3_600_000), timeZone);
-    start = zonedTimeToUtc(yesterday.year, yesterday.month, yesterday.day, dayBoundaryHour, 0, timeZone);
-  }
-  return start;
-}
-
-const CADENCE_DAYS: Record<string, number> = { daily: 1, weekly: 7, monthly: 30 };
-
-function isQolOverdue(lastSurveyDate: string | null, cadence: string, now: Date): boolean {
-  if (!lastSurveyDate) return false;
-  const last = new Date(lastSurveyDate);
-  const dueDate = new Date(last.getTime() + (CADENCE_DAYS[cadence] ?? 7) * 86_400_000);
-  const overdueDate = new Date(dueDate.getTime() + 86_400_000);
-  return now >= overdueDate;
-}
 
 // ---------------------------------------------------------------------------
 // Dedup — at most one email per pet/kind/reference per calendar day

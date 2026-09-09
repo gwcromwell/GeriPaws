@@ -1,0 +1,14 @@
+name: Tests
+
+# Runs on every branch push and PR so a regression is caught before it ever
+# reaches main. main's own push is covered by deploy-pages.yml (which runs
+# the same Verify job as a gate before deploying), so it's excluded here to
+# avoid running it twice.
+on:
+  push:
+    branches-ignore: [main]
+  pull_request: {}
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
