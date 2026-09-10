@@ -1,8 +1,9 @@
 import { createAilmentSchema } from '@geripaws/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
@@ -10,10 +11,7 @@ import { ThemedView } from '@/components/themed-view';
 import { createAilment } from '@/lib/ailments';
 import { CONDITION_TEMPLATES } from '@/lib/condition-templates';
 
-
-import { useTheme } from '@/hooks/use-theme';
 export default function NewAilmentScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -112,11 +110,7 @@ export default function NewAilmentScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-        <ThemedText themeColor="background" type="smallBold">
-          {isSubmitting ? 'Saving…' : 'Save condition'}
-        </ThemedText>
-      </Pressable>
+      <Button label={isSubmitting ? 'Saving…' : 'Save condition'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
       </ScrollView>
     </ThemedView>
   );
@@ -125,12 +119,6 @@ export default function NewAilmentScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, gap: 16 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

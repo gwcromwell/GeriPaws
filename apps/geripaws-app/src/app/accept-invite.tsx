@@ -3,16 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
 import { acceptInvite } from '@/lib/pets';
 
-
-import { useTheme } from '@/hooks/use-theme';
 export default function AcceptInviteScreen() {
-  const theme = useTheme();
   const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
   const { session, signIn, signUp } = useAuth();
@@ -97,11 +95,7 @@ export default function AcceptInviteScreen() {
 
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
 
-      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit}>
-        <ThemedText themeColor="background" type="smallBold">
-          {mode === 'sign-in' ? 'Sign in' : 'Sign up'}
-        </ThemedText>
-      </Pressable>
+      <Button label={mode === 'sign-in' ? 'Sign in' : 'Sign up'} onPress={handleSubmit} style={styles.button} />
 
       <Pressable accessibilityRole="button" onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
         <ThemedText type="link" themeColor="tint" style={styles.switchMode}>
@@ -114,12 +108,6 @@ export default function AcceptInviteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: 'center', gap: 12 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   switchMode: { textAlign: 'center', marginTop: 8 },
 });

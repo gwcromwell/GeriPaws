@@ -2,9 +2,10 @@ import type { Ailment, AilmentNote, AilmentStatus, Medication, PetRole, VetQuest
 import { createAilmentNoteSchema, createVetQuestionSchema } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { AttachmentGrid } from '@/components/attachment-grid';
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
@@ -19,11 +20,10 @@ import {
   fetchVetQuestions,
   updateAilment,
 } from '@/lib/ailments';
+import { confirmDestructive } from '@/lib/confirm';
 import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
 import { fetchMedications } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
-
-import { useTheme } from '@/hooks/use-theme';
 
 const STATUS_OPTIONS: { value: AilmentStatus; label: string }[] = [
   { value: 'active', label: 'Active' },
@@ -31,19 +31,7 @@ const STATUS_OPTIONS: { value: AilmentStatus; label: string }[] = [
   { value: 'resolved', label: 'Resolved' },
 ];
 
-function confirm(title: string, message: string, onConfirm: () => void) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: onConfirm },
-  ]);
-}
-
 export default function AilmentDetailScreen() {
-  const theme = useTheme();
   const { id, ailmentId } = useLocalSearchParams<{ id: string; ailmentId: string }>();
   const router = useRouter();
 
@@ -146,7 +134,7 @@ export default function AilmentDetailScreen() {
 
   function handleDelete() {
     if (!ailmentId) return;
-    confirm('Delete condition', 'This also removes its medications and notes. This cannot be undone.', async () => {
+    confirmDestructive('Delete condition', 'This also removes its medications and notes. This cannot be undone.', async () => {
       try {
         await deleteAilment(ailmentId);
         router.replace({ pathname: '/pets/[id]/ailments', params: { id } });
@@ -221,11 +209,7 @@ export default function AilmentDetailScreen() {
       ) : null}
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, ailmentId } }} asChild>
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
-            <ThemedText themeColor="tint" type="smallBold">
-              + Add medication
-            </ThemedText>
-          </Pressable>
+          <Button variant="secondary" label="+ Add medication" />
         </Link>
       ) : null}
 
@@ -246,11 +230,7 @@ export default function AilmentDetailScreen() {
       {canEdit ? (
         <ThemedView style={styles.inlineForm}>
           <ThemedTextInput placeholder="Add a note about this condition" multiline value={noteText} onChangeText={setNoteText} />
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddNote}>
-            <ThemedText themeColor="tint" type="smallBold">
-              Add note
-            </ThemedText>
-          </Pressable>
+          <Button variant="secondary" label="Add note" onPress={handleAddNote} />
         </ThemedView>
       ) : null}
 
@@ -263,11 +243,7 @@ export default function AilmentDetailScreen() {
           {answeringId === q.id ? (
             <ThemedView style={styles.inlineForm}>
               <ThemedTextInput placeholder="What did the vet say?" multiline value={answerText} onChangeText={setAnswerText} />
-              <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={() => handleAnswer(q.id)}>
-                <ThemedText themeColor="tint" type="smallBold">
-                  Save answer
-                </ThemedText>
-              </Pressable>
+              <Button variant="secondary" label="Save answer" onPress={() => handleAnswer(q.id)} />
             </ThemedView>
           ) : canEdit ? (
             <Pressable
@@ -284,11 +260,7 @@ export default function AilmentDetailScreen() {
       {canEdit ? (
         <ThemedView style={styles.inlineForm}>
           <ThemedTextInput placeholder="A question to ask at the next visit" value={questionText} onChangeText={setQuestionText} />
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddQuestion}>
-            <ThemedText themeColor="tint" type="smallBold">
-              Add question
-            </ThemedText>
-          </Pressable>
+          <Button variant="secondary" label="Add question" onPress={handleAddQuestion} />
         </ThemedView>
       ) : null}
       {answeredQuestions.length > 0 ? (
@@ -313,13 +285,7 @@ export default function AilmentDetailScreen() {
         </ThemedText>
       ) : null}
 
-      {canEdit ? (
-        <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={handleDelete}>
-          <ThemedText themeColor="error" type="smallBold">
-            Delete condition
-          </ThemedText>
-        </Pressable>
-      ) : null}
+      {canEdit ? <Button variant="danger" label="Delete condition" onPress={handleDelete} style={styles.deleteButton} /> : null}
       </ScrollView>
     </ThemedView>
   );
@@ -343,22 +309,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   inlineForm: { gap: 8, marginTop: 8 },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#208AEF',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
   answeredHeading: { marginTop: 12 },
   message: { textAlign: 'center', marginTop: 12 },
-  deleteButton: {
-    borderWidth: 1,
-    borderColor: '#D33A3A',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 24,
-  },
+  deleteButton: { marginTop: 24, marginBottom: 24 },
 });

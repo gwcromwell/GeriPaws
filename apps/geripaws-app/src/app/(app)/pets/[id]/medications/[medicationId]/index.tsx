@@ -2,14 +2,16 @@ import type { Ailment, Medication, MedicationDose, MedicationRefill, PetRole } f
 import { computeRefillProjection, refillSetupSchema } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { DoseRow } from '@/components/dose-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
-import { formatDate, summarizeSchedule } from '@/lib/format';
 import { fetchAilment } from '@/lib/ailments';
+import { confirmDestructive } from '@/lib/confirm';
+import { formatDate, summarizeSchedule } from '@/lib/format';
 import {
   deleteMedication,
   fetchDosesForMedication,
@@ -20,21 +22,7 @@ import {
 } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
 
-import { useTheme } from '@/hooks/use-theme';
-
-function confirm(title: string, message: string, onConfirm: () => void) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: onConfirm },
-  ]);
-}
-
 export default function MedicationDetailScreen() {
-  const theme = useTheme();
   const { id, medicationId } = useLocalSearchParams<{ id: string; medicationId: string }>();
   const router = useRouter();
 
@@ -111,7 +99,7 @@ export default function MedicationDetailScreen() {
 
   function handleDelete() {
     if (!medication) return;
-    confirm('Delete medication', 'This also removes its dose and refill history. This cannot be undone.', async () => {
+    confirmDestructive('Delete medication', 'This also removes its dose and refill history. This cannot be undone.', async () => {
       try {
         await deleteMedication(medication.id);
         if (ailment) {
@@ -187,11 +175,7 @@ export default function MedicationDetailScreen() {
                   value={restockValue}
                   onChangeText={setRestockValue}
                 />
-                <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleRestock} disabled={isRestocking}>
-                  <ThemedText themeColor="tint" type="smallBold">
-                    {isRestocking ? 'Saving…' : 'Update count'}
-                  </ThemedText>
-                </Pressable>
+                <Button variant="secondary" label={isRestocking ? 'Saving…' : 'Update count'} onPress={handleRestock} disabled={isRestocking} />
               </ThemedView>
             ) : null}
           </>
@@ -202,23 +186,13 @@ export default function MedicationDetailScreen() {
             </ThemedText>
             {canEdit ? (
               <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, medicationId: medication.id } }} asChild>
-                <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
-                  <ThemedText themeColor="tint" type="smallBold">
-                    Set up refill tracking
-                  </ThemedText>
-                </Pressable>
+                <Button variant="secondary" label="Set up refill tracking" />
               </Link>
             ) : null}
           </>
         )}
 
-        {canEdit ? (
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleLogNow}>
-            <ThemedText themeColor="tint" type="smallBold">
-              Log a dose now
-            </ThemedText>
-          </Pressable>
-        ) : null}
+        {canEdit ? <Button variant="secondary" label="Log a dose now" onPress={handleLogNow} /> : null}
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Recent doses
@@ -241,17 +215,9 @@ export default function MedicationDetailScreen() {
         {canEdit ? (
           <>
             <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, medicationId: medication.id } }} asChild>
-              <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
-                <ThemedText themeColor="tint" type="smallBold">
-                  Edit medication
-                </ThemedText>
-              </Pressable>
+              <Button variant="secondary" label="Edit medication" />
             </Link>
-            <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={handleDelete}>
-              <ThemedText themeColor="error" type="smallBold">
-                Delete medication
-              </ThemedText>
-            </Pressable>
+            <Button variant="danger" label="Delete medication" onPress={handleDelete} style={styles.deleteButton} />
           </>
         ) : null}
       </ScrollView>
@@ -265,22 +231,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28 },
   sectionTitle: { marginTop: 20, marginBottom: 4 },
   restockRow: { gap: 8, marginTop: 8 },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#208AEF',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
   message: { textAlign: 'center', marginTop: 12 },
-  deleteButton: {
-    borderWidth: 1,
-    borderColor: '#D33A3A',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
-  },
+  deleteButton: { marginTop: 16, marginBottom: 24 },
 });

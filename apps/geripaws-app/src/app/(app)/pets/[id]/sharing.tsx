@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
@@ -170,11 +171,7 @@ export default function SharingScreen() {
           <ThemedText type="small" themeColor="textSecondary">
             Caregiver can log habits and manage medications. Viewer can only see the dog's information.
           </ThemedText>
-          <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleInvite} disabled={isInviting}>
-            <ThemedText themeColor="background" type="smallBold">
-              {isInviting ? 'Sending…' : 'Send invite'}
-            </ThemedText>
-          </Pressable>
+          <Button label={isInviting ? 'Sending…' : 'Send invite'} onPress={handleInvite} disabled={isInviting} style={styles.button} />
 
           {invites.length > 0 ? (
             <>
@@ -242,12 +239,6 @@ const styles = StyleSheet.create({
   inviteActions: { flexDirection: 'row', gap: 16 },
   roleRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
   roleOption: { paddingVertical: 4 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 12,
-  },
+  button: { marginTop: 12 },
   message: { textAlign: 'center', marginTop: 12 },
 });

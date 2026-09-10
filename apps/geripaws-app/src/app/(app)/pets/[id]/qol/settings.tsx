@@ -2,17 +2,15 @@ import type { QolCadence } from '@geripaws/shared';
 import { qolSettingsSchema } from '@geripaws/shared';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
 
-
-import { useTheme } from '@/hooks/use-theme';
 export default function QolSettingsScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -108,23 +106,13 @@ export default function QolSettingsScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSave} disabled={isSubmitting}>
-        <ThemedText themeColor="background" type="smallBold">
-          {isSubmitting ? 'Saving…' : 'Save'}
-        </ThemedText>
-      </Pressable>
+      <Button label={isSubmitting ? 'Saving…' : 'Save'} onPress={handleSave} disabled={isSubmitting} style={styles.button} />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, gap: 16 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

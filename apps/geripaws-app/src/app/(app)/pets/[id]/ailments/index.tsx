@@ -3,6 +3,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
@@ -144,11 +145,7 @@ export default function AilmentsScreen() {
 
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/ailments/new', params: { id } }} asChild>
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
-            <ThemedText style={{ color: tokens.accent }} type="smallBold">
-              + Add a condition
-            </ThemedText>
-          </Pressable>
+          <Button variant="secondary" label="+ Add a condition" />
         </Link>
       ) : null}
 
@@ -181,11 +178,7 @@ export default function AilmentsScreen() {
         ) : null}
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/medications/new', params: { id } }} asChild>
-            <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
-              <ThemedText style={{ color: tokens.accent }} type="smallBold">
-                + Add general medication
-              </ThemedText>
-            </Pressable>
+            <Button variant="secondary" label="+ Add general medication" />
           </Link>
         ) : null}
       </ThemedView>
@@ -198,11 +191,7 @@ export default function AilmentsScreen() {
           A printable/shareable summary of conditions, medications, recent incidents, and QOL/weight trends.
         </ThemedText>
         <Link href={{ pathname: '/pets/[id]/vet-summary', params: { id } }} asChild>
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
-            <ThemedText style={{ color: tokens.accent }} type="smallBold">
-              View / export summary
-            </ThemedText>
-          </Pressable>
+          <Button variant="secondary" label="View / export summary" />
         </Link>
       </ThemedView>
 
@@ -240,11 +229,12 @@ export default function AilmentsScreen() {
               </ThemedView>
             </ThemedView>
           ))}
-          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])} onPress={handleCreateShareLink} disabled={isCreatingLink}>
-            <ThemedText style={{ color: tokens.accent }} type="smallBold">
-              {isCreatingLink ? 'Creating…' : '+ Create share link'}
-            </ThemedText>
-          </Pressable>
+          <Button
+            variant="secondary"
+            label={isCreatingLink ? 'Creating…' : '+ Create share link'}
+            onPress={handleCreateShareLink}
+            disabled={isCreatingLink}
+          />
         </ThemedView>
       ) : null}
       </ScrollView>
@@ -282,11 +272,4 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shareLinkActions: { flexDirection: 'row', gap: 16 },
-  secondaryButton: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
 });

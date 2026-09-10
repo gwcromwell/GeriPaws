@@ -2,10 +2,10 @@ import type { MedicationDose } from '@geripaws/shared';
 import { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/hooks/use-theme';
 import { formatDateTime } from '@/lib/format';
 import { deleteDose, updateDoseGivenAt, updateDoseSkipped } from '@/lib/medications';
 
@@ -19,7 +19,6 @@ type Props = {
 };
 
 export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props) {
-  const theme = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<Date>(() => new Date(dose.given_at ?? dose.scheduled_at));
   const [isSaving, setIsSaving] = useState(false);
@@ -118,11 +117,7 @@ export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props
                 </ThemedText>
               </Pressable>
             ) : null}
-            <Pressable accessibilityRole="button" style={[styles.saveButton, { backgroundColor: theme.tint }]} onPress={saveGivenAt} disabled={isSaving}>
-              <ThemedText themeColor="background" type="smallBold">
-                {isSaving ? 'Saving…' : 'Save'}
-              </ThemedText>
-            </Pressable>
+            <Button label={isSaving ? 'Saving…' : 'Save'} onPress={saveGivenAt} disabled={isSaving} style={styles.saveButton} />
           </ThemedView>
         </ThemedView>
       ) : null}
@@ -142,10 +137,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 16 },
   editForm: { gap: 8 },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
-  saveButton: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
+  // Overrides Button's default padding — this is an inline row action, not a
+  // full-width form submit button.
+  saveButton: { paddingVertical: 8, paddingHorizontal: 16 },
 });

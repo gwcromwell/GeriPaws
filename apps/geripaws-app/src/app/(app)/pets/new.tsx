@@ -1,19 +1,18 @@
 import { createPetSchema } from '@geripaws/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { AvatarPicker } from '@/components/avatar-picker';
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { DateOfBirthField } from '@/components/date-of-birth-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/hooks/use-theme';
 import { createPet, updatePet, uploadPetPhoto } from '@/lib/pets';
 
 export default function NewPetScreen() {
-  const theme = useTheme();
   const router = useRouter();
   const [name, setName] = useState('');
   const [breed, setBreed] = useState('');
@@ -110,11 +109,7 @@ export default function NewPetScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-          <ThemedText themeColor="background" type="smallBold">
-            {isSubmitting ? 'Creating…' : 'Create dog profile'}
-          </ThemedText>
-        </Pressable>
+        <Button label={isSubmitting ? 'Creating…' : 'Create dog profile'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
       </ScrollView>
     </ThemedView>
   );
@@ -123,11 +118,6 @@ export default function NewPetScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, gap: 16 },
-  button: {
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

@@ -2,18 +2,17 @@ import type { QolCadence } from '@geripaws/shared';
 import { qolSettingsSchema } from '@geripaws/shared';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { PackSwitcher } from '@/components/pack-switcher';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/hooks/use-theme';
 import { fetchMyPreferences, updateMyPreferences } from '@/lib/pets';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
 
 export default function PreferencesScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -201,11 +200,7 @@ export default function PreferencesScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSave} disabled={isSubmitting}>
-          <ThemedText themeColor="background" type="smallBold">
-            {isSubmitting ? 'Saving…' : 'Save'}
-          </ThemedText>
-        </Pressable>
+        <Button label={isSubmitting ? 'Saving…' : 'Save'} onPress={handleSave} disabled={isSubmitting} style={styles.button} />
       </ScrollView>
     </ThemedView>
   );
@@ -216,11 +211,6 @@ const styles = StyleSheet.create({
   container: { padding: 24, gap: 12 },
   sectionTitle: { marginTop: 20, marginBottom: 2 },
   hint: { marginBottom: 4 },
-  button: {
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
+  button: { marginTop: 16 },
   message: { textAlign: 'center' },
 });

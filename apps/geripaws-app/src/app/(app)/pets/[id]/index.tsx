@@ -1,7 +1,7 @@
 import { QOL_FULL_MAX, habitLogInputSchema } from '@geripaws/shared';
 import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState, type ComponentType, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AlertIcon, CheckIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
@@ -69,8 +69,10 @@ export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const tokens = useTheme();
-  // Keeps "3h ago"-style labels on the tiles below from freezing between fetches.
-  useNow(60_000);
+  // Keeps "3h ago"-style labels on the tiles below from freezing between
+  // fetches — its value is fed into the tiles useMemo below specifically so
+  // that memo recomputes on each tick instead of going stale.
+  const now = useNow(60_000);
   const [pet, setPet] = useState<Pet | null>(null);
   const [role, setRole] = useState<PetRole | null>(null);
   const [latest, setLatest] = useState<Record<HabitType, HabitLog | null>>({
@@ -100,8 +102,16 @@ export default function TodayScreen() {
       const petData = await fetchPet(id);
       const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
+      // Fetched once and threaded through to fetchMyRole/fetchMyPreferences,
+      // which would otherwise each make their own redundant auth.getUser()
+      // round trip (a real network call, not a local read). Falls back to
+      // undefined on failure — those calls then fetch it themselves — rather
+      // than letting this block the core screen a caregiver actually needs.
+      const userResult = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+      const myId = userResult.data.user?.id;
+
       const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
-        fetchMyRole(id),
+        fetchMyRole(id, myId),
         fetchLatestByType(id),
         fetchMedications(id),
         fetchDosesSince(id, dayStart),
@@ -121,14 +131,13 @@ export default function TodayScreen() {
       // screen (and depend on migrations that may not be applied to every
       // environment yet) — a failure here must never block the screen a
       // caregiver actually needs to log a dose or a walk.
-      const [preferences, profileMap, userResult] = await Promise.all([
-        fetchMyPreferences(id).catch(() => null),
+      const [preferences, profileMap] = await Promise.all([
+        fetchMyPreferences(id, myId).catch(() => null),
         fetchProfilesForPet(id).catch(() => ({})),
-        supabase.auth.getUser().catch(() => ({ data: { user: null } })),
       ]);
       setMyPreferences(preferences);
       setProfiles(profileMap);
-      setMyUserId(userResult.data.user?.id ?? null);
+      setMyUserId(myId ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dog');
     } finally {
@@ -190,6 +199,58 @@ export default function TodayScreen() {
     }
   }
 
+  const TILE_VISIBILITY = useMemo<Record<HabitType, boolean>>(
+    () => ({
+      walk: myPreferences?.show_walk_tile ?? true,
+      water: myPreferences?.show_water_tile ?? true,
+      food: myPreferences?.show_food_tile ?? true,
+      weight: myPreferences?.show_weight_tile ?? true,
+      incident: true,
+    }),
+    [myPreferences]
+  );
+
+  // `now` is a dependency purely to force this to recompute on the useNow
+  // tick above — the actual value is unused, formatRelativeTime reads
+  // Date.now() itself. Without it here, memoizing would freeze "x ago" text
+  // exactly the way it did before that was fixed. Kept above the `!pet`
+  // early return below — hooks must run unconditionally.
+  const tiles = useMemo<TileData[]>(() => {
+    const weightLog = latest.weight;
+    const weightDetails = weightLog?.details as { value: number; unit: string } | undefined;
+    const who = (userId: string | null | undefined) => displayNameFor(profiles, userId, myUserId);
+
+    return [
+      ...HABIT_TILES.map(({ type, label, Icon }) => {
+        const log = latest[type];
+        const overdue = log ? isOverdue(log.occurred_at, type) : false;
+        return {
+          type,
+          label,
+          Icon,
+          overdue,
+          sub: log
+            ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)} · ${who(log.logged_by)}`
+            : 'Not logged yet',
+        };
+      }),
+      {
+        type: 'weight' as HabitType,
+        label: 'Weight',
+        Icon: WeightIcon,
+        overdue: false,
+        sub: weightDetails
+          ? `${weightDetails.value} ${weightDetails.unit} · ${formatRelativeTime(weightLog!.occurred_at)} · ${who(weightLog!.logged_by)}`
+          : 'Not logged yet',
+      },
+    ].filter((tile) => TILE_VISIBILITY[tile.type]);
+    // `now` isn't referenced directly (formatRelativeTime above calls
+    // Date.now() itself), but it must stay a dependency so this recomputes
+    // on every useNow tick — eslint's static analysis can't see that hidden
+    // dependency, so its "unnecessary dependency" warning here is wrong.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latest, profiles, myUserId, TILE_VISIBILITY, now]);
+
   if (!pet) {
     return (
       <ThemedView style={styles.container}>
@@ -197,43 +258,6 @@ export default function TodayScreen() {
       </ThemedView>
     );
   }
-
-  const weightLog = latest.weight;
-  const weightDetails = weightLog?.details as { value: number; unit: string } | undefined;
-  const who = (userId: string | null | undefined) => displayNameFor(profiles, userId, myUserId);
-
-  const TILE_VISIBILITY: Record<HabitType, boolean> = {
-    walk: myPreferences?.show_walk_tile ?? true,
-    water: myPreferences?.show_water_tile ?? true,
-    food: myPreferences?.show_food_tile ?? true,
-    weight: myPreferences?.show_weight_tile ?? true,
-    incident: true,
-  };
-
-  const tiles: TileData[] = [
-    ...HABIT_TILES.map(({ type, label, Icon }) => {
-      const log = latest[type];
-      const overdue = log ? isOverdue(log.occurred_at, type) : false;
-      return {
-        type,
-        label,
-        Icon,
-        overdue,
-        sub: log
-          ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)} · ${who(log.logged_by)}`
-          : 'Not logged yet',
-      };
-    }),
-    {
-      type: 'weight' as HabitType,
-      label: 'Weight',
-      Icon: WeightIcon,
-      overdue: false,
-      sub: weightDetails
-        ? `${weightDetails.value} ${weightDetails.unit} · ${formatRelativeTime(weightLog!.occurred_at)} · ${who(weightLog!.logged_by)}`
-        : 'Not logged yet',
-    },
-  ].filter((tile) => TILE_VISIBILITY[tile.type]);
 
   const goToTile = (type: HabitType) =>
     type === 'weight'
@@ -574,10 +598,10 @@ function MedicationList({
   onSkip: (medication: Medication, scheduledAt: Date) => void;
 }) {
   const [showSettled, setShowSettled] = useState(!hideGivenByDefault);
+  // Kept out of the conditional return below — hooks must run unconditionally.
+  const { overdue, upcoming, settled } = useMemo(() => groupDueDoses(dueDoses), [dueDoses]);
 
   if (dueDoses.length === 0) return null;
-
-  const { overdue, upcoming, settled } = groupDueDoses(dueDoses);
 
   function renderDose(due: DueDose, emphasize: boolean) {
     const key = doseKey(due);

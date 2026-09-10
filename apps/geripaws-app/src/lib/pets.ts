@@ -98,30 +98,43 @@ export async function uploadPetPhoto(petId: string, localUri: string): Promise<s
   return data.publicUrl;
 }
 
-export async function fetchMyRole(petId: string): Promise<PetRole | null> {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+/** `auth.getUser()` is a real network round trip (it re-verifies the JWT
+ * server-side), not a local read — callers that already know the current
+ * user id (e.g. a screen that fetched it once for several purposes) can pass
+ * it directly to skip the extra round trip. */
+export async function fetchMyRole(petId: string, userId?: string): Promise<PetRole | null> {
+  let uid = userId;
+  if (!uid) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+    uid = userData.user.id;
+  }
 
   const { data, error } = await supabase
     .from("pet_members")
     .select("role")
     .eq("pet_id", petId)
-    .eq("user_id", userData.user.id)
+    .eq("user_id", uid)
     .maybeSingle();
   if (error) throw error;
   return (data?.role as PetRole | undefined) ?? null;
 }
 
-/** The signed-in caregiver's own pet_members row — role plus their personal display preferences. */
-export async function fetchMyPreferences(petId: string): Promise<PetMember | null> {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+/** The signed-in caregiver's own pet_members row — role plus their personal
+ * display preferences. See fetchMyRole for the optional userId param. */
+export async function fetchMyPreferences(petId: string, userId?: string): Promise<PetMember | null> {
+  let uid = userId;
+  if (!uid) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+    uid = userData.user.id;
+  }
 
   const { data, error } = await supabase
     .from("pet_members")
     .select("*")
     .eq("pet_id", petId)
-    .eq("user_id", userData.user.id)
+    .eq("user_id", uid)
     .maybeSingle();
   if (error) throw error;
   return (data as PetMember | null) ?? null;

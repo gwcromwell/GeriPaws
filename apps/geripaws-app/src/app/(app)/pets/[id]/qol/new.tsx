@@ -2,30 +2,18 @@ import type { QolScaleType } from '@geripaws/shared';
 import { QOL_FULL_DIMENSIONS, QOL_QUICK_DIMENSIONS, createQolResponseSchema, qolScoresSchema } from '@geripaws/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ScoreSelector } from '@/components/score-selector';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { confirmDestructive } from '@/lib/confirm';
 import { createQolResponse, deleteQolResponse, fetchQolResponse, updateQolResponse } from '@/lib/qol';
 
-import { useTheme } from '@/hooks/use-theme';
-
-function confirm(title: string, message: string, onConfirm: () => void) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: onConfirm },
-  ]);
-}
-
 export default function QolCheckInScreen() {
-  const theme = useTheme();
   const { id, responseId } = useLocalSearchParams<{ id: string; responseId?: string }>();
   const router = useRouter();
   const isEditing = Boolean(responseId);
@@ -145,25 +133,20 @@ export default function QolCheckInScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-          <ThemedText themeColor="background" type="smallBold">
-            {isSubmitting ? 'Saving…' : 'Save check-in'}
-          </ThemedText>
-        </Pressable>
+        <Button label={isSubmitting ? 'Saving…' : 'Save check-in'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
 
         {isEditing && responseId ? (
-          <Pressable accessibilityRole="button"
-            style={styles.deleteButton}
+          <Button
+            variant="danger"
+            label="Delete check-in"
             onPress={() =>
-              confirm('Delete check-in', 'This cannot be undone.', async () => {
+              confirmDestructive('Delete check-in', 'This cannot be undone.', async () => {
                 await deleteQolResponse(responseId);
                 router.replace({ pathname: '/pets/[id]/qol', params: { id } });
               })
-            }>
-            <ThemedText themeColor="error" type="smallBold">
-              Delete check-in
-            </ThemedText>
-          </Pressable>
+            }
+            style={styles.deleteButton}
+          />
         ) : null}
       </ScrollView>
     </ThemedView>
@@ -173,20 +156,7 @@ export default function QolCheckInScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, gap: 16 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  deleteButton: {
-    borderWidth: 1,
-    borderColor: '#D33A3A',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
+  deleteButton: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

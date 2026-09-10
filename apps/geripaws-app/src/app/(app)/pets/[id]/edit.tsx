@@ -2,20 +2,19 @@ import type { Pet } from '@geripaws/shared';
 import { updatePetSchema } from '@geripaws/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { AvatarPicker } from '@/components/avatar-picker';
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { DateOfBirthField } from '@/components/date-of-birth-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/hooks/use-theme';
 import { fetchPet, updatePet, uploadPetPhoto } from '@/lib/pets';
 
 export default function EditPetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const theme = useTheme();
   const router = useRouter();
   const [pet, setPet] = useState<Pet | null>(null);
   const [name, setName] = useState('');
@@ -192,11 +191,7 @@ export default function EditPetScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-          <ThemedText themeColor="background" type="smallBold">
-            {isSubmitting ? 'Saving…' : 'Save changes'}
-          </ThemedText>
-        </Pressable>
+        <Button label={isSubmitting ? 'Saving…' : 'Save changes'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
       </ScrollView>
     </ThemedView>
   );
@@ -206,11 +201,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, gap: 16 },
   sectionTitle: { marginTop: 8 },
-  button: {
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

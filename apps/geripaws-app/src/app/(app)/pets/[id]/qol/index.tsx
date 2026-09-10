@@ -4,14 +4,13 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { TrendChart } from '@/components/trend-chart';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { formatDate } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
-
-import { useTheme } from '@/hooks/use-theme';
 
 const DUE_LABEL: Record<string, string> = {
   never: 'No check-ins yet',
@@ -21,7 +20,6 @@ const DUE_LABEL: Record<string, string> = {
 };
 
 export default function QolScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [settings, setSettings] = useState<QolSettings | null>(null);
@@ -70,11 +68,7 @@ export default function QolScreen() {
         </ThemedText>
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/settings', params: { id } }} asChild>
-            <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
-              <ThemedText themeColor="background" type="smallBold">
-                Turn on Quality of Life tracking
-              </ThemedText>
-            </Pressable>
+            <Button label="Turn on Quality of Life tracking" />
           </Link>
         ) : (
           <ThemedText themeColor="textSecondary" type="small">
@@ -147,11 +141,7 @@ export default function QolScreen() {
 
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/new', params: { id } }} asChild>
-            <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
-              <ThemedText themeColor="background" type="smallBold">
-                New check-in
-              </ThemedText>
-            </Pressable>
+            <Button label="New check-in" />
           </Link>
         ) : null}
 
@@ -193,13 +183,6 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 8 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   body: { lineHeight: 20 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
   latestCard: {
     padding: 16,
     borderRadius: 12,

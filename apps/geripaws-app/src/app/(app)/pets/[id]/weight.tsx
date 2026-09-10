@@ -3,6 +3,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TrendChart } from '@/components/trend-chart';
@@ -10,11 +11,8 @@ import { fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, formatRelativeTime } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 
-
 import { useNow } from '@/hooks/use-now';
-import { useTheme } from '@/hooks/use-theme';
 export default function WeightScreen() {
-  const theme = useTheme();
   // Keeps the "x ago" label on the latest weigh-in from freezing between fetches.
   useNow(60_000);
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -85,13 +83,11 @@ export default function WeightScreen() {
         ) : null}
 
         {canLog ? (
-          <Pressable accessibilityRole="button"
-            style={[styles.button, { backgroundColor: theme.tint }]}
-            onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: 'weight' } })}>
-            <ThemedText themeColor="background" type="smallBold">
-              Log weight
-            </ThemedText>
-          </Pressable>
+          <Button
+            label="Log weight"
+            onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: 'weight' } })}
+            style={styles.button}
+          />
         ) : null}
 
         {logs.length > 0 ? (
@@ -149,13 +145,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   value: { fontSize: 36 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   sectionTitle: { marginTop: 16, marginBottom: 4 },
   row: {
     paddingVertical: 10,

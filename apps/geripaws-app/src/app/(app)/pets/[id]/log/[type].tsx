@@ -14,9 +14,10 @@ import type {
 import { habitLogInputSchema } from '@geripaws/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { AttachmentGrid } from '@/components/attachment-grid';
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { OccurredAtField } from '@/components/occurred-at-field';
 import { ThemedText } from '@/components/themed-text';
@@ -389,11 +390,12 @@ export default function LogHabitScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-        <ThemedText themeColor="background" type="smallBold">
-          {isSubmitting ? 'Saving…' : createdLogId ? 'Done' : 'Save'}
-        </ThemedText>
-      </Pressable>
+      <Button
+        label={isSubmitting ? 'Saving…' : createdLogId ? 'Done' : 'Save'}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+        style={styles.button}
+      />
       </ScrollView>
     </ThemedView>
   );
@@ -410,12 +412,6 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

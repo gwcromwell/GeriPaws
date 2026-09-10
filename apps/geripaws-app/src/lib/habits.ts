@@ -5,19 +5,19 @@ import { supabase } from './supabase';
 
 const TILE_TYPES: HabitType[] = ['walk', 'water', 'food', 'weight'];
 
+/** One query instead of one-per-type: fetch a recent window of logs across all
+ * tile types (ordered newest-first) and take the first occurrence of each
+ * type client-side. 200 rows comfortably covers "the latest of 4 types" even
+ * for a heavily-logged dog — this was previously 4 separate round trips. */
 export async function fetchLatestByType(petId: string): Promise<Record<HabitType, HabitLog | null>> {
-  const results = await Promise.all(
-    TILE_TYPES.map((type) =>
-      supabase
-        .from('habit_logs')
-        .select('*')
-        .eq('pet_id', petId)
-        .eq('type', type)
-        .order('occurred_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    )
-  );
+  const { data, error } = await supabase
+    .from('habit_logs')
+    .select('*')
+    .eq('pet_id', petId)
+    .in('type', TILE_TYPES)
+    .order('occurred_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
 
   const latest: Record<HabitType, HabitLog | null> = {
     walk: null,
@@ -27,10 +27,9 @@ export async function fetchLatestByType(petId: string): Promise<Record<HabitType
     weight: null,
   };
 
-  results.forEach((result, index) => {
-    if (result.error) throw result.error;
-    latest[TILE_TYPES[index]] = (result.data as HabitLog | null) ?? null;
-  });
+  for (const log of (data ?? []) as HabitLog[]) {
+    if (latest[log.type] === null) latest[log.type] = log;
+  }
 
   return latest;
 }

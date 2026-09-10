@@ -1,28 +1,19 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteMyAccount, fetchAccountDeletionImpact, type AccountDeletionImpact } from '@/lib/account';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 const CONFIRM_PHRASE = 'DELETE';
 
 function joinNames(items: { name: string }[]): string {
   return items.map((i) => i.name).join(', ');
-}
-
-function confirmNative(title: string, message: string, onConfirm: () => void) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete permanently', style: 'destructive', onPress: onConfirm },
-  ]);
 }
 
 export default function AccountScreen() {
@@ -51,10 +42,11 @@ export default function AccountScreen() {
 
   function handleDeletePress() {
     if (!impact) return;
-    confirmNative(
+    confirmDestructive(
       'Permanently delete your account?',
       'This cannot be undone. Your account, and any dog only you can see, will be gone for good.',
-      handleDeleteConfirmed
+      handleDeleteConfirmed,
+      'Delete permanently'
     );
   }
 
@@ -148,17 +140,14 @@ export default function AccountScreen() {
                 </ThemedText>
               ) : null}
 
-              <Pressable
-                accessibilityRole="button"
+              <Button
+                variant="danger"
+                label={isDeleting ? 'Deleting…' : 'Permanently delete my account'}
                 accessibilityLabel="Permanently delete my account"
-                accessibilityState={{ disabled: !canDelete }}
-                style={[styles.deleteButton, { backgroundColor: theme.error }, !canDelete && styles.deleteButtonDisabled]}
                 disabled={!canDelete}
-                onPress={handleDeletePress}>
-                <ThemedText themeColor="background" type="smallBold">
-                  {isDeleting ? 'Deleting…' : 'Permanently delete my account'}
-                </ThemedText>
-              </Pressable>
+                onPress={handleDeletePress}
+                style={styles.deleteButton}
+              />
             </>
           ) : null}
         </ThemedView>
@@ -192,11 +181,5 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
   },
-  deleteButton: {
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  deleteButtonDisabled: { opacity: 0.4 },
+  deleteButton: { marginTop: 8 },
 });

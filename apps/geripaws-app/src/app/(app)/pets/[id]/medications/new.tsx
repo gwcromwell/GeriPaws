@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
@@ -331,13 +332,7 @@ export default function NewMedicationScreen() {
                 ) : null}
               </View>
             ))}
-            {times.length < 6 ? (
-              <Pressable accessibilityRole="button" onPress={addTime} style={[styles.secondaryButton, { borderColor: theme.tint }]}>
-                <ThemedText themeColor="tint" type="smallBold">
-                  + Add another time
-                </ThemedText>
-              </Pressable>
-            ) : null}
+            {times.length < 6 ? <Button variant="secondary" label="+ Add another time" onPress={addTime} /> : null}
           </>
         ) : null}
 
@@ -418,11 +413,7 @@ export default function NewMedicationScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-          <ThemedText themeColor="background" type="smallBold">
-            {isSubmitting ? 'Saving…' : 'Save medication'}
-          </ThemedText>
-        </Pressable>
+        <Button label={isSubmitting ? 'Saving…' : 'Save medication'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
       </ScrollView>
     </ThemedView>
   );
@@ -448,19 +439,6 @@ const styles = StyleSheet.create({
   },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   timeInputFlex: { flex: 1 },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#208AEF',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

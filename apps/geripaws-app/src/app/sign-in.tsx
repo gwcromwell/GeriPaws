@@ -1,17 +1,15 @@
 import { signInSchema } from '@geripaws/shared';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
 
-
-import { useTheme } from '@/hooks/use-theme';
 export default function SignInScreen() {
-  const theme = useTheme();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,11 +69,7 @@ export default function SignInScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
-        <ThemedText themeColor="background" type="smallBold">
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
-        </ThemedText>
-      </Pressable>
+      <Button label={isSubmitting ? 'Signing in…' : 'Sign in'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
 
       <Link href="/sign-up" style={styles.link}>
         <ThemedText type="link" themeColor="tint">
@@ -90,13 +84,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: 'center', gap: 12 },
   title: { fontSize: 32, marginBottom: 4 },
   subtitle: { fontSize: 20, marginBottom: 16 },
-  button: {
-    backgroundColor: '#208AEF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  button: { marginTop: 8 },
   error: { color: '#d33' },
   link: { marginTop: 16, alignSelf: 'center' },
 });
