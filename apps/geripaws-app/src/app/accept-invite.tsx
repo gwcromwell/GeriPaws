@@ -31,12 +31,20 @@ export default function AcceptInviteScreen() {
       setStatus('accepting');
       acceptInvite(token)
         .then((petId) => {
+          // The invite was accepted at this point — a problem navigating
+          // away shouldn't be reported as an accept failure, so it's kept
+          // out of the .catch() below (which is only for acceptInvite()
+          // itself failing).
           setStatus('done');
-          router.replace({ pathname: '/pets/[id]', params: { id: petId } });
+          try {
+            router.replace({ pathname: '/pets/[id]', params: { id: petId } });
+          } catch (navErr) {
+            console.error('Invite accepted, but failed to navigate to the pet', navErr);
+          }
         })
         .catch((err) => {
           setStatus('idle');
-          setError(err instanceof Error ? err.message : 'Failed to accept invite');
+          setError(err instanceof Error && err.message ? err.message : 'Failed to accept invite');
         });
     }
   }, [session, token, status, router]);
