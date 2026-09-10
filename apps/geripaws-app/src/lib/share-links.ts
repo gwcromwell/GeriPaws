@@ -4,7 +4,7 @@ export interface PetShareLink {
   id: string;
   pet_id: string;
   token: string;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
   expires_at: string;
   revoked: boolean;

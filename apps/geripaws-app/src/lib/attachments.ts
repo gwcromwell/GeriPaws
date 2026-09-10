@@ -117,3 +117,21 @@ export async function deleteAttachmentsFor(entityType: AttachmentEntityType, ent
   const { error } = await supabase.from('attachments').delete().eq('entity_type', entityType).eq('entity_id', entityId);
   if (error) throw error;
 }
+
+/** Every attachment across an entire pet, regardless of which incident or
+ * ailment it's on — used to clean up Storage before a pet itself is deleted
+ * (see lib/account.ts), since a database cascade can't reach into Storage. */
+export async function fetchAttachmentsForPet(petId: string): Promise<Attachment[]> {
+  const { data, error } = await supabase.from('attachments').select('*').eq('pet_id', petId);
+  if (error) throw error;
+  return (data ?? []) as Attachment[];
+}
+
+/** Deletes every attachment across an entire pet's Storage objects (not the
+ * DB rows — those cascade automatically when the pet row itself is deleted). */
+export async function deleteAllAttachmentStorageForPet(petId: string): Promise<void> {
+  const existing = await fetchAttachmentsForPet(petId);
+  if (existing.length === 0) return;
+  const { error } = await supabase.storage.from(BUCKET).remove(existing.map((a) => a.storage_path));
+  if (error) throw error;
+}

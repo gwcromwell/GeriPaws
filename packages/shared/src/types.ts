@@ -22,7 +22,8 @@ export interface Pet {
   day_boundary_hour: number;
   /** IANA timezone (e.g. "America/New_York") — what medication schedule times are relative to. */
   timezone: string;
-  created_by: string;
+  /** Null once the creating account has been deleted — an audit field, not used for access control. */
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +57,7 @@ export interface PetInvite {
   role: PetRole;
   token: string;
   status: InviteStatus;
-  invited_by: string;
+  invited_by: string | null;
   created_at: string;
   expires_at: string;
 }
@@ -118,7 +119,7 @@ export interface HabitLog {
   type: HabitType;
   occurred_at: string;
   created_at: string;
-  logged_by: string;
+  logged_by: string | null;
   details: HabitDetails;
   photo_url: string | null;
 }
@@ -144,7 +145,7 @@ export interface AilmentNote {
   occurred_at: string;
   created_at: string;
   note: string;
-  created_by: string;
+  created_by: string | null;
 }
 
 export type VetQuestionStatus = "open" | "answered";
@@ -251,7 +252,7 @@ export interface QolResponse {
   survey_date: string;
   occurred_at: string;
   created_at: string;
-  answered_by: string;
+  answered_by: string | null;
   scores: QolScores;
   /** Always normalized to a 0-70 scale so full and quick check-ins plot on one trend line. */
   total_score: number;
@@ -271,6 +272,6 @@ export interface Attachment {
   media_type: MediaType;
   mime_type: string;
   size_bytes: number;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
 }

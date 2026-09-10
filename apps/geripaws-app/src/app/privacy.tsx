@@ -113,8 +113,10 @@ export default function PrivacyPolicyScreen() {
         <Section title="Your choices">
           <P>
             You can edit or delete most of your data directly in the app — habit logs, conditions, medications, and
-            attached photos or videos can all be removed from within GeriPaws. To delete your account entirely,
-            contact us at the email below and we'll delete your account and the data associated with it.
+            attached photos or videos can all be removed from within GeriPaws. You can also permanently delete your
+            account at any time from Account in the app: if you're the only person using a dog's profile, deleting
+            your account deletes that dog's data too; if you share a dog with other caregivers, they keep their
+            access and its history when you leave.
           </P>
         </Section>
 

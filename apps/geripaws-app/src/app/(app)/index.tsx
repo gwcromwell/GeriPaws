@@ -73,6 +73,12 @@ export default function PetListScreen() {
           </ThemedText>
         </Pressable>
       </Link>
+
+      <Link href="/account" style={styles.accountLink}>
+        <ThemedText type="link" themeColor="textSecondary">
+          Account
+        </ThemedText>
+      </Link>
     </ThemedView>
   );
 }
@@ -96,4 +102,5 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
   },
+  accountLink: { alignSelf: 'center', marginTop: 8 },
 });
