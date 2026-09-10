@@ -56,9 +56,9 @@ interface TileData {
 }
 
 const HABIT_TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label: string; Icon: ComponentType<PackIconProps> }[] = [
-  { type: 'walk', label: 'Walk', Icon: WalkIcon },
-  { type: 'water', label: 'Water', Icon: WaterIcon },
   { type: 'food', label: 'Food', Icon: FoodIcon },
+  { type: 'water', label: 'Water', Icon: WaterIcon },
+  { type: 'walk', label: 'Walk', Icon: WalkIcon },
 ];
 
 /** Food and water can be logged with zero detail beyond "it happened, just
