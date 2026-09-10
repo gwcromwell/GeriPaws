@@ -1,5 +1,6 @@
 import type {
   CreateMedicationInput,
+  Database,
   Medication,
   MedicationDose,
   MedicationRefill,
@@ -8,6 +9,8 @@ import type {
 } from '@geripaws/shared';
 
 import { supabase } from './supabase';
+
+type MedicationUpdate = Database['public']['Tables']['medications']['Update'];
 
 export async function fetchMedications(petId: string): Promise<Medication[]> {
   const { data, error } = await supabase
@@ -46,7 +49,7 @@ export async function createMedication(input: CreateMedicationInput): Promise<Me
 }
 
 export async function updateMedication(id: string, input: UpdateMedicationInput): Promise<Medication> {
-  const patch: Record<string, unknown> = {};
+  const patch: MedicationUpdate = {};
   if (input.ailmentId !== undefined) patch.ailment_id = input.ailmentId;
   if (input.name !== undefined) patch.name = input.name;
   if (input.dosage !== undefined) patch.dosage = input.dosage;
@@ -132,7 +135,7 @@ export async function fetchAllDosesForPet(petId: string, limit = 50): Promise<Me
     .limit(limit);
   if (error) throw error;
   return (data ?? []).map((row) => {
-    const { medications, ...dose } = row as MedicationDose & {
+    const { medications, ...dose } = row as unknown as MedicationDose & {
       medications: Pick<Medication, 'name' | 'dosage' | 'unit'>;
     };
     return { ...dose, medication: medications };

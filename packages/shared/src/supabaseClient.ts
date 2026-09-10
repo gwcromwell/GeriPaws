@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient, type SupabaseClientOptions } from "@supabase/supabase-js";
 
+import type { Database } from "./database.types";
+
 // A syntactically valid placeholder so an unconfigured client can still be
 // constructed (network calls against it will fail, which callers already
 // handle via try/catch) instead of throwing at import time. Throwing here
@@ -13,21 +15,19 @@ export function isSupabaseConfigured(url: string | undefined, anonKey: string | 
   return Boolean(url && anonKey);
 }
 
-// NOTE: once the hosted Supabase project exists, replace this with a
-// generated `Database` type (`supabase gen types typescript --project-id ...`)
-// and pass it as createClient<Database>(...) for full query typing.
 export function createSupabaseClient(
   url: string,
   anonKey: string,
   options?: SupabaseClientOptions<"public">
-): SupabaseClient {
+): SupabaseClient<Database> {
   const configured = isSupabaseConfigured(url, anonKey);
   if (!configured) {
     console.warn(
       "Supabase is not configured — using a placeholder client. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY."
     );
   }
-  return createClient(configured ? url : PLACEHOLDER_URL, configured ? anonKey : PLACEHOLDER_ANON_KEY, options);
+  return createClient<Database>(configured ? url : PLACEHOLDER_URL, configured ? anonKey : PLACEHOLDER_ANON_KEY, options);
 }
 
 export type { SupabaseClient } from "@supabase/supabase-js";
+export type { Database, Json } from "./database.types";

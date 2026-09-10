@@ -1,4 +1,4 @@
-import type { CreateQolResponseInput, QolResponse, QolScores, QolSettings, QolSettingsInput } from '@geripaws/shared';
+import type { CreateQolResponseInput, Json, QolResponse, QolScores, QolSettings, QolSettingsInput } from '@geripaws/shared';
 import { computeQolTotal } from '@geripaws/shared';
 
 import { supabase } from './supabase';
@@ -33,13 +33,13 @@ export async function fetchQolResponses(petId: string, limit = 50): Promise<QolR
     .order('survey_date', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []) as QolResponse[];
+  return (data ?? []) as unknown as QolResponse[];
 }
 
 export async function fetchQolResponse(id: string): Promise<QolResponse> {
   const { data, error } = await supabase.from('qol_responses').select('*').eq('id', id).single();
   if (error) throw error;
-  return data as QolResponse;
+  return data as unknown as QolResponse;
 }
 
 export async function createQolResponse(input: CreateQolResponseInput): Promise<QolResponse> {
@@ -61,18 +61,18 @@ export async function createQolResponse(input: CreateQolResponseInput): Promise<
     .select()
     .single();
   if (error) throw error;
-  return data as QolResponse;
+  return data as unknown as QolResponse;
 }
 
 export async function updateQolResponse(id: string, scores: QolScores, notes?: string): Promise<QolResponse> {
   const { data, error } = await supabase
     .from('qol_responses')
-    .update({ scores, total_score: computeQolTotal(scores), notes: notes ?? null })
+    .update({ scores: scores as unknown as Json, total_score: computeQolTotal(scores), notes: notes ?? null })
     .eq('id', id)
     .select()
     .single();
   if (error) throw error;
-  return data as QolResponse;
+  return data as unknown as QolResponse;
 }
 
 export async function deleteQolResponse(id: string): Promise<void> {

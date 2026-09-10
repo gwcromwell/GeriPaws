@@ -5,12 +5,15 @@ import type {
   CreateAilmentInput,
   CreateAilmentNoteInput,
   CreateVetQuestionInput,
+  Database,
   UpdateAilmentInput,
   VetQuestion,
 } from '@geripaws/shared';
 
 import { deleteAttachmentsFor } from './attachments';
 import { supabase } from './supabase';
+
+type AilmentUpdate = Database['public']['Tables']['ailments']['Update'];
 
 export async function fetchAilments(petId: string): Promise<Ailment[]> {
   const { data, error } = await supabase
@@ -46,7 +49,7 @@ export async function createAilment(input: CreateAilmentInput): Promise<Ailment>
 }
 
 export async function updateAilment(id: string, input: UpdateAilmentInput): Promise<Ailment> {
-  const patch: Record<string, unknown> = {};
+  const patch: AilmentUpdate = {};
   if (input.name !== undefined) patch.name = input.name;
   if (input.status !== undefined) patch.status = input.status;
   if (input.diagnosedAt !== undefined) patch.diagnosed_at = input.diagnosedAt;
@@ -75,7 +78,7 @@ export async function fetchAllAilmentNotesForPet(petId: string, limit = 50): Pro
     .limit(limit);
   if (error) throw error;
   return (data ?? []).map((row) => {
-    const { ailments, ...note } = row as AilmentNote & { ailments: { name: string } };
+    const { ailments, ...note } = row as unknown as AilmentNote & { ailments: { name: string } };
     return { ...note, ailment: ailments };
   });
 }

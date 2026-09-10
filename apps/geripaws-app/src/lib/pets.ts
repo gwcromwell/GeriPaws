@@ -1,8 +1,11 @@
-import type { MemberPreferencesInput, Pet, PetInvite, PetMember, PetRole, UpdatePetInput } from "@geripaws/shared";
+import type { Database, MemberPreferencesInput, Pet, PetInvite, PetMember, PetRole, UpdatePetInput } from "@geripaws/shared";
 
 import { supabase } from "./supabase";
 
 export type PetWithRole = Pet & { role: PetRole };
+
+type PetUpdate = Database["public"]["Tables"]["pets"]["Update"];
+type PetMemberUpdate = Database["public"]["Tables"]["pet_members"]["Update"];
 
 export async function fetchMyPets(): Promise<PetWithRole[]> {
   const { data, error } = await supabase
@@ -59,7 +62,7 @@ export async function fetchPet(petId: string): Promise<Pet> {
 }
 
 export async function updatePet(petId: string, input: UpdatePetInput): Promise<Pet> {
-  const patch: Record<string, unknown> = {};
+  const patch: PetUpdate = {};
   if (input.name !== undefined) patch.name = input.name;
   if (input.breed !== undefined) patch.breed = input.breed;
   if (input.dob !== undefined) patch.dob = input.dob;
@@ -144,7 +147,7 @@ export async function updateMyPreferences(petId: string, input: MemberPreference
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw userError ?? new Error("Not signed in");
 
-  const patch: Record<string, boolean> = {};
+  const patch: PetMemberUpdate = {};
   if (input.showWalkTile !== undefined) patch.show_walk_tile = input.showWalkTile;
   if (input.showWaterTile !== undefined) patch.show_water_tile = input.showWaterTile;
   if (input.showFoodTile !== undefined) patch.show_food_tile = input.showFoodTile;
