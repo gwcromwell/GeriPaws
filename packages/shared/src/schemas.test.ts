@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  createAttachmentSchema,
   createInviteSchema,
   createPetSchema,
   habitLogInputSchema,
+  MAX_ATTACHMENT_BYTES,
   medicationScheduleSchema,
   qolScoresSchema,
   qolSettingsSchema,
@@ -224,5 +226,40 @@ describe("qolScoresSchema", () => {
         // missing moreGoodDaysThanBad
       }).success
     ).toBe(false);
+  });
+});
+
+describe("createAttachmentSchema", () => {
+  const valid = {
+    petId: "8f14e45f-ceea-467e-adc0-f1a3a2ba9d9c",
+    entityType: "habit_log" as const,
+    entityId: "8f14e45f-ceea-467e-adc0-f1a3a2ba9d9c",
+    storagePath: "pet-id/habit_log/entity-id/12345-0.jpg",
+    mediaType: "image" as const,
+    mimeType: "image/jpeg",
+    sizeBytes: 1_500_000,
+  };
+
+  it("accepts a valid image attachment", () => {
+    expect(createAttachmentSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("accepts a valid video attachment", () => {
+    expect(
+      createAttachmentSchema.safeParse({ ...valid, entityType: "ailment", mediaType: "video", mimeType: "video/mp4" }).success
+    ).toBe(true);
+  });
+
+  it("rejects a file over the size limit", () => {
+    const result = createAttachmentSchema.safeParse({ ...valid, sizeBytes: MAX_ATTACHMENT_BYTES + 1 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty storage path", () => {
+    expect(createAttachmentSchema.safeParse({ ...valid, storagePath: "" }).success).toBe(false);
+  });
+
+  it("rejects an unknown entity type", () => {
+    expect(createAttachmentSchema.safeParse({ ...valid, entityType: "medication" }).success).toBe(false);
   });
 });

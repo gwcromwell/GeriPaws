@@ -50,9 +50,10 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "GeriPaws uses your photo library to set a picture of your dog."
+          "photosPermission": "GeriPaws uses your photo library to set a picture of your dog and to attach photos or videos to incidents and conditions."
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

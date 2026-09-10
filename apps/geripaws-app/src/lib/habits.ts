@@ -1,5 +1,6 @@
 import type { HabitLog, HabitLogInput, HabitType } from '@geripaws/shared';
 
+import { deleteAttachmentsFor } from './attachments';
 import { supabase } from './supabase';
 
 const TILE_TYPES: HabitType[] = ['walk', 'water', 'food', 'weight'];
@@ -80,6 +81,7 @@ export async function updateHabitLog(id: string, input: Pick<HabitLogInput, 'occ
 }
 
 export async function deleteHabitLog(id: string): Promise<void> {
+  await deleteAttachmentsFor('habit_log', id);
   const { error } = await supabase.from('habit_logs').delete().eq('id', id);
   if (error) throw error;
 }

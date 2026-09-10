@@ -257,3 +257,20 @@ export interface QolResponse {
   total_score: number;
   notes: string | null;
 }
+
+/** What kind of record a photo/video is attached to. */
+export type AttachmentEntityType = "habit_log" | "ailment";
+export type MediaType = "image" | "video";
+
+export interface Attachment {
+  id: string;
+  pet_id: string;
+  entity_type: AttachmentEntityType;
+  entity_id: string;
+  storage_path: string;
+  media_type: MediaType;
+  mime_type: string;
+  size_bytes: number;
+  created_by: string;
+  created_at: string;
+}

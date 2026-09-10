@@ -4,6 +4,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { useCallback, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { AttachmentGrid } from '@/components/attachment-grid';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
@@ -180,6 +181,8 @@ export default function AilmentDetailScreen() {
         </ThemedText>
       ) : null}
       {ailment.notes ? <ThemedText type="small">{ailment.notes}</ThemedText> : null}
+
+      <AttachmentGrid petId={id} entityType="ailment" entityId={ailmentId} canEdit={canEdit} />
 
       {canEdit ? (
         <ChoiceChips

@@ -244,3 +244,26 @@ export const createQolResponseSchema = z.object({
   notes: z.string().trim().max(1000).optional(),
 });
 export type CreateQolResponseInput = z.infer<typeof createQolResponseSchema>;
+
+// Matches the incident-media Storage bucket's file_size_limit (see migration
+// 00000000000015_attachments.sql) — kept in sync manually since Postgres
+// storage.buckets and this schema can't share a single source of truth.
+export const MAX_ATTACHMENT_BYTES = 150 * 1024 * 1024;
+
+export const attachmentEntityTypeSchema = z.enum(["habit_log", "ailment"]);
+export const mediaTypeSchema = z.enum(["image", "video"]);
+
+export const createAttachmentSchema = z.object({
+  petId: z.string().uuid(),
+  entityType: attachmentEntityTypeSchema,
+  entityId: z.string().uuid(),
+  storagePath: z.string().trim().min(1),
+  mediaType: mediaTypeSchema,
+  mimeType: z.string().trim().min(1).max(100),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_ATTACHMENT_BYTES, `File is larger than the ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB limit`),
+});
+export type CreateAttachmentInput = z.infer<typeof createAttachmentSchema>;

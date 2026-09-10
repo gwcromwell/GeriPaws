@@ -16,6 +16,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
 
+import { AttachmentGrid } from '@/components/attachment-grid';
 import { ChoiceChips } from '@/components/choice-chips';
 import { OccurredAtField } from '@/components/occurred-at-field';
 import { ThemedText } from '@/components/themed-text';
@@ -51,6 +52,10 @@ export default function LogHabitScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingLog, setIsLoadingLog] = useState(isEditing);
+  // Set once a brand-new incident is first saved, so photos/video can then be
+  // attached to it without leaving the screen — see handleSubmit below.
+  const [createdLogId, setCreatedLogId] = useState<string | null>(null);
+  const attachmentEntityId = logId ?? createdLogId;
 
   // walk fields
   const [durationMin, setDurationMin] = useState('');
@@ -167,12 +172,21 @@ export default function LogHabitScreen() {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (isEditing && logId) {
-        await updateHabitLog(logId, { occurredAt: result.data.occurredAt, details: result.data.details });
+      if (attachmentEntityId) {
+        await updateHabitLog(attachmentEntityId, { occurredAt: result.data.occurredAt, details: result.data.details });
+        router.back();
       } else {
-        await createHabitLog(result.data);
+        const created = await createHabitLog(result.data);
+        if (type === 'incident') {
+          // Stay on screen instead of navigating away — an incident needs to
+          // exist before photos/video can be attached to it (see
+          // attachmentEntityId above), so this reveals that section rather
+          // than requiring a separate trip back into edit mode.
+          setCreatedLogId(created.id);
+        } else {
+          router.back();
+        }
       }
-      router.back();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -364,6 +378,10 @@ export default function LogHabitScreen() {
         onChangeText={setNotes}
       />
 
+      {type === 'incident' ? (
+        <AttachmentGrid petId={id} entityType="habit_log" entityId={attachmentEntityId} canEdit={!isLoadingLog} />
+      ) : null}
+
       {error ? (
         <ThemedText themeColor="error" style={styles.message}>
           {error}
@@ -372,7 +390,7 @@ export default function LogHabitScreen() {
 
       <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? 'Saving…' : createdLogId ? 'Done' : 'Save'}
         </ThemedText>
       </Pressable>
       </ScrollView>

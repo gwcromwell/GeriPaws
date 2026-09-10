@@ -9,6 +9,7 @@ import type {
   VetQuestion,
 } from '@geripaws/shared';
 
+import { deleteAttachmentsFor } from './attachments';
 import { supabase } from './supabase';
 
 export async function fetchAilments(petId: string): Promise<Ailment[]> {
@@ -58,6 +59,7 @@ export async function updateAilment(id: string, input: UpdateAilmentInput): Prom
 }
 
 export async function deleteAilment(id: string): Promise<void> {
+  await deleteAttachmentsFor('ailment', id);
   const { error } = await supabase.from('ailments').delete().eq('id', id);
   if (error) throw error;
 }
