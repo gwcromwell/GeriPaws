@@ -97,13 +97,13 @@ export default function AcceptInviteScreen() {
 
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
 
-      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit}>
+      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit}>
         <ThemedText themeColor="background" type="smallBold">
           {mode === 'sign-in' ? 'Sign in' : 'Sign up'}
         </ThemedText>
       </Pressable>
 
-      <Pressable onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
+      <Pressable accessibilityRole="button" onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
         <ThemedText type="link" themeColor="tint" style={styles.switchMode}>
           {mode === 'sign-in' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
         </ThemedText>

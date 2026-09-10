@@ -74,7 +74,11 @@ export const StylePacks: Record<StylePackId, StylePack> = {
     light: {
       accent: '#B8792B',
       accentDeep: '#8C5A1E',
-      overdue: '#B8551F',
+      // Darkened from #B8551F — the original only hit ~4.3:1 against this
+      // pack's own background/panel, short of WCAG AA's 4.5:1 for the
+      // "N missed doses" / "Overdue" text, the single most safety-relevant
+      // copy in the app. This clears ~5.4:1.
+      overdue: '#A04A18',
       good: '#5A6E4C',
       tileBg: '#EBE7DA',
       panel: '#FFFDF9',
@@ -100,7 +104,11 @@ export const StylePacks: Record<StylePackId, StylePack> = {
     light: {
       accent: '#DD6B4C',
       accentDeep: '#B5502F',
-      overdue: '#C98A1F',
+      // Darkened from #C98A1F — the original was only ~2.9:1 against this
+      // pack's white panel/tileBg, failing WCAG AA even for large text/UI
+      // (3:1 minimum), on the "Overdue"/"N missed doses" warning text. This
+      // clears ~5.6:1.
+      overdue: '#8C5F10',
       good: '#5A6E4C',
       tileBg: '#FFFFFF',
       panel: '#FFFFFF',

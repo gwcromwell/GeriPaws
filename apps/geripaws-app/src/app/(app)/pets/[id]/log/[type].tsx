@@ -366,6 +366,7 @@ export default function LogHabitScreen() {
 
       <ThemedText type="smallBold">Notes</ThemedText>
       <TextInput
+        accessibilityLabel="Notes"
         style={[
           styles.notesInput,
           { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
@@ -388,7 +389,7 @@ export default function LogHabitScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Saving…' : createdLogId ? 'Done' : 'Save'}
         </ThemedText>

@@ -9,9 +9,9 @@ import { setupPushNotifications } from '@/lib/push';
 function SignOutButton() {
   const { signOut } = useAuth();
   return (
-    <Pressable
+    <Pressable accessibilityRole="button"
       onPress={() => signOut()}
-      hitSlop={8}
+      hitSlop={12}
       style={Platform.OS === 'web' ? { marginRight: 16 } : undefined}>
       <ThemedText type="link" themeColor="tint">
         Sign out

@@ -123,7 +123,10 @@ export default function SharingScreen() {
           <ThemedText>{m.user_id === myUserId ? 'You' : m.user_id}</ThemedText>
           <ThemedText themeColor="textSecondary">{m.role}</ThemedText>
           {isOwner && m.role !== 'owner' ? (
-            <Pressable onPress={() => removeMember(pet.id, m.user_id).then(load)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${m.user_id} as a caregiver`}
+              onPress={() => removeMember(pet.id, m.user_id).then(load)}>
               <ThemedText themeColor="error" type="small">
                 Remove
               </ThemedText>
@@ -150,7 +153,13 @@ export default function SharingScreen() {
           <ThemedText type="smallBold">Role</ThemedText>
           <ThemedView style={styles.roleRow}>
             {(['caregiver', 'viewer'] as const).map((role) => (
-              <Pressable key={role} onPress={() => setInviteRole(role)} style={styles.roleOption}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: inviteRole === role }}
+                key={role}
+                onPress={() => setInviteRole(role)}
+                hitSlop={8}
+                style={styles.roleOption}>
                 <ThemedText themeColor={inviteRole === role ? 'tint' : 'textSecondary'}>
                   {inviteRole === role ? '● ' : '○ '}
                   {role}
@@ -161,7 +170,7 @@ export default function SharingScreen() {
           <ThemedText type="small" themeColor="textSecondary">
             Caregiver can log habits and manage medications. Viewer can only see the dog's information.
           </ThemedText>
-          <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleInvite} disabled={isInviting}>
+          <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleInvite} disabled={isInviting}>
             <ThemedText themeColor="background" type="smallBold">
               {isInviting ? 'Sending…' : 'Send invite'}
             </ThemedText>
@@ -177,12 +186,20 @@ export default function SharingScreen() {
                   <ThemedText>{invite.email}</ThemedText>
                   <ThemedText themeColor="textSecondary">{invite.role}</ThemedText>
                   <ThemedView style={styles.inviteActions}>
-                    <Pressable onPress={() => handleCopyInviteLink(invite)} hitSlop={8}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Copy invite link for ${invite.email}`}
+                      onPress={() => handleCopyInviteLink(invite)}
+                      hitSlop={12}>
                       <ThemedText style={{ color: theme.tint }} type="small">
                         {copiedInviteId === invite.id ? 'Copied!' : 'Copy link'}
                       </ThemedText>
                     </Pressable>
-                    <Pressable onPress={() => revokeInvite(invite.id).then(load)} hitSlop={8}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Revoke invite for ${invite.email}`}
+                      onPress={() => revokeInvite(invite.id).then(load)}
+                      hitSlop={12}>
                       <ThemedText themeColor="error" type="small">
                         Revoke
                       </ThemedText>

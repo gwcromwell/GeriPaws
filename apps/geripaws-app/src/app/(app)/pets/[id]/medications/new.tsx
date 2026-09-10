@@ -254,19 +254,20 @@ export default function NewMedicationScreen() {
           </ThemedText>
         ) : null}
 
-        <ThemedTextInput label="Name" placeholder="e.g. Keppra" value={name} onChangeText={setName} />
+        <ThemedTextInput label="Name" placeholder="e.g. Keppra" returnKeyType="next" value={name} onChangeText={setName} />
         <View style={styles.row}>
           <View style={styles.flexHalf}>
-            <ThemedTextInput label="Dose" placeholder="e.g. 250" value={dosage} onChangeText={setDosage} />
+            <ThemedTextInput label="Dose" placeholder="e.g. 250" returnKeyType="next" value={dosage} onChangeText={setDosage} />
           </View>
           <View style={styles.flexHalf}>
-            <ThemedTextInput label="Unit" placeholder="e.g. mg" value={unit} onChangeText={setUnit} />
+            <ThemedTextInput label="Unit" placeholder="e.g. mg" returnKeyType="next" value={unit} onChangeText={setUnit} />
           </View>
         </View>
         <ThemedTextInput
           label="Route"
           helperText="Optional — e.g. oral, injectable"
           placeholder="e.g. oral"
+          returnKeyType="next"
           value={route}
           onChangeText={setRoute}
         />
@@ -293,8 +294,11 @@ export default function NewMedicationScreen() {
                     const isSelected = daysOfWeek.includes(day.value);
                     return (
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
                         key={day.value}
                         onPress={() => toggleDay(day.value)}
+                        hitSlop={8}
                         style={[styles.dayChip, isSelected && styles.dayChipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
                         <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
                           {day.label}
@@ -315,7 +319,11 @@ export default function NewMedicationScreen() {
                   <ThemedTextInput placeholder="08:00" value={t} onChangeText={(v) => updateTime(index, v)} />
                 </View>
                 {times.length > 1 ? (
-                  <Pressable onPress={() => removeTime(index)} hitSlop={8}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove time ${t || index + 1}`}
+                    onPress={() => removeTime(index)}
+                    hitSlop={12}>
                     <ThemedText themeColor="error" type="small">
                       Remove
                     </ThemedText>
@@ -324,7 +332,7 @@ export default function NewMedicationScreen() {
               </View>
             ))}
             {times.length < 6 ? (
-              <Pressable onPress={addTime} style={[styles.secondaryButton, { borderColor: theme.tint }]}>
+              <Pressable accessibilityRole="button" onPress={addTime} style={[styles.secondaryButton, { borderColor: theme.tint }]}>
                 <ThemedText themeColor="tint" type="smallBold">
                   + Add another time
                 </ThemedText>
@@ -356,6 +364,8 @@ export default function NewMedicationScreen() {
           label="Stop date"
           helperText="Optional — for a short course like antibiotics. Leave blank for ongoing medications."
           placeholder="2026-02-01"
+          returnKeyType={trackRefill ? 'next' : 'go'}
+          onSubmitEditing={trackRefill ? undefined : handleSubmit}
           value={activeUntil}
           onChangeText={setActiveUntil}
         />
@@ -378,6 +388,7 @@ export default function NewMedicationScreen() {
               helperText="Number of doses currently in the bottle"
               placeholder="e.g. 60"
               keyboardType="decimal-pad"
+              returnKeyType="next"
               value={countOnHand}
               onChangeText={setCountOnHand}
             />
@@ -387,6 +398,7 @@ export default function NewMedicationScreen() {
               value={unitPerDose}
               onChangeText={setUnitPerDose}
               keyboardType="decimal-pad"
+              returnKeyType="next"
             />
             <ThemedTextInput
               label="Low-supply warning"
@@ -394,6 +406,8 @@ export default function NewMedicationScreen() {
               value={lowStockThreshold}
               onChangeText={setLowStockThreshold}
               keyboardType="number-pad"
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
             />
           </>
         ) : null}
@@ -404,7 +418,7 @@ export default function NewMedicationScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Saving…' : 'Save medication'}
           </ThemedText>

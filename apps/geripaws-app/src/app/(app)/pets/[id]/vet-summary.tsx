@@ -83,7 +83,7 @@ export default function VetSummaryScreen() {
           print or share before your next appointment.
         </ThemedText>
 
-        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleExport} disabled={isExporting}>
+        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleExport} disabled={isExporting}>
           <ThemedText themeColor="background" type="smallBold">
             {isExporting ? 'Preparing…' : Platform.OS === 'web' ? 'Print / Save as PDF' : 'Export PDF'}
           </ThemedText>

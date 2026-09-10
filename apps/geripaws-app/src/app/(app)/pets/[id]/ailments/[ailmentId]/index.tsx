@@ -33,7 +33,6 @@ const STATUS_OPTIONS: { value: AilmentStatus; label: string }[] = [
 
 function confirm(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     if (window.confirm(`${title}\n\n${message}`)) onConfirm();
     return;
   }
@@ -201,7 +200,7 @@ export default function AilmentDetailScreen() {
         Medications
       </ThemedText>
       {medications.map((med) => (
-        <Pressable
+        <Pressable accessibilityRole="button"
           key={med.id}
           style={styles.row}
           onPress={() =>
@@ -222,7 +221,7 @@ export default function AilmentDetailScreen() {
       ) : null}
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, ailmentId } }} asChild>
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
             <ThemedText themeColor="tint" type="smallBold">
               + Add medication
             </ThemedText>
@@ -247,7 +246,7 @@ export default function AilmentDetailScreen() {
       {canEdit ? (
         <ThemedView style={styles.inlineForm}>
           <ThemedTextInput placeholder="Add a note about this condition" multiline value={noteText} onChangeText={setNoteText} />
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddNote}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddNote}>
             <ThemedText themeColor="tint" type="smallBold">
               Add note
             </ThemedText>
@@ -264,14 +263,17 @@ export default function AilmentDetailScreen() {
           {answeringId === q.id ? (
             <ThemedView style={styles.inlineForm}>
               <ThemedTextInput placeholder="What did the vet say?" multiline value={answerText} onChangeText={setAnswerText} />
-              <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={() => handleAnswer(q.id)}>
+              <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={() => handleAnswer(q.id)}>
                 <ThemedText themeColor="tint" type="smallBold">
                   Save answer
                 </ThemedText>
               </Pressable>
             </ThemedView>
           ) : canEdit ? (
-            <Pressable onPress={() => setAnsweringId(q.id)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Mark "${q.question}" as answered`}
+              onPress={() => setAnsweringId(q.id)}>
               <ThemedText type="link" themeColor="tint">
                 Mark answered
               </ThemedText>
@@ -282,7 +284,7 @@ export default function AilmentDetailScreen() {
       {canEdit ? (
         <ThemedView style={styles.inlineForm}>
           <ThemedTextInput placeholder="A question to ask at the next visit" value={questionText} onChangeText={setQuestionText} />
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddQuestion}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleAddQuestion}>
             <ThemedText themeColor="tint" type="smallBold">
               Add question
             </ThemedText>
@@ -312,7 +314,7 @@ export default function AilmentDetailScreen() {
       ) : null}
 
       {canEdit ? (
-        <Pressable style={styles.deleteButton} onPress={handleDelete}>
+        <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={handleDelete}>
           <ThemedText themeColor="error" type="smallBold">
             Delete condition
           </ThemedText>

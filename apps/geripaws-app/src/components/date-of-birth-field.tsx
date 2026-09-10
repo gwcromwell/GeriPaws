@@ -47,6 +47,7 @@ export function DateOfBirthField({ value, onChange }: Props) {
       </ThemedText>
       <View style={styles.row}>
         <TextInput
+          accessibilityLabel="Birth month"
           style={[...inputStyle, styles.month]}
           placeholder="MM"
           placeholderTextColor={theme.textSecondary}
@@ -56,6 +57,7 @@ export function DateOfBirthField({ value, onChange }: Props) {
           onChangeText={(month) => update({ ...parts, month: month.replace(/\D/g, '') })}
         />
         <TextInput
+          accessibilityLabel="Birth day"
           style={[...inputStyle, styles.day]}
           placeholder="DD"
           placeholderTextColor={theme.textSecondary}
@@ -65,6 +67,7 @@ export function DateOfBirthField({ value, onChange }: Props) {
           onChangeText={(day) => update({ ...parts, day: day.replace(/\D/g, '') })}
         />
         <TextInput
+          accessibilityLabel="Birth year"
           style={[...inputStyle, styles.year]}
           placeholder="YYYY"
           placeholderTextColor={theme.textSecondary}

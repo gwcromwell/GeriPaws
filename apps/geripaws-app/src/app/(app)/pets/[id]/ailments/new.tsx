@@ -76,6 +76,7 @@ export default function NewAilmentScreen() {
         label="Condition"
         helperText="What has your dog been diagnosed with?"
         placeholder="e.g. Canine epilepsy"
+        returnKeyType="next"
         value={name}
         onChangeText={setName}
       />
@@ -83,6 +84,7 @@ export default function NewAilmentScreen() {
         label="Date diagnosed"
         helperText="Optional — YYYY-MM-DD"
         placeholder="2026-01-15"
+        returnKeyType="next"
         value={diagnosedAt}
         onChangeText={setDiagnosedAt}
       />
@@ -90,6 +92,8 @@ export default function NewAilmentScreen() {
         label="Diagnosing vet"
         helperText="Optional"
         placeholder="e.g. Dr. Patel"
+        returnKeyType="go"
+        onSubmitEditing={handleSubmit}
         value={diagnosingVet}
         onChangeText={setDiagnosingVet}
       />
@@ -108,7 +112,7 @@ export default function NewAilmentScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Saving…' : 'Save condition'}
         </ThemedText>

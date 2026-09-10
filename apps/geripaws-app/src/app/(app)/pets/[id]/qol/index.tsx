@@ -70,7 +70,7 @@ export default function QolScreen() {
         </ThemedText>
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/settings', params: { id } }} asChild>
-            <Pressable style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
+            <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
               <ThemedText themeColor="background" type="smallBold">
                 Turn on Quality of Life tracking
               </ThemedText>
@@ -147,7 +147,7 @@ export default function QolScreen() {
 
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/qol/new', params: { id } }} asChild>
-            <Pressable style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
+            <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.button, { backgroundColor: theme.tint }])}>
               <ThemedText themeColor="background" type="smallBold">
                 New check-in
               </ThemedText>
@@ -161,7 +161,7 @@ export default function QolScreen() {
               History
             </ThemedText>
             {responses.map((response) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={response.id}
                 style={styles.row}
                 disabled={!canEdit}

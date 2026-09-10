@@ -43,7 +43,7 @@ export function TimelineRow({ entry, onPress }: Props) {
   }
 
   return (
-    <Pressable style={styles.row} onPress={onPress} disabled={!onPress}>
+    <Pressable accessibilityRole="button" style={styles.row} onPress={onPress} disabled={!onPress}>
       <ThemedView style={styles.info}>
         <ThemedText type="smallBold">{title}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">

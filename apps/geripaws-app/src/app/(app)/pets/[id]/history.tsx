@@ -185,7 +185,7 @@ export default function HistoryScreen() {
               ) : null
             }
             renderItem={({ item }) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={styles.row}
                 disabled={!canEdit}
                 onPress={() =>
@@ -200,11 +200,13 @@ export default function HistoryScreen() {
                 </ThemedView>
                 {canEdit ? (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${TYPE_LABEL[item.type].toLowerCase()} entry from ${formatDateTime(item.occurred_at)}`}
                     onPress={(e) => {
                       e.stopPropagation();
                       deleteHabitLog(item.id).then(load);
                     }}
-                    hitSlop={8}>
+                    hitSlop={12}>
                     <ThemedText themeColor="error" type="small">
                       Delete
                     </ThemedText>

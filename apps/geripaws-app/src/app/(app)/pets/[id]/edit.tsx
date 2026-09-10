@@ -107,8 +107,8 @@ export default function EditPetScreen() {
           }}
         />
 
-        <ThemedTextInput label="Name" value={name} onChangeText={setName} />
-        <ThemedTextInput label="Breed" helperText="Optional" value={breed} onChangeText={setBreed} />
+        <ThemedTextInput label="Name" returnKeyType="next" value={name} onChangeText={setName} />
+        <ThemedTextInput label="Breed" helperText="Optional" returnKeyType="next" value={breed} onChangeText={setBreed} />
 
         <DateOfBirthField value={dob} onChange={setDob} />
 
@@ -141,15 +141,23 @@ export default function EditPetScreen() {
         <ThemedTextInput
           label="Microchip number"
           helperText="Optional"
+          returnKeyType="next"
           value={microchipNumber}
           onChangeText={setMicrochipNumber}
         />
 
-        <ThemedTextInput label="Primary vet" helperText="Clinic or vet's name — optional" value={vetName} onChangeText={setVetName} />
+        <ThemedTextInput
+          label="Primary vet"
+          helperText="Clinic or vet's name — optional"
+          returnKeyType="next"
+          value={vetName}
+          onChangeText={setVetName}
+        />
         <ThemedTextInput
           label="Vet phone"
           helperText="Optional"
           keyboardType="phone-pad"
+          returnKeyType="next"
           value={vetPhone}
           onChangeText={setVetPhone}
         />
@@ -165,12 +173,15 @@ export default function EditPetScreen() {
         <ThemedTextInput
           label="Insurance provider"
           helperText="Optional"
+          returnKeyType="next"
           value={insuranceProvider}
           onChangeText={setInsuranceProvider}
         />
         <ThemedTextInput
           label="Policy number"
           helperText="Optional"
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
           value={insurancePolicyNumber}
           onChangeText={setInsurancePolicyNumber}
         />
@@ -181,7 +192,7 @@ export default function EditPetScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Saving…' : 'Save changes'}
           </ThemedText>

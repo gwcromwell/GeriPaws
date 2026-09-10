@@ -85,7 +85,7 @@ export default function WeightScreen() {
         ) : null}
 
         {canLog ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={[styles.button, { backgroundColor: theme.tint }]}
             onPress={() => router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: 'weight' } })}>
             <ThemedText themeColor="background" type="smallBold">
@@ -102,7 +102,7 @@ export default function WeightScreen() {
             {logs.map((log) => {
               const details = log.details as WeightDetails;
               return (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={log.id}
                   style={styles.row}
                   disabled={!canLog}

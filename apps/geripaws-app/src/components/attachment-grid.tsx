@@ -95,7 +95,7 @@ export function AttachmentGrid({ petId, entityType, entityId, canEdit }: Props) 
                 onPress={() => handleDelete(attachment)}
                 accessibilityRole="button"
                 accessibilityLabel="Delete"
-                hitSlop={8}
+                hitSlop={12}
                 style={[styles.deleteBadge, { backgroundColor: theme.error }]}>
                 <ThemedText type="small" themeColor="background">
                   ×
@@ -113,8 +113,17 @@ export function AttachmentGrid({ petId, entityType, entityId, canEdit }: Props) 
         </ThemedText>
       ) : null}
 
-      <Modal visible={previewing !== null} transparent animationType="fade" onRequestClose={() => setPreviewing(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setPreviewing(null)}>
+      <Modal
+        visible={previewing !== null}
+        transparent
+        animationType="fade"
+        accessibilityViewIsModal
+        onRequestClose={() => setPreviewing(null)}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close preview"
+          style={styles.modalBackdrop}
+          onPress={() => setPreviewing(null)}>
           {previewing && urls[previewing.storage_path] ? (
             <AttachmentPreview attachment={previewing} url={urls[previewing.storage_path]} />
           ) : null}

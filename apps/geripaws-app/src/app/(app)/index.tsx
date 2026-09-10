@@ -53,7 +53,7 @@ export default function PetListScreen() {
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.petRow}
             onPress={() => router.push({ pathname: '/pets/[id]', params: { id: item.id } })}>
             <ThemedText type="subtitle" style={styles.petName}>
@@ -67,7 +67,7 @@ export default function PetListScreen() {
       />
 
       <Link href="/pets/new" asChild>
-        <Pressable style={StyleSheet.flatten([styles.addButton, { backgroundColor: theme.tint }])}>
+        <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.addButton, { backgroundColor: theme.tint }])}>
           <ThemedText themeColor="background" type="smallBold">
             + Add a dog
           </ThemedText>

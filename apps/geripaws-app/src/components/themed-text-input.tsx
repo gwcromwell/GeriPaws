@@ -16,6 +16,7 @@ export function ThemedTextInput({ label, helperText, errorText, style, ...rest }
     <View style={styles.container}>
       {label ? <ThemedText type="smallBold">{label}</ThemedText> : null}
       <TextInput
+        accessibilityLabel={label}
         style={[
           styles.input,
           { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },

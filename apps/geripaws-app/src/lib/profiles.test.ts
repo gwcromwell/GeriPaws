@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { displayNameFor, type ProfileMap } from './profiles';
+
 // displayNameFor is pure, but this file also exports fetchProfilesForPet,
 // which imports ./supabase — and that in turn imports react-native modules
 // that only run under a React Native-aware transform, not plain Vitest.
 // Mocking it here (same pattern as pets.test.ts) keeps that import chain out
 // of the picture for a test that never calls fetchProfilesForPet anyway.
 vi.mock('./supabase', () => ({ supabase: {} }));
-
-import { displayNameFor, type ProfileMap } from './profiles';
 
 const PROFILES: ProfileMap = {
   'user-amanda': { id: 'user-amanda', email: 'amanda.carter@example.com', display_name: 'Amanda', created_at: '2026-01-01' },

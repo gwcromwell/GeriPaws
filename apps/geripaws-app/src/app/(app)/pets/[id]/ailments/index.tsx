@@ -118,7 +118,7 @@ export default function AilmentsScreen() {
               {STATUS_LABEL[status]}
             </ThemedText>
             {items.map((ailment) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={ailment.id}
                 style={[styles.chip, { backgroundColor: tokens.panel, borderColor: tokens.border }]}
                 onPress={() =>
@@ -144,7 +144,7 @@ export default function AilmentsScreen() {
 
       {canEdit ? (
         <Link href={{ pathname: '/pets/[id]/ailments/new', params: { id } }} asChild>
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
             <ThemedText style={{ color: tokens.accent }} type="smallBold">
               + Add a condition
             </ThemedText>
@@ -160,7 +160,7 @@ export default function AilmentsScreen() {
           Supplements or medications not tied to a diagnosed condition
         </ThemedText>
         {generalMeds.map((med) => (
-          <Pressable
+          <Pressable accessibilityRole="button"
             key={med.id}
             style={styles.row}
             onPress={() =>
@@ -181,7 +181,7 @@ export default function AilmentsScreen() {
         ) : null}
         {canEdit ? (
           <Link href={{ pathname: '/pets/[id]/medications/new', params: { id } }} asChild>
-            <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
+            <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
               <ThemedText style={{ color: tokens.accent }} type="smallBold">
                 + Add general medication
               </ThemedText>
@@ -198,7 +198,7 @@ export default function AilmentsScreen() {
           A printable/shareable summary of conditions, medications, recent incidents, and QOL/weight trends.
         </ThemedText>
         <Link href={{ pathname: '/pets/[id]/vet-summary', params: { id } }} asChild>
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])}>
             <ThemedText style={{ color: tokens.accent }} type="smallBold">
               View / export summary
             </ThemedText>
@@ -219,12 +219,20 @@ export default function AilmentsScreen() {
             <ThemedView key={link.id} style={styles.shareLinkRow}>
               <ThemedText type="small">Expires {formatDate(link.expires_at)}</ThemedText>
               <ThemedView style={styles.shareLinkActions}>
-                <Pressable onPress={() => handleShareLink(link)} hitSlop={8}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Copy share link expiring ${formatDate(link.expires_at)}`}
+                  onPress={() => handleShareLink(link)}
+                  hitSlop={12}>
                   <ThemedText type="link" themeColor="tint">
                     {copiedId === link.id ? 'Copied!' : 'Copy link'}
                   </ThemedText>
                 </Pressable>
-                <Pressable onPress={() => handleRevokeLink(link.id)} hitSlop={8}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Revoke share link expiring ${formatDate(link.expires_at)}`}
+                  onPress={() => handleRevokeLink(link.id)}
+                  hitSlop={12}>
                   <ThemedText type="link" themeColor="error">
                     Revoke
                   </ThemedText>
@@ -232,7 +240,7 @@ export default function AilmentsScreen() {
               </ThemedView>
             </ThemedView>
           ))}
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])} onPress={handleCreateShareLink} disabled={isCreatingLink}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: tokens.accent }])} onPress={handleCreateShareLink} disabled={isCreatingLink}>
             <ThemedText style={{ color: tokens.accent }} type="smallBold">
               {isCreatingLink ? 'Creating…' : '+ Create share link'}
             </ThemedText>

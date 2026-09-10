@@ -66,6 +66,7 @@ export default function NewPetScreen() {
           label="Name"
           helperText="What do you call your dog?"
           placeholder="e.g. Biscuit"
+          returnKeyType="next"
           value={name}
           onChangeText={setName}
         />
@@ -73,6 +74,8 @@ export default function NewPetScreen() {
           label="Breed"
           helperText="Optional"
           placeholder="e.g. Beagle, Mixed"
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
           value={breed}
           onChangeText={setBreed}
         />
@@ -107,7 +110,7 @@ export default function NewPetScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Creating…' : 'Create dog profile'}
           </ThemedText>

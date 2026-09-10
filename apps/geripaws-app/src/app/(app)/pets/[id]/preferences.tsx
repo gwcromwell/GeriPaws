@@ -201,7 +201,7 @@ export default function PreferencesScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSave} disabled={isSubmitting}>
+        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSave} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Saving…' : 'Save'}
           </ThemedText>

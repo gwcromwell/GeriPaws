@@ -18,7 +18,12 @@ export function TabBar<T extends string>({ tabs, value, onChange }: Props<T>) {
       {tabs.map((tab) => {
         const isActive = tab.value === value;
         return (
-          <Pressable key={tab.value} onPress={() => onChange(tab.value)} style={styles.tab}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: isActive }}
+            key={tab.value}
+            onPress={() => onChange(tab.value)}
+            style={styles.tab}>
             <ThemedText type="smallBold" themeColor={isActive ? 'tint' : 'textSecondary'}>
               {tab.label}
             </ThemedText>

@@ -29,6 +29,9 @@ jobs:
       - name: Typecheck (packages/shared + apps/geripaws-app)
         run: pnpm typecheck
 
+      - name: Lint (apps/geripaws-app)
+        run: pnpm lint
+
       - name: Unit tests (packages/shared + apps/geripaws-app)
         run: pnpm test
 

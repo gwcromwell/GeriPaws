@@ -71,7 +71,7 @@ export default function SignInScreen() {
         </ThemedText>
       ) : null}
 
-      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </ThemedText>

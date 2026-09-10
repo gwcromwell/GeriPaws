@@ -23,7 +23,11 @@ import { supabase } from '@/lib/supabase';
 
 function IncidentRow({ tokens, onPress }: { tokens: Theme; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Log an accident or incident"
+      onPress={onPress}
+      style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
       <View style={[styles.ewIcon, { backgroundColor: tokens.error + '1f' }]}>
         <AlertIcon color={tokens.error} size={17} />
       </View>
@@ -370,7 +374,11 @@ function EveningWalkToday({
   const age = formatAge(pet.dob);
   return (
     <>
-      <Pressable onPress={onEditPress} style={[styles.nameplate, { borderBottomColor: tokens.border }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Edit ${pet.name}'s profile`}
+        onPress={onEditPress}
+        style={[styles.nameplate, { borderBottomColor: tokens.border }]}>
         <PetAvatar uri={pet.photo_url} size={44} />
         <View>
           <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 20 }}>{pet.name}</ThemedText>
@@ -385,7 +393,12 @@ function EveningWalkToday({
         const isLogging = quickLogging === type;
         return (
           <View key={type} style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
-            <Pressable disabled={!canLog} onPress={() => onTilePress(type)} style={styles.ewRowMain}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Log ${label.toLowerCase()} in detail — ${sub}`}
+              disabled={!canLog}
+              onPress={() => onTilePress(type)}
+              style={styles.ewRowMain}>
               <View style={[styles.ewIcon, { backgroundColor: overdue ? tokens.overdue + '22' : tokens.tileBg }]}>
                 <Icon color={overdue ? tokens.overdue : tokens.accentDeep} size={17} />
               </View>
@@ -402,7 +415,7 @@ function EveningWalkToday({
               <Pressable
                 onPress={() => onQuickLog(type)}
                 disabled={isLogging}
-                hitSlop={8}
+                hitSlop={12}
                 accessibilityRole="button"
                 accessibilityLabel={`Quick log ${label.toLowerCase()} now, no details`}
                 style={[styles.quickLogButton, { borderColor: tokens.accent }]}>
@@ -454,7 +467,11 @@ function GoodDaysToday({
   const age = formatAge(pet.dob);
   return (
     <>
-      <Pressable onPress={onEditPress} style={styles.gdNameplate}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Edit ${pet.name}'s profile`}
+        onPress={onEditPress}
+        style={styles.gdNameplate}>
         <PetAvatar uri={pet.photo_url} size={40} />
         <View>
           <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 21 }}>{pet.name}</ThemedText>
@@ -484,7 +501,11 @@ function GoodDaysToday({
             <View
               key={type}
               style={[styles.gdTile, { backgroundColor: tokens.panel }, overdue && { borderColor: tokens.overdue, borderWidth: 1.5 }]}>
-              <Pressable disabled={!canLog} onPress={() => onTilePress(type)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Log ${label.toLowerCase()} in detail — ${sub}`}
+                disabled={!canLog}
+                onPress={() => onTilePress(type)}>
                 <View style={[styles.gdIcon, { backgroundColor: tokens.accent }]}>
                   <Icon color="#fff" size={15} />
                 </View>
@@ -499,7 +520,7 @@ function GoodDaysToday({
                 <Pressable
                   onPress={() => onQuickLog(type)}
                   disabled={isLogging}
-                  hitSlop={8}
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel={`Quick log ${label.toLowerCase()} now, no details`}
                   style={[styles.gdQuickLogButton, { borderColor: tokens.accent }]}>
@@ -595,12 +616,20 @@ function MedicationList({
           </View>
           {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (
             <View style={styles.doseActions}>
-              <Pressable onPress={() => onStartGive(due)} hitSlop={8}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Give ${due.medication.name}`}
+                onPress={() => onStartGive(due)}
+                hitSlop={12}>
                 <ThemedText type="link" style={{ color: emphasize ? tokens.overdue : tokens.accent }}>
                   Give
                 </ThemedText>
               </Pressable>
-              <Pressable onPress={() => onSkip(due.medication, due.scheduledAt)} hitSlop={8}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Skip ${due.medication.name}`}
+                onPress={() => onSkip(due.medication, due.scheduledAt)}
+                hitSlop={12}>
                 <ThemedText type="link" themeColor="textSecondary">
                   Skip
                 </ThemedText>
@@ -619,13 +648,16 @@ function MedicationList({
               {formatDateTime(givenAtDraft.toISOString())}
             </ThemedText>
             <View style={styles.giveFormActions}>
-              <Pressable onPress={onCancelGive} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={onCancelGive} hitSlop={12}>
                 <ThemedText type="link" themeColor="textSecondary">
                   Cancel
                 </ThemedText>
               </Pressable>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Confirm ${due.medication.name} given`}
                 style={[styles.confirmButton, { backgroundColor: tokens.accent }]}
+                hitSlop={8}
                 disabled={isSavingDose}
                 onPress={() => onConfirmGive(due.medication, due.scheduledAt)}>
                 <ThemedText themeColor="background" type="smallBold">
@@ -668,7 +700,7 @@ function MedicationList({
 
       {settled.length > 0 ? (
         <>
-          <Pressable onPress={() => setShowSettled((v) => !v)} style={styles.settledToggle} hitSlop={8}>
+          <Pressable accessibilityRole="button" onPress={() => setShowSettled((v) => !v)} style={styles.settledToggle} hitSlop={12}>
             <ThemedText type="link" style={{ color: tokens.accent }}>
               {showSettled ? 'Hide' : 'Show'} {settled.length} completed
             </ThemedText>

@@ -30,7 +30,7 @@ export function AvatarPicker({ uri, onPick, size = 88 }: Props) {
   }
 
   return (
-    <Pressable onPress={handlePress} style={styles.container}>
+    <Pressable accessibilityRole="button" onPress={handlePress} style={styles.container}>
       <PetAvatar uri={uri} size={size} />
       <View style={styles.labelWrap}>
         <ThemedText type="link" style={{ color: theme.tint }}>

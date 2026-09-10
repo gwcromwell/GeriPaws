@@ -61,7 +61,7 @@ export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props
       <ThemedView style={styles.row}>
         <ThemedView style={styles.info}>
           {title ? (
-            <Pressable onPress={onPressTitle} disabled={!onPressTitle}>
+            <Pressable accessibilityRole="button" onPress={onPressTitle} disabled={!onPressTitle}>
               <ThemedText type="smallBold">{title}</ThemedText>
             </Pressable>
           ) : null}
@@ -74,12 +74,20 @@ export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props
         </ThemedView>
         {canEdit && !isEditing ? (
           <ThemedView style={styles.actions}>
-            <Pressable onPress={startEdit} hitSlop={8}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Edit dose scheduled ${formatDateTime(dose.scheduled_at)}`}
+              onPress={startEdit}
+              hitSlop={12}>
               <ThemedText type="link" themeColor="tint">
                 Edit
               </ThemedText>
             </Pressable>
-            <Pressable onPress={handleDelete} hitSlop={8}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Delete dose scheduled ${formatDateTime(dose.scheduled_at)}`}
+              onPress={handleDelete}
+              hitSlop={12}>
               <ThemedText type="link" themeColor="error">
                 Delete
               </ThemedText>
@@ -98,19 +106,19 @@ export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props
             {formatDateTime(draft.toISOString())}
           </ThemedText>
           <ThemedView style={styles.editActions}>
-            <Pressable onPress={() => setIsEditing(false)} hitSlop={8}>
+            <Pressable accessibilityRole="button" onPress={() => setIsEditing(false)} hitSlop={12}>
               <ThemedText type="link" themeColor="textSecondary">
                 Cancel
               </ThemedText>
             </Pressable>
             {!dose.skipped ? (
-              <Pressable onPress={handleMarkSkipped} disabled={isSaving} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={handleMarkSkipped} disabled={isSaving} hitSlop={12}>
                 <ThemedText type="link" themeColor="error">
                   Mark skipped instead
                 </ThemedText>
               </Pressable>
             ) : null}
-            <Pressable style={[styles.saveButton, { backgroundColor: theme.tint }]} onPress={saveGivenAt} disabled={isSaving}>
+            <Pressable accessibilityRole="button" style={[styles.saveButton, { backgroundColor: theme.tint }]} onPress={saveGivenAt} disabled={isSaving}>
               <ThemedText themeColor="background" type="smallBold">
                 {isSaving ? 'Saving…' : 'Save'}
               </ThemedText>

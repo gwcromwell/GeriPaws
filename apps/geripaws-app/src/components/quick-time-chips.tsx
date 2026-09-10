@@ -17,8 +17,11 @@ export function QuickTimeChips({ value, onChange }: Props) {
         const isSelected = Math.abs(Date.now() - option.minutesAgo * 60000 - value.getTime()) < 30000;
         return (
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
             key={option.label}
             onPress={() => onChange(new Date(Date.now() - option.minutesAgo * 60000))}
+            hitSlop={8}
             style={[styles.chip, isSelected && styles.chipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
             <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
               {option.label}

@@ -15,7 +15,6 @@ import { useTheme } from '@/hooks/use-theme';
 
 function confirm(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     if (window.confirm(`${title}\n\n${message}`)) onConfirm();
     return;
   }
@@ -146,14 +145,14 @@ export default function QolCheckInScreen() {
           </ThemedText>
         ) : null}
 
-        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+        <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
           <ThemedText themeColor="background" type="smallBold">
             {isSubmitting ? 'Saving…' : 'Save check-in'}
           </ThemedText>
         </Pressable>
 
         {isEditing && responseId ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.deleteButton}
             onPress={() =>
               confirm('Delete check-in', 'This cannot be undone.', async () => {

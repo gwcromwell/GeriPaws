@@ -32,6 +32,7 @@ export function ChoiceChips<T extends string>({ label, helperText, options, valu
               onPress={() => onChange(isSelected ? undefined : option.value)}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
+              hitSlop={8}
               style={[
                 styles.chip,
                 isSelected

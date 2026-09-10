@@ -24,7 +24,6 @@ import { useTheme } from '@/hooks/use-theme';
 
 function confirm(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     if (window.confirm(`${title}\n\n${message}`)) onConfirm();
     return;
   }
@@ -188,7 +187,7 @@ export default function MedicationDetailScreen() {
                   value={restockValue}
                   onChangeText={setRestockValue}
                 />
-                <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleRestock} disabled={isRestocking}>
+                <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleRestock} disabled={isRestocking}>
                   <ThemedText themeColor="tint" type="smallBold">
                     {isRestocking ? 'Saving…' : 'Update count'}
                   </ThemedText>
@@ -203,7 +202,7 @@ export default function MedicationDetailScreen() {
             </ThemedText>
             {canEdit ? (
               <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, medicationId: medication.id } }} asChild>
-                <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
+                <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
                   <ThemedText themeColor="tint" type="smallBold">
                     Set up refill tracking
                   </ThemedText>
@@ -214,7 +213,7 @@ export default function MedicationDetailScreen() {
         )}
 
         {canEdit ? (
-          <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleLogNow}>
+          <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])} onPress={handleLogNow}>
             <ThemedText themeColor="tint" type="smallBold">
               Log a dose now
             </ThemedText>
@@ -242,13 +241,13 @@ export default function MedicationDetailScreen() {
         {canEdit ? (
           <>
             <Link href={{ pathname: '/pets/[id]/medications/new', params: { id, medicationId: medication.id } }} asChild>
-              <Pressable style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
+              <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.secondaryButton, { borderColor: theme.tint }])}>
                 <ThemedText themeColor="tint" type="smallBold">
                   Edit medication
                 </ThemedText>
               </Pressable>
             </Link>
-            <Pressable style={styles.deleteButton} onPress={handleDelete}>
+            <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={handleDelete}>
               <ThemedText themeColor="error" type="smallBold">
                 Delete medication
               </ThemedText>

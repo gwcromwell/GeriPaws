@@ -77,7 +77,7 @@ export default function SignUpScreen() {
       ) : null}
       {info ? <ThemedText style={styles.message}>{info}</ThemedText> : null}
 
-      <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+      <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: theme.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
         <ThemedText themeColor="background" type="smallBold">
           {isSubmitting ? 'Creating account…' : 'Sign up'}
         </ThemedText>
