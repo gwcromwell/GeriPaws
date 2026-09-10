@@ -61,9 +61,9 @@ const HABIT_TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label:
   { type: 'food', label: 'Food', Icon: FoodIcon },
 ];
 
-/** Walk and food can be logged with zero detail beyond "it happened, just
- * now" — water, weight, and incidents still open the full form. */
-const QUICK_LOGGABLE: ReadonlySet<HabitType> = new Set(['walk', 'food']);
+/** Food and water can be logged with zero detail beyond "it happened, just
+ * now" — walk, weight, and incidents still open the full form. */
+const QUICK_LOGGABLE: ReadonlySet<HabitType> = new Set(['food', 'water']);
 
 export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
