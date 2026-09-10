@@ -4,10 +4,18 @@
 // right after a pet_invites row is created. Emails the invitee a link to accept
 // the invite, via Resend — same provider/sender as send-reminders.
 //
-// Unlike get-shared-pet, this function DOES verify the caller's JWT (it's the
-// default) — it's only ever called by an already-signed-in owner inviting
-// someone else, and it double-checks that the invite actually belongs to the
-// calling user before sending anything.
+// This function checks the caller's session itself (see handleRequest below)
+// — it's only ever called by an already-signed-in owner inviting someone
+// else, and it double-checks that the invite actually belongs to the calling
+// user before sending anything.
+//
+// MUST still be deployed with --no-verify-jwt, despite doing its own auth
+// check: `npx supabase functions deploy send-pet-invite --no-verify-jwt`.
+// Without that flag, the Supabase gateway's own (separate) JWT check runs on
+// every request INCLUDING the browser's CORS preflight OPTIONS, which never
+// carries an Authorization header — so the gateway 401s before this file's
+// OPTIONS handling below ever runs, and every web invite fails with "the
+// email couldn't be sent" no matter what this code does. See README.md.
 //
 // Required secret: RESEND_API_KEY (same one send-reminders uses). SUPABASE_URL,
 // SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY are injected automatically.

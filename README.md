@@ -93,6 +93,26 @@ runner wired up yet, so apply them manually).
    `supabase/migrations/00000000000005_reminders_cron.sql` in the SQL Editor
    **after** the function is deployed (it references the function's URL).
 
+### Pet-invite Edge Function
+
+`supabase/functions/send-pet-invite` emails the invite link when someone
+shares a pet (uses the same `RESEND_API_KEY` secret as reminders). It
+**must** be deployed with JWT verification disabled at the gateway, even
+though it checks the caller's session itself in code:
+
+```bash
+npx supabase functions deploy send-pet-invite --no-verify-jwt
+```
+
+Without `--no-verify-jwt`, the Supabase gateway rejects the browser's CORS
+preflight `OPTIONS` request (it never carries an `Authorization` header) with
+401 `Missing Authorization header` — before the request ever reaches this
+function's own `handleRequest`, which never sees a chance to answer the
+preflight. This makes web invites fail with "the email couldn't be sent"
+regardless of anything the function code does; the fix is the deploy flag,
+not the code. (`get-shared-pet` below hits the same class of issue for the
+same reason.)
+
 ## Phase 4: native iOS build + push notifications
 
 Requires two accounts that don't exist yet as of this writing:
