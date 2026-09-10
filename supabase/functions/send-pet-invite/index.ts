@@ -88,6 +88,9 @@ export async function handleRequest(req: Request): Promise<Response> {
     <h2>You've been invited to help care for ${petName} on GeriPaws</h2>
     <p>You've been invited as ${roleDescription}.</p>
     <p><a href="${acceptUrl}">Accept the invite</a> to get started — this link expires in 14 days.</p>
+    <p>If you don't already have a GeriPaws account, the link will let you create one using this email
+    address (${invite.email}) — you'll choose your own password there; none is needed from this email.
+    Already have an account? Just sign in with it instead.</p>
     <p style="color:#888;font-size:13px;">If the link doesn't work, copy and paste this into your browser:<br>${acceptUrl}</p>
   `;
 

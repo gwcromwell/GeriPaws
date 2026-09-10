@@ -17,8 +17,13 @@ export default function AcceptInviteScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  // Most invitees are new to GeriPaws, so default to account creation —
+  // the invite email never contains a password (there isn't one to send;
+  // the invitee chooses their own here), which reads as broken if the
+  // form opens on "sign in" and asks for a password nobody has yet.
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'accepting' | 'done'>('idle');
 
   useEffect(() => {
@@ -59,9 +64,17 @@ export default function AcceptInviteScreen() {
       return;
     }
     setError(null);
+    setInfo(null);
     const action = mode === 'sign-in' ? signIn : signUp;
     const { error: authError } = await action(result.data.email, result.data.password);
-    if (authError) setError(authError);
+    if (authError) {
+      setError(authError);
+    } else if (mode === 'sign-up') {
+      // Sign-up requires email confirmation before a session exists, so this
+      // screen won't move on its own yet — without this message the invitee
+      // is just left staring at the same form with no sign anything happened.
+      setInfo('Check your email to confirm your account, then come back to this invite link and sign in.');
+    }
   }
 
   return (
@@ -69,6 +82,11 @@ export default function AcceptInviteScreen() {
       <ThemedText type="subtitle">
         {mode === 'sign-in' ? 'Sign in to accept this invite' : 'Create an account to accept this invite'}
       </ThemedText>
+      {mode === 'sign-up' ? (
+        <ThemedText themeColor="textSecondary" type="small">
+          No password was sent — choose your own below to create your account.
+        </ThemedText>
+      ) : null}
 
       <ThemedTextInput
         label="Email"
@@ -94,10 +112,17 @@ export default function AcceptInviteScreen() {
       />
 
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
+      {info ? <ThemedText>{info}</ThemedText> : null}
 
       <Button label={mode === 'sign-in' ? 'Sign in' : 'Sign up'} onPress={handleSubmit} style={styles.button} />
 
-      <Pressable accessibilityRole="button" onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
+          setError(null);
+          setInfo(null);
+        }}>
         <ThemedText type="link" themeColor="tint" style={styles.switchMode}>
           {mode === 'sign-in' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
         </ThemedText>
