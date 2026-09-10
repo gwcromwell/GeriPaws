@@ -2,7 +2,7 @@ import type { PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { computeQolDueStatus, computeQolTrend, QOL_FULL_MAX } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { FlatList, Pressable, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { TrendChart } from '@/components/trend-chart';
@@ -87,93 +87,97 @@ export default function QolScreen() {
 
   return (
     <ThemedView style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <ThemedView style={styles.headerRow}>
-          <ThemedText type="subtitle">Quality of Life</ThemedText>
-          {canEdit ? (
-            <Link href={{ pathname: '/pets/[id]/qol/settings', params: { id } }}>
-              <ThemedText type="link" themeColor="tint">
-                Settings
-              </ThemedText>
-            </Link>
-          ) : null}
-        </ThemedView>
+      <FlatList
+        contentContainerStyle={styles.container}
+        data={responses}
+        keyExtractor={(response) => response.id}
+        ListHeaderComponent={
+          <>
+            <ThemedView style={styles.headerRow}>
+              <ThemedText type="subtitle">Quality of Life</ThemedText>
+              {canEdit ? (
+                <Link href={{ pathname: '/pets/[id]/qol/settings', params: { id } }}>
+                  <ThemedText type="link" themeColor="tint">
+                    Settings
+                  </ThemedText>
+                </Link>
+              ) : null}
+            </ThemedView>
 
-        {due ? (
-          <ThemedText themeColor={due.status === 'overdue' ? 'error' : 'textSecondary'} type="small">
-            {DUE_LABEL[due.status]}
-          </ThemedText>
-        ) : null}
-
-        {latest ? (
-          <ThemedView style={styles.latestCard}>
-            <ThemedText type="title" style={styles.score}>
-              {Math.round(latest.total_score)}
-              <ThemedText themeColor="textSecondary" type="small">
-                {' '}
-                / 70
-              </ThemedText>
-            </ThemedText>
-            {trend && trend.direction !== 'none' ? (
-              <ThemedText
-                type="small"
-                themeColor={trend.direction === 'up' ? 'tint' : trend.direction === 'down' ? 'error' : 'textSecondary'}>
-                {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'} {Math.abs(Math.round(trend.delta))}{' '}
-                since last check-in
+            {due ? (
+              <ThemedText themeColor={due.status === 'overdue' ? 'error' : 'textSecondary'} type="small">
+                {DUE_LABEL[due.status]}
               </ThemedText>
             ) : null}
-            <ThemedText themeColor="textSecondary" type="small">
-              Last check-in {formatDate(latest.survey_date)}
-            </ThemedText>
-          </ThemedView>
-        ) : (
-          <ThemedText themeColor="textSecondary" type="small">
-            No check-ins yet.
-          </ThemedText>
-        )}
 
-        {responses.length > 1 ? (
-          <TrendChart
-            points={responses.map((r) => ({ id: r.id, date: r.survey_date, value: r.total_score }))}
-            maxValue={QOL_FULL_MAX}
-          />
-        ) : null}
-
-        {canEdit ? (
-          <Link href={{ pathname: '/pets/[id]/qol/new', params: { id } }} asChild>
-            <Button label="New check-in" />
-          </Link>
-        ) : null}
-
-        {responses.length > 0 ? (
-          <>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              History
-            </ThemedText>
-            {responses.map((response) => (
-              <Pressable accessibilityRole="button"
-                key={response.id}
-                style={styles.row}
-                disabled={!canEdit}
-                onPress={() =>
-                  router.push({ pathname: '/pets/[id]/qol/new', params: { id, responseId: response.id } })
-                }>
-                <ThemedText type="smallBold">{formatDate(response.survey_date)}</ThemedText>
-                <ThemedText themeColor="textSecondary" type="small">
-                  {Math.round(response.total_score)} / 70 · {response.scores.scale === 'full' ? 'Full' : 'Quick'}
+            {latest ? (
+              <ThemedView style={styles.latestCard}>
+                <ThemedText type="title" style={styles.score}>
+                  {Math.round(latest.total_score)}
+                  <ThemedText themeColor="textSecondary" type="small">
+                    {' '}
+                    / 70
+                  </ThemedText>
                 </ThemedText>
-                {response.notes ? <ThemedText type="small">{response.notes}</ThemedText> : null}
-              </Pressable>
-            ))}
-          </>
-        ) : null}
+                {trend && trend.direction !== 'none' ? (
+                  <ThemedText
+                    type="small"
+                    themeColor={trend.direction === 'up' ? 'tint' : trend.direction === 'down' ? 'error' : 'textSecondary'}>
+                    {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'}{' '}
+                    {Math.abs(Math.round(trend.delta))} since last check-in
+                  </ThemedText>
+                ) : null}
+                <ThemedText themeColor="textSecondary" type="small">
+                  Last check-in {formatDate(latest.survey_date)}
+                </ThemedText>
+              </ThemedView>
+            ) : (
+              <ThemedText themeColor="textSecondary" type="small">
+                No check-ins yet.
+              </ThemedText>
+            )}
 
-        {error ? (
-          <ThemedText themeColor="error" style={styles.message}>
-            {error}
-          </ThemedText>
-        ) : null}
-      </ScrollView>
+            {responses.length > 1 ? (
+              <TrendChart
+                points={responses.map((r) => ({ id: r.id, date: r.survey_date, value: r.total_score }))}
+                maxValue={QOL_FULL_MAX}
+              />
+            ) : null}
+
+            {canEdit ? (
+              <Link href={{ pathname: '/pets/[id]/qol/new', params: { id } }} asChild>
+                <Button label="New check-in" />
+              </Link>
+            ) : null}
+
+            {responses.length > 0 ? (
+              <ThemedText type="subtitle" style={styles.sectionTitle}>
+                History
+              </ThemedText>
+            ) : null}
+          </>
+        }
+        renderItem={({ item: response }) => (
+          <Pressable
+            accessibilityRole="button"
+            style={styles.row}
+            disabled={!canEdit}
+            onPress={() => router.push({ pathname: '/pets/[id]/qol/new', params: { id, responseId: response.id } })}>
+            <ThemedText type="smallBold">{formatDate(response.survey_date)}</ThemedText>
+            <ThemedText themeColor="textSecondary" type="small">
+              {Math.round(response.total_score)} / 70 · {response.scores.scale === 'full' ? 'Full' : 'Quick'}
+            </ThemedText>
+            {response.notes ? <ThemedText type="small">{response.notes}</ThemedText> : null}
+          </Pressable>
+        )}
+        ListFooterComponent={
+          error ? (
+            <ThemedText themeColor="error" style={styles.message}>
+              {error}
+            </ThemedText>
+          ) : null
+        }
+      />
     </ThemedView>
   );
 }
