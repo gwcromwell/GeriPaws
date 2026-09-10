@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "geripaws-app",
+    "name": "GeriPaws",
     "slug": "geripaws-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,8 @@
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
