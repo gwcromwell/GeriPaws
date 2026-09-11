@@ -1,7 +1,7 @@
 import { QOL_FULL_MAX, habitLogInputSchema } from '@geripaws/shared';
 import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AlertIcon, CheckIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
@@ -150,6 +150,32 @@ export default function TodayScreen() {
       load();
     }, [load])
   );
+
+  // Keeps this screen in sync when another caregiver's device changes
+  // something — without this, a screen just sitting open (e.g. a tablet on
+  // the counter) never sees a change made elsewhere, since `load()` above
+  // only re-runs on this screen's own focus events. Debounced since a
+  // single action (e.g. giving a dose) can touch more than one table.
+  useEffect(() => {
+    if (!id) return;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    const reload = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(load, 400);
+    };
+    const channel = supabase
+      .channel(`today-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_logs', filter: `pet_id=eq.${id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'medication_doses', filter: `pet_id=eq.${id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'medications', filter: `pet_id=eq.${id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qol_responses', filter: `pet_id=eq.${id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qol_settings', filter: `pet_id=eq.${id}` }, reload)
+      .subscribe();
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [id, load]);
 
   const canLog = role === 'owner' || role === 'caregiver';
 
