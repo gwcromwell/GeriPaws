@@ -16,7 +16,7 @@ could be opened up publicly later without a rewrite.
 | 1 | Daily habit tracker: walk/water/food/incident logging, history, editing | ✅ Done |
 | 2 | Ailments, medications, schedules, refill tracking | ✅ Done |
 | 3 | Quality of Life check-ins (HHHHHMM scale), email reminders | ✅ Done |
-| 4 | Native iOS build (App Store), real push notifications | 🚧 In progress |
+| 4 | Native iOS build (App Store), real push notifications | ✅ Shipped to TestFlight — see below |
 | 5 | Weight tracking, condition templates, vet share links, combined timeline | ✅ Partially done — see below |
 | 6 | Walk/food schedules per dog, due & completion push notifications | ✅ Done — see below |
 
@@ -122,23 +122,31 @@ same reason.)
 
 ## Phase 4: native iOS build + push notifications
 
-Requires two accounts that don't exist yet as of this writing:
+Both accounts this phase needs are set up and in use:
 
-- **Apple Developer Program** (developer.apple.com/programs/enroll, $99/year,
-  Individual enrollment) — needed to build a real device binary, get push
-  notifications working, and submit to TestFlight/the App Store.
-- **Expo/EAS account** (expo.dev/signup, free) — handles building and
-  submitting the iOS app.
+- **Apple Developer Program** (Individual enrollment) — bundle id
+  `nyc.obi1.geripaws`, App Store Connect app id `6810824731` (see
+  `eas.json`'s `submit.production.ios.ascAppId`).
+- **Expo/EAS account** (`obione`) — EAS project id is in
+  `app.json`'s `extra.eas.projectId`.
 
-Once both exist:
+The app has shipped to TestFlight multiple times via the production profile:
 
 ```bash
-npx eas login
-npx eas build:configure          # links the project, fills in extra.eas.projectId
-npx eas build --platform ios --profile development
+npx eas build --platform ios --profile production
+npx eas submit --platform ios --profile production --latest
 ```
 
-The app already has the account-independent pieces in place:
+(`npx eas build:list` / `npx eas submit:list` show the full history.) Each
+submission bumps the build number automatically (`autoIncrement: true` in
+`eas.json`); the App Store-facing version (`app.json`'s `expo.version`) is
+bumped manually when it's actually time for a version bump, not every build.
+
+A `development`-profile build (`npx eas build --platform ios --profile
+development`) is also available for installing a debug client on a physical
+device without going through TestFlight.
+
+The account-independent pieces that make this all work:
 
 - `push_tokens` table (`supabase/migrations/00000000000007_push_tokens.sql`)
   — one row per device per user, RLS-locked to that user only.
@@ -177,10 +185,13 @@ The app already has the account-independent pieces in place:
   ```
 - `eas.json` — development/preview/production build profiles.
 
-What's still blocked on the accounts above: actually running `eas build`,
-installing on a physical device, and confirming a push notification is
-delivered end-to-end. The notification logic itself (overdue digest,
-exact-time due reminders, completion pushes) is functionally complete.
+What's still open: independently confirming, on a real installed device,
+that a push notification is actually delivered end-to-end (the notification
+logic itself — overdue digest, exact-time due reminders, completion pushes —
+is functionally complete and deployed). Each new TestFlight build also only
+covers whatever was on `main` at build time — check `eas build:list`'s
+`Commit` column against `git log` if you need to confirm a specific change
+made it into what's currently in testers' hands.
 
 ## Phase 5: weight tracking, condition templates, vet share links, combined timeline
 
@@ -265,10 +276,10 @@ enum addition is `00000000000008_weight_tracking.sql`).
 
 ## Known gaps / not yet built
 
-- No native iOS binary yet — push notification logic (overdue digest,
-  exact-time due reminders, completion pushes) is functionally complete, but
-  delivering a real push requires an Apple Developer account, an EAS build,
-  and installing on a physical device (none of which exist yet).
+- Push notification delivery hasn't been independently confirmed on a real
+  installed device — the logic (overdue digest, exact-time due reminders,
+  completion pushes) is functionally complete and shipped in a TestFlight
+  build, but nobody's verified a push actually arrives end-to-end yet.
 - No vet-visit summary export, subscriptions/billing, or memorial/archive
   state for a pet's passing (deferred Phase 5 items).
 - Editing a medication doesn't support reassigning it to a different
