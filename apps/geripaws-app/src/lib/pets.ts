@@ -153,6 +153,10 @@ export async function updateMyPreferences(petId: string, input: MemberPreference
   if (input.showFoodTile !== undefined) patch.show_food_tile = input.showFoodTile;
   if (input.showWeightTile !== undefined) patch.show_weight_tile = input.showWeightTile;
   if (input.hideGivenDoses !== undefined) patch.hide_given_doses = input.hideGivenDoses;
+  if (input.notifyMedicationDue !== undefined) patch.notify_medication_due = input.notifyMedicationDue;
+  if (input.notifyWalkDue !== undefined) patch.notify_walk_due = input.notifyWalkDue;
+  if (input.notifyFoodDue !== undefined) patch.notify_food_due = input.notifyFoodDue;
+  if (input.notifyCompletedByOthers !== undefined) patch.notify_completed_by_others = input.notifyCompletedByOthers;
 
   const { error } = await supabase
     .from("pet_members")

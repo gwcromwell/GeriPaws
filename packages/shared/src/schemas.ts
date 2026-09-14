@@ -47,6 +47,10 @@ export const memberPreferencesSchema = z.object({
   showFoodTile: z.boolean().optional(),
   showWeightTile: z.boolean().optional(),
   hideGivenDoses: z.boolean().optional(),
+  notifyMedicationDue: z.boolean().optional(),
+  notifyWalkDue: z.boolean().optional(),
+  notifyFoodDue: z.boolean().optional(),
+  notifyCompletedByOthers: z.boolean().optional(),
 });
 export type MemberPreferencesInput = z.infer<typeof memberPreferencesSchema>;
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
@@ -170,7 +174,7 @@ export const answerVetQuestionSchema = z.object({
 });
 export type AnswerVetQuestionInput = z.infer<typeof answerVetQuestionSchema>;
 
-export const medicationScheduleSchema = z.discriminatedUnion("kind", [
+const recurringScheduleVariants = [
   z.object({ kind: z.literal("times_per_day"), times: z.array(timeString).min(1).max(6) }),
   z.object({ kind: z.literal("interval_hours"), intervalHours: z.number().int().min(1).max(48), startTime: timeString }),
   z.object({
@@ -178,9 +182,29 @@ export const medicationScheduleSchema = z.discriminatedUnion("kind", [
     daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1).max(7),
     times: z.array(timeString).min(1).max(6),
   }),
+] as const;
+
+/** Shared by medications (which also allow "as_needed") and habit schedules (walk/food). */
+export const recurringScheduleSchema = z.discriminatedUnion("kind", recurringScheduleVariants);
+export type RecurringScheduleInput = z.infer<typeof recurringScheduleSchema>;
+
+export const medicationScheduleSchema = z.discriminatedUnion("kind", [
+  ...recurringScheduleVariants,
   z.object({ kind: z.literal("as_needed") }),
 ]);
 export type MedicationScheduleInput = z.infer<typeof medicationScheduleSchema>;
+
+export const habitScheduleTypeSchema = z.enum(["walk", "food"]);
+
+export const habitScheduleSchema = recurringScheduleSchema;
+export type HabitScheduleInput = z.infer<typeof habitScheduleSchema>;
+
+export const upsertHabitScheduleSchema = z.object({
+  petId: z.string().uuid(),
+  type: habitScheduleTypeSchema,
+  schedule: habitScheduleSchema,
+});
+export type UpsertHabitScheduleInput = z.infer<typeof upsertHabitScheduleSchema>;
 
 export const createMedicationSchema = z.object({
   petId: z.string().uuid(),

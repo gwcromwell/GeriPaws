@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeDosesPerDay, computeDueTimesForDay, computeRefillProjection, getDayStart } from "./schedule";
-import type { MedicationSchedule } from "./types";
+import type { HabitSchedule, MedicationSchedule } from "./types";
 
 const TZ = "America/New_York";
 
@@ -85,6 +85,29 @@ describe("computeDosesPerDay", () => {
 
   it("as_needed: null (no rate to compute a run-out date from)", () => {
     expect(computeDosesPerDay({ kind: "as_needed" })).toBeNull();
+  });
+});
+
+describe("HabitSchedule (walk/food) reuses the same due-time math as medications", () => {
+  // habit_schedules stores HabitSchedule values, and both the app and
+  // send-reminders feed them straight into computeDueTimesForDay/
+  // computeDosesPerDay alongside MedicationSchedule values. This pins the
+  // type contract those call sites depend on — HabitSchedule must stay a
+  // structural subset of MedicationSchedule (everything except "as_needed")
+  // — and exercises the same runtime logic with a habit-shaped schedule.
+  it("computes due times for a times_per_day walk schedule", () => {
+    const schedule: HabitSchedule = { kind: "times_per_day", times: ["07:00", "18:00"] };
+    const dayStart = new Date("2026-01-15T05:00:00Z");
+    const times = computeDueTimesForDay(schedule, dayStart, TZ);
+    expect(times.map((t) => t.toISOString())).toEqual(["2026-01-15T12:00:00.000Z", "2026-01-15T23:00:00.000Z"]);
+    expect(computeDosesPerDay(schedule)).toBe(2);
+  });
+
+  it("computes due times for an interval_hours food schedule", () => {
+    const schedule: HabitSchedule = { kind: "interval_hours", intervalHours: 12, startTime: "08:00" };
+    const dayStart = new Date("2026-01-15T05:00:00Z");
+    expect(computeDueTimesForDay(schedule, dayStart, TZ)).toHaveLength(2);
+    expect(computeDosesPerDay(schedule)).toBe(2);
   });
 });
 

@@ -40,6 +40,11 @@ export interface PetMember {
   show_food_tile: boolean;
   show_weight_tile: boolean;
   hide_given_doses: boolean;
+  /** Personal push notification preferences for this dog — default to notifying on everything. */
+  notify_medication_due: boolean;
+  notify_walk_due: boolean;
+  notify_food_due: boolean;
+  notify_completed_by_others: boolean;
 }
 
 /** Display-safe mirror of the caregiver's account, for attributing an action to a name. */
@@ -166,13 +171,29 @@ export interface VetQuestion {
  * times_per_day: fixed clock times every day, e.g. Keppra at 08:00 and 20:00.
  * interval_hours: every N hours starting from a given time, e.g. every 8 hours from 06:00.
  * specific_days: fixed clock times on selected weekdays only (0=Sunday..6=Saturday).
- * as_needed: PRN — no schedule to compute due times or a refill burn rate from.
+ *
+ * Shared by medications (which also allow "as_needed") and habit schedules
+ * (walk/food expected times, which don't — a walk or a meal is always
+ * expected once scheduled, there's no PRN equivalent).
  */
-export type MedicationSchedule =
+export type RecurringSchedule =
   | { kind: "times_per_day"; times: string[] }
   | { kind: "interval_hours"; intervalHours: number; startTime: string }
-  | { kind: "specific_days"; daysOfWeek: number[]; times: string[] }
-  | { kind: "as_needed" };
+  | { kind: "specific_days"; daysOfWeek: number[]; times: string[] };
+
+/** as_needed: PRN — no schedule to compute due times or a refill burn rate from. */
+export type MedicationSchedule = RecurringSchedule | { kind: "as_needed" };
+
+/** Expected times for a walk or a meal — see habit_schedules table. */
+export type HabitSchedule = RecurringSchedule;
+export type HabitScheduleType = "walk" | "food";
+
+export interface HabitScheduleRow {
+  pet_id: string;
+  type: HabitScheduleType;
+  schedule: HabitSchedule;
+  updated_at: string;
+}
 
 export interface Medication {
   id: string;

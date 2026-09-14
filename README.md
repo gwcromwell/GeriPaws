@@ -18,6 +18,7 @@ could be opened up publicly later without a rewrite.
 | 3 | Quality of Life check-ins (HHHHHMM scale), email reminders | ✅ Done |
 | 4 | Native iOS build (App Store), real push notifications | 🚧 In progress |
 | 5 | Weight tracking, condition templates, vet share links, combined timeline | ✅ Partially done — see below |
+| 6 | Walk/food schedules per dog, due & completion push notifications | ✅ Done — see below |
 
 ## Tech stack
 
@@ -40,8 +41,14 @@ supabase/migrations/     SQL migrations, applied in order via the Supabase
                           SQL Editor (see "Database setup").
 supabase/functions/      Edge Functions:
                           - send-reminders: hourly job emailing/pushing
-                            caregivers about overdue medications, low
-                            refills, and overdue QOL check-ins.
+                            caregivers about overdue medications, overdue
+                            walks/food (habit_schedules), low refills, and
+                            overdue QOL check-ins — filtered per recipient by
+                            their own notification preferences.
+                          - notify-completion: fired by a DB trigger the
+                            moment a habit is logged or a medication dose is
+                            given, pushing the rest of the household near-
+                            real-time ("Amanda gave Kenobi's Keppra").
                           - get-shared-pet: public (no auth), read-only
                             endpoint behind a vet share-link token.
 ```
@@ -144,13 +151,36 @@ The app already has the account-independent pieces in place:
   on the Simulator or before `extra.eas.projectId` exists.
 - `supabase/functions/send-reminders` already sends push notifications
   alongside email wherever tokens exist for a pet's caregivers — same
-  overdue-medication/low-refill/overdue-QOL triggers, same once-per-day
-  dedup. Nothing else to wire up once a real device is registered.
+  overdue-medication/overdue-walk/overdue-food/low-refill/overdue-QOL
+  triggers, same once-per-day dedup, now filtered per recipient by that
+  caregiver's own notification preferences (`pet_members.notify_*_due` —
+  see `pets/[id]/preferences.tsx`; the email digest stays unfiltered).
+- `src/lib/due-notifications.ts` schedules **on-device, exact-time** local
+  notifications for "X is due" (e.g. Kenobi's 8pm Keppra), separately from
+  the hourly server digest above — these fire at the precise scheduled
+  moment rather than up to an hour late. Recomputed on entering the app and
+  whenever it's foregrounded (`(app)/_layout.tsx`'s `AppState` listener),
+  since this app has no reliable background refresh; "today's due times"
+  are only as fresh as the last time it was opened.
+- `supabase/functions/notify-completion` pushes the rest of a pet's
+  household the moment someone logs a habit or gives a medication dose
+  ("Amanda gave Kenobi's Keppra"), gated per recipient by
+  `pet_members.notify_completed_by_others`. Fired by a DB trigger (
+  `00000000000023_notify_completion_trigger.sql`) via `pg_net`, the same
+  mechanism the hourly cron job uses to call an Edge Function from SQL —
+  just triggered by a row event instead of a schedule. Deployed the same
+  way as `send-reminders` (no `--no-verify-jwt` needed — it's only ever
+  called by that trigger with the anon key, never from a browser, so there's
+  no CORS preflight to satisfy):
+  ```bash
+  npx supabase functions deploy notify-completion
+  ```
 - `eas.json` — development/preview/production build profiles.
 
 What's still blocked on the accounts above: actually running `eas build`,
 installing on a physical device, and confirming a push notification is
-delivered end-to-end.
+delivered end-to-end. The notification logic itself (overdue digest,
+exact-time due reminders, completion pushes) is functionally complete.
 
 ## Phase 5: weight tracking, condition templates, vet share links, combined timeline
 
@@ -191,6 +221,28 @@ And its migration, like the others, is applied via the SQL Editor:
 `supabase/migrations/00000000000009_pet_share_links.sql` (weight tracking's
 enum addition is `00000000000008_weight_tracking.sql`).
 
+## Phase 6: walk/food schedules + due & completion notifications
+
+- **Walk/food schedules** — `habit_schedules` table
+  (`00000000000020_habit_schedules.sql`), one row per `(pet_id, type)` for
+  `walk`/`food`, reusing the same schedule shape as medications (fixed
+  times/day, every N hours, or specific days — never "as needed", since a
+  walk or a meal is always expected once scheduled). Editable per dog from
+  the pet detail screen's "Schedule" link (`pets/[id]/schedule.tsx`), so a
+  multi-dog household can give each dog different times. Absence of a row
+  for a pet/type means no schedule is set — overdue checks simply skip it.
+  The schedule-kind picker UI (`src/components/schedule-editor.tsx`) is
+  shared with the medication form, which used to have its own inline copy.
+- **Notification preferences** — four booleans on `pet_members`
+  (`00000000000021_notification_preferences.sql`): `notify_medication_due`,
+  `notify_walk_due`, `notify_food_due`, `notify_completed_by_others`. Personal
+  per caregiver *and* per dog — Amanda and Greg can each choose differently
+  for Kenobi, and differently again for another shared dog. Editable from
+  `pets/[id]/preferences.tsx` alongside the existing Today-screen tile
+  preferences.
+- **Due notifications** and **completion notifications** — see the Phase 4
+  section above for `due-notifications.ts` and `notify-completion`.
+
 ## Architecture notes
 
 - **Multi-tenancy**: every pet-scoped table is protected by Postgres RLS keyed
@@ -213,9 +265,10 @@ enum addition is `00000000000008_weight_tracking.sql`).
 
 ## Known gaps / not yet built
 
-- No native iOS binary yet — push notification groundwork (Phase 4) is in
-  place, but delivering a real push requires an Apple Developer account, an
-  EAS build, and installing on a physical device (none of which exist yet).
+- No native iOS binary yet — push notification logic (overdue digest,
+  exact-time due reminders, completion pushes) is functionally complete, but
+  delivering a real push requires an Apple Developer account, an EAS build,
+  and installing on a physical device (none of which exist yet).
 - No vet-visit summary export, subscriptions/billing, or memorial/archive
   state for a pet's passing (deferred Phase 5 items).
 - Editing a medication doesn't support reassigning it to a different

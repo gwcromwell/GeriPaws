@@ -160,6 +160,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      habit_schedules: {
+        Row: {
+          pet_id: string;
+          type: string;
+          schedule: Json;
+          updated_at: string;
+        };
+        Insert: {
+          pet_id: string;
+          type: string;
+          schedule: Json;
+          updated_at?: string;
+        };
+        Update: {
+          pet_id?: string;
+          type?: string;
+          schedule?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       medication_doses: {
         Row: {
           id: string;
@@ -343,6 +364,10 @@ export interface Database {
           show_food_tile: boolean;
           show_weight_tile: boolean;
           hide_given_doses: boolean;
+          notify_medication_due: boolean;
+          notify_walk_due: boolean;
+          notify_food_due: boolean;
+          notify_completed_by_others: boolean;
         };
         Insert: {
           pet_id: string;
@@ -355,6 +380,10 @@ export interface Database {
           show_food_tile?: boolean;
           show_weight_tile?: boolean;
           hide_given_doses?: boolean;
+          notify_medication_due?: boolean;
+          notify_walk_due?: boolean;
+          notify_food_due?: boolean;
+          notify_completed_by_others?: boolean;
         };
         Update: {
           pet_id?: string;
@@ -367,6 +396,10 @@ export interface Database {
           show_food_tile?: boolean;
           show_weight_tile?: boolean;
           hide_given_doses?: boolean;
+          notify_medication_due?: boolean;
+          notify_walk_due?: boolean;
+          notify_food_due?: boolean;
+          notify_completed_by_others?: boolean;
         };
         Relationships: [];
       };

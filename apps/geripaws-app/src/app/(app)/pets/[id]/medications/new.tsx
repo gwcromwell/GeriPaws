@@ -1,10 +1,16 @@
-import { createMedicationSchema, refillSetupSchema, type MedicationScheduleInput } from '@geripaws/shared';
+import { createMedicationSchema, refillSetupSchema } from '@geripaws/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
+import {
+  buildScheduleFromEditor,
+  DEFAULT_SCHEDULE_EDITOR_VALUE,
+  ScheduleEditor,
+  type ScheduleEditorValue,
+} from '@/components/schedule-editor';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
@@ -16,24 +22,8 @@ import {
   updateMedication,
   upsertRefill,
 } from '@/lib/medications';
-import { parseTimeInput } from '@/lib/time-input';
-
-import { useTheme } from '@/hooks/use-theme';
-
-const WEEKDAYS = [
-  { value: 0, label: 'Sun' },
-  { value: 1, label: 'Mon' },
-  { value: 2, label: 'Tue' },
-  { value: 3, label: 'Wed' },
-  { value: 4, label: 'Thu' },
-  { value: 5, label: 'Fri' },
-  { value: 6, label: 'Sat' },
-];
-
-type ScheduleKind = MedicationScheduleInput['kind'];
 
 export default function NewMedicationScreen() {
-  const theme = useTheme();
   const { id, ailmentId, medicationId } = useLocalSearchParams<{
     id: string;
     ailmentId?: string;
@@ -49,11 +39,7 @@ export default function NewMedicationScreen() {
   const [route, setRoute] = useState('');
   const [activeUntil, setActiveUntil] = useState('');
 
-  const [scheduleKind, setScheduleKind] = useState<ScheduleKind>('times_per_day');
-  const [times, setTimes] = useState<string[]>(['']);
-  const [intervalHours, setIntervalHours] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+  const [scheduleValue, setScheduleValue] = useState<ScheduleEditorValue>(DEFAULT_SCHEDULE_EDITOR_VALUE);
 
   const [trackRefill, setTrackRefill] = useState(false);
   const [countOnHand, setCountOnHand] = useState('');
@@ -76,15 +62,18 @@ export default function NewMedicationScreen() {
         setRoute(med.route ?? '');
         setActiveUntil(med.active_until ?? '');
 
-        setScheduleKind(med.schedule.kind);
-        if (med.schedule.kind === 'times_per_day' || med.schedule.kind === 'specific_days') {
-          setTimes(med.schedule.times.length > 0 ? med.schedule.times : ['']);
-        }
-        if (med.schedule.kind === 'specific_days') setDaysOfWeek(med.schedule.daysOfWeek);
-        if (med.schedule.kind === 'interval_hours') {
-          setIntervalHours(String(med.schedule.intervalHours));
-          setStartTime(med.schedule.startTime);
-        }
+        setScheduleValue({
+          kind: med.schedule.kind,
+          times:
+            med.schedule.kind === 'times_per_day' || med.schedule.kind === 'specific_days'
+              ? med.schedule.times.length > 0
+                ? med.schedule.times
+                : ['']
+              : [''],
+          daysOfWeek: med.schedule.kind === 'specific_days' ? med.schedule.daysOfWeek : [],
+          intervalHours: med.schedule.kind === 'interval_hours' ? String(med.schedule.intervalHours) : '',
+          startTime: med.schedule.kind === 'interval_hours' ? med.schedule.startTime : '',
+        });
 
         if (refill) {
           setTrackRefill(true);
@@ -102,67 +91,8 @@ export default function NewMedicationScreen() {
     };
   }, [medicationId]);
 
-  function toggleDay(day: number) {
-    setDaysOfWeek((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
-  }
-
-  function updateTime(index: number, value: string) {
-    setTimes((prev) => prev.map((t, i) => (i === index ? value : t)));
-  }
-
-  function addTime() {
-    setTimes((prev) => (prev.length < 6 ? [...prev, ''] : prev));
-  }
-
-  function removeTime(index: number) {
-    setTimes((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function normalizeTimes(raw: string[]): { values: string[]; error: string | null } {
-    const values: string[] = [];
-    for (const t of raw) {
-      const trimmed = t.trim();
-      if (!trimmed) continue;
-      const parsed = parseTimeInput(trimmed);
-      if (!parsed) return { values: [], error: `"${trimmed}" isn't a time I recognize — try 08:00, 8:00 AM, or 0800` };
-      values.push(parsed);
-    }
-    return { values, error: null };
-  }
-
-  function buildSchedule(): { schedule: MedicationScheduleInput | null; error: string | null } {
-    switch (scheduleKind) {
-      case 'times_per_day': {
-        const { values, error } = normalizeTimes(times);
-        if (error) return { schedule: null, error };
-        if (values.length === 0) return { schedule: null, error: 'Add at least one time' };
-        return { schedule: { kind: 'times_per_day', times: values }, error: null };
-      }
-      case 'specific_days': {
-        const { values, error } = normalizeTimes(times);
-        if (error) return { schedule: null, error };
-        if (values.length === 0) return { schedule: null, error: 'Add at least one time' };
-        if (daysOfWeek.length === 0) return { schedule: null, error: 'Pick at least one day' };
-        return { schedule: { kind: 'specific_days', daysOfWeek, times: values }, error: null };
-      }
-      case 'interval_hours': {
-        const parsedStart = parseTimeInput(startTime);
-        if (!parsedStart) {
-          return { schedule: null, error: `"${startTime}" isn't a time I recognize — try 06:00, 6:00 AM, or 0600` };
-        }
-        return {
-          schedule: { kind: 'interval_hours', intervalHours: Number(intervalHours), startTime: parsedStart },
-          error: null,
-        };
-      }
-      case 'as_needed':
-      default:
-        return { schedule: { kind: 'as_needed' }, error: null };
-    }
-  }
-
   async function handleSubmit() {
-    const { schedule, error: scheduleError } = buildSchedule();
+    const { schedule, error: scheduleError } = buildScheduleFromEditor(scheduleValue);
     if (scheduleError || !schedule) {
       setError(scheduleError ?? 'Invalid schedule');
       return;
@@ -273,87 +203,7 @@ export default function NewMedicationScreen() {
           onChangeText={setRoute}
         />
 
-        <ChoiceChips
-          label="Schedule"
-          options={[
-            { value: 'times_per_day', label: 'Fixed times/day' },
-            { value: 'interval_hours', label: 'Every N hours' },
-            { value: 'specific_days', label: 'Specific days' },
-            { value: 'as_needed', label: 'As needed' },
-          ]}
-          value={scheduleKind}
-          onChange={(v) => v && setScheduleKind(v)}
-        />
-
-        {scheduleKind === 'times_per_day' || scheduleKind === 'specific_days' ? (
-          <>
-            {scheduleKind === 'specific_days' ? (
-              <View style={styles.container0}>
-                <ThemedText type="smallBold">Days</ThemedText>
-                <View style={styles.dayRow}>
-                  {WEEKDAYS.map((day) => {
-                    const isSelected = daysOfWeek.includes(day.value);
-                    return (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: isSelected }}
-                        key={day.value}
-                        onPress={() => toggleDay(day.value)}
-                        hitSlop={8}
-                        style={[styles.dayChip, isSelected && styles.dayChipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
-                        <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
-                          {day.label}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            ) : null}
-            <ThemedText type="smallBold">Times</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              e.g. 08:00, 8:00 AM, or 0800
-            </ThemedText>
-            {times.map((t, index) => (
-              <View key={index} style={styles.timeRow}>
-                <View style={styles.timeInputFlex}>
-                  <ThemedTextInput placeholder="08:00" value={t} onChangeText={(v) => updateTime(index, v)} />
-                </View>
-                {times.length > 1 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove time ${t || index + 1}`}
-                    onPress={() => removeTime(index)}
-                    hitSlop={12}>
-                    <ThemedText themeColor="error" type="small">
-                      Remove
-                    </ThemedText>
-                  </Pressable>
-                ) : null}
-              </View>
-            ))}
-            {times.length < 6 ? <Button variant="secondary" label="+ Add another time" onPress={addTime} /> : null}
-          </>
-        ) : null}
-
-        {scheduleKind === 'interval_hours' ? (
-          <>
-            <ThemedTextInput
-              label="Every how many hours"
-              placeholder="e.g. 8"
-              keyboardType="number-pad"
-              value={intervalHours}
-              onChangeText={setIntervalHours}
-            />
-            <ThemedTextInput
-              label="Starting at"
-              helperText="e.g. 06:00, 6:00 AM, or 0600"
-              placeholder="06:00"
-              value={startTime}
-              onChangeText={setStartTime}
-            />
-          </>
-        ) : null}
+        <ScheduleEditor value={scheduleValue} onChange={setScheduleValue} />
 
         <ThemedTextInput
           label="Stop date"
@@ -422,23 +272,8 @@ export default function NewMedicationScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 24, gap: 16 },
-  container0: { gap: 6 },
   row: { flexDirection: 'row', gap: 12 },
   flexHalf: { flex: 1 },
-  dayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  dayChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  dayChipSelected: {
-    backgroundColor: '#208AEF',
-    borderColor: '#208AEF',
-  },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  timeInputFlex: { flex: 1 },
   button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

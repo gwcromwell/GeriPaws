@@ -22,6 +22,11 @@ export default function PreferencesScreen() {
   const [showWeight, setShowWeight] = useState(true);
   const [hideGiven, setHideGiven] = useState(false);
 
+  const [notifyMedicationDue, setNotifyMedicationDue] = useState(true);
+  const [notifyWalkDue, setNotifyWalkDue] = useState(true);
+  const [notifyFoodDue, setNotifyFoodDue] = useState(true);
+  const [notifyCompletedByOthers, setNotifyCompletedByOthers] = useState(true);
+
   const [qolEnabled, setQolEnabled] = useState(false);
   const [qolCadence, setQolCadence] = useState<QolCadence>('weekly');
   const [qolShowOnToday, setQolShowOnToday] = useState(false);
@@ -39,6 +44,10 @@ export default function PreferencesScreen() {
         setShowFood(prefs.show_food_tile);
         setShowWeight(prefs.show_weight_tile);
         setHideGiven(prefs.hide_given_doses);
+        setNotifyMedicationDue(prefs.notify_medication_due);
+        setNotifyWalkDue(prefs.notify_walk_due);
+        setNotifyFoodDue(prefs.notify_food_due);
+        setNotifyCompletedByOthers(prefs.notify_completed_by_others);
       }
       if (qol) {
         setQolEnabled(qol.enabled);
@@ -72,6 +81,10 @@ export default function PreferencesScreen() {
           showFoodTile: showFood,
           showWeightTile: showWeight,
           hideGivenDoses: hideGiven,
+          notifyMedicationDue,
+          notifyWalkDue,
+          notifyFoodDue,
+          notifyCompletedByOthers,
         }),
         upsertQolSettings(id, qolResult.data),
       ]);
@@ -193,6 +206,50 @@ export default function PreferencesScreen() {
             />
           </>
         ) : null}
+
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Notifications
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
+          Personal to you — other caregivers set their own for this dog
+        </ThemedText>
+        <ChoiceChips
+          label="Medication due"
+          options={[
+            { value: 'on', label: 'Notify me' },
+            { value: 'off', label: "Don't notify me" },
+          ]}
+          value={notifyMedicationDue ? 'on' : 'off'}
+          onChange={(v) => setNotifyMedicationDue(v === 'on')}
+        />
+        <ChoiceChips
+          label="Walk due"
+          options={[
+            { value: 'on', label: 'Notify me' },
+            { value: 'off', label: "Don't notify me" },
+          ]}
+          value={notifyWalkDue ? 'on' : 'off'}
+          onChange={(v) => setNotifyWalkDue(v === 'on')}
+        />
+        <ChoiceChips
+          label="Food due"
+          options={[
+            { value: 'on', label: 'Notify me' },
+            { value: 'off', label: "Don't notify me" },
+          ]}
+          value={notifyFoodDue ? 'on' : 'off'}
+          onChange={(v) => setNotifyFoodDue(v === 'on')}
+        />
+        <ChoiceChips
+          label="Completed by someone else"
+          helperText="e.g. Amanda gave Kenobi's 8pm Keppra"
+          options={[
+            { value: 'on', label: 'Notify me' },
+            { value: 'off', label: "Don't notify me" },
+          ]}
+          value={notifyCompletedByOthers ? 'on' : 'off'}
+          onChange={(v) => setNotifyCompletedByOthers(v === 'on')}
+        />
 
         {error ? (
           <ThemedText themeColor="error" style={styles.message}>

@@ -2,13 +2,15 @@
 //
 // Runs on a schedule (see supabase/migrations/00000000000004_notification_log.sql
 // for the pg_cron job that invokes this hourly). For every active pet, checks for
-// overdue medication doses, low medication supply, and overdue Quality of Life
-// check-ins, and emails the pet's owner/caregivers a summary via Resend.
+// overdue medication doses, overdue walks/food (see habit_schedules,
+// 00000000000020_habit_schedules.sql), low medication supply, and overdue
+// Quality of Life check-ins, and emails the pet's owner/caregivers a summary
+// via Resend.
 //
 // The schedule/refill math in schedule-lib.ts intentionally duplicates the pure
 // logic in packages/shared/src/schedule.ts and qol.ts — Edge Functions can't
 // import from the rest of the monorepo, only from within their own directory.
-// See index.test.ts for the tests guarding that duplication against drift.
+// See schedule-lib.test.ts for the tests guarding that duplication against drift.
 //
 // Required secret: RESEND_API_KEY (set via the Supabase dashboard or
 // `supabase secrets set`). SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are
@@ -16,6 +18,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { computeDosesPerDay, computeDueTimesForDay, getDayStart, isQolOverdue } from "./schedule-lib.ts";
+import { filterIssuesForRecipient, type Issue, type RecipientNotifyPrefs } from "./notification-filter.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -74,26 +77,42 @@ async function sendEmail(to: string[], subject: string, html: string): Promise<v
   });
 }
 
+interface PushRecipient {
+  tokens: string[];
+  prefs: RecipientNotifyPrefs;
+}
+
 /**
- * Push notifications are Phase 4 work-in-progress: this queries whatever
- * tokens exist and sends to them, but no tokens will exist until the app has
- * a real EAS project ID and has been built/installed on a device with Apple
- * push credentials configured (see README). Harmless no-op until then.
+ * One entry per owner/caregiver who has at least one registered device, each
+ * carrying their own per-dog notification preferences (pet_members —
+ * see 00000000000021_notification_preferences.sql) so the caller can filter
+ * which overdue issues actually reach them (see notification-filter.ts).
+ * Unlike the email digest (sent once per pet, unfiltered), push respects
+ * each recipient's own toggles.
  */
-async function getPushTokens(petId: string): Promise<string[]> {
+async function getPushRecipients(petId: string): Promise<PushRecipient[]> {
   const { data: members } = await supabase
     .from("pet_members")
-    .select("user_id")
+    .select("user_id, notify_medication_due, notify_walk_due, notify_food_due")
     .eq("pet_id", petId)
     .in("role", ["owner", "caregiver"]);
   if (!members) return [];
 
-  const tokens: string[] = [];
+  const recipients: PushRecipient[] = [];
   for (const member of members) {
-    const { data } = await supabase.from("push_tokens").select("token").eq("user_id", member.user_id);
-    for (const row of data ?? []) tokens.push(row.token);
+    const { data: tokenRows } = await supabase.from("push_tokens").select("token").eq("user_id", member.user_id);
+    const tokens = (tokenRows ?? []).map((row) => row.token);
+    if (tokens.length === 0) continue;
+    recipients.push({
+      tokens,
+      prefs: {
+        notify_medication_due: member.notify_medication_due,
+        notify_walk_due: member.notify_walk_due,
+        notify_food_due: member.notify_food_due,
+      },
+    });
   }
-  return tokens;
+  return recipients;
 }
 
 async function sendPush(tokens: string[], title: string, body: string): Promise<void> {
@@ -121,7 +140,7 @@ Deno.serve(async () => {
   for (const pet of pets) {
     const timeZone = pet.timezone || "UTC";
     const dayStart = getDayStart(now, pet.day_boundary_hour ?? 0, timeZone);
-    const issues: string[] = [];
+    const issues: Issue[] = [];
 
     const { data: medications } = await supabase.from("medications").select("*").eq("pet_id", pet.id);
     const { data: dosesToday } = await supabase
@@ -146,14 +165,55 @@ Deno.serve(async () => {
         const refKey = `${med.id}:${scheduledAt.toISOString()}`;
         if (await alreadyNotifiedToday(pet.id, "medication_overdue", refKey)) continue;
 
-        issues.push(
-          `${med.name} (${med.dosage} ${med.unit}) was due at ${scheduledAt.toLocaleTimeString("en-US", {
+        issues.push({
+          kind: "medication_overdue",
+          message: `${med.name} (${med.dosage} ${med.unit}) was due at ${scheduledAt.toLocaleTimeString("en-US", {
             timeZone,
             hour: "numeric",
             minute: "2-digit",
-          })} and hasn't been logged as given or skipped.`
-        );
+          })} and hasn't been logged as given or skipped.`,
+        });
         await recordNotified(pet.id, "medication_overdue", refKey);
+      }
+    }
+
+    const { data: habitSchedules } = await supabase.from("habit_schedules").select("*").eq("pet_id", pet.id);
+
+    if (habitSchedules && habitSchedules.length > 0) {
+      const { data: habitLogsToday } = await supabase
+        .from("habit_logs")
+        .select("*")
+        .eq("pet_id", pet.id)
+        .in("type", ["walk", "food"])
+        .gte("occurred_at", dayStart.toISOString());
+
+      for (const habitSchedule of habitSchedules) {
+        const kind = habitSchedule.type === "walk" ? "walk_overdue" : "food_overdue";
+        const label = habitSchedule.type === "walk" ? "walk" : "meal";
+
+        for (const scheduledAt of computeDueTimesForDay(habitSchedule.schedule, dayStart, timeZone)) {
+          if (scheduledAt >= now) continue;
+
+          // Walks/food aren't discrete slots like medication doses — any log
+          // of that type at or after this due time counts as satisfying it.
+          const logged = (habitLogsToday ?? []).some(
+            (log) => log.type === habitSchedule.type && new Date(log.occurred_at).getTime() >= scheduledAt.getTime()
+          );
+          if (logged) continue;
+
+          const refKey = `${habitSchedule.type}:${scheduledAt.toISOString()}`;
+          if (await alreadyNotifiedToday(pet.id, kind, refKey)) continue;
+
+          issues.push({
+            kind,
+            message: `A ${label} was due at ${scheduledAt.toLocaleTimeString("en-US", {
+              timeZone,
+              hour: "numeric",
+              minute: "2-digit",
+            })} and hasn't been logged.`,
+          });
+          await recordNotified(pet.id, kind, refKey);
+        }
       }
     }
 
@@ -172,9 +232,10 @@ Deno.serve(async () => {
       if (daysRemaining > refill.low_stock_threshold) continue;
       if (await alreadyNotifiedToday(pet.id, "refill_low", refill.medication_id)) continue;
 
-      issues.push(
-        `${refill.medications?.name ?? med.name} is running low — about ${Math.max(0, Math.round(daysRemaining))} day(s) of supply left.`
-      );
+      issues.push({
+        kind: "refill_low",
+        message: `${refill.medications?.name ?? med.name} is running low — about ${Math.max(0, Math.round(daysRemaining))} day(s) of supply left.`,
+      });
       await recordNotified(pet.id, "refill_low", refill.medication_id);
     }
 
@@ -195,7 +256,7 @@ Deno.serve(async () => {
 
       if (isQolOverdue(lastResponse?.survey_date ?? null, qolSettings.cadence, now)) {
         if (!(await alreadyNotifiedToday(pet.id, "qol_overdue", "qol"))) {
-          issues.push("A Quality of Life check-in is overdue.");
+          issues.push({ kind: "qol_overdue", message: "A Quality of Life check-in is overdue." });
           await recordNotified(pet.id, "qol_overdue", "qol");
         }
       }
@@ -203,21 +264,24 @@ Deno.serve(async () => {
 
     if (issues.length === 0) continue;
 
-    const [emails, pushTokens] = await Promise.all([getRecipientEmails(pet.id), getPushTokens(pet.id)]);
+    const [emails, pushRecipients] = await Promise.all([getRecipientEmails(pet.id), getPushRecipients(pet.id)]);
 
     if (emails.length > 0) {
       const html = `
         <h2>GeriPaws reminder for ${pet.name}</h2>
-        <ul>${issues.map((issue) => `<li>${issue}</li>`).join("")}</ul>
+        <ul>${issues.map((issue) => `<li>${issue.message}</li>`).join("")}</ul>
         <p>Open GeriPaws to take care of these.</p>
       `;
       await sendEmail(emails, `GeriPaws reminder: ${pet.name}`, html);
       emailsSent++;
     }
 
-    if (pushTokens.length > 0) {
-      const summary = issues.length === 1 ? issues[0] : `${issues.length} things need attention.`;
-      await sendPush(pushTokens, `GeriPaws reminder: ${pet.name}`, summary);
+    for (const recipient of pushRecipients) {
+      const filtered = filterIssuesForRecipient(issues, recipient.prefs);
+      if (filtered.length === 0) continue;
+
+      const summary = filtered.length === 1 ? filtered[0].message : `${filtered.length} things need attention.`;
+      await sendPush(recipient.tokens, `GeriPaws reminder: ${pet.name}`, summary);
       pushSent++;
     }
   }

@@ -4,8 +4,10 @@ import {
   createInviteSchema,
   createPetSchema,
   habitLogInputSchema,
+  habitScheduleSchema,
   MAX_ATTACHMENT_BYTES,
   medicationScheduleSchema,
+  memberPreferencesSchema,
   qolScoresSchema,
   qolSettingsSchema,
   updatePetSchema,
@@ -169,6 +171,49 @@ describe("medicationScheduleSchema", () => {
 
   it("rejects times_per_day with no times", () => {
     expect(medicationScheduleSchema.safeParse({ kind: "times_per_day", times: [] }).success).toBe(false);
+  });
+});
+
+describe("habitScheduleSchema", () => {
+  it("accepts the same recurring kinds as medicationScheduleSchema", () => {
+    expect(habitScheduleSchema.safeParse({ kind: "times_per_day", times: ["07:00", "18:00"] }).success).toBe(true);
+    expect(
+      habitScheduleSchema.safeParse({ kind: "interval_hours", intervalHours: 6, startTime: "07:00" }).success
+    ).toBe(true);
+    expect(
+      habitScheduleSchema.safeParse({ kind: "specific_days", daysOfWeek: [1, 3, 5], times: ["09:00"] }).success
+    ).toBe(true);
+  });
+
+  it("rejects as_needed — a walk or a meal is always expected once scheduled", () => {
+    expect(habitScheduleSchema.safeParse({ kind: "as_needed" }).success).toBe(false);
+  });
+
+  it("rejects a malformed time string", () => {
+    expect(habitScheduleSchema.safeParse({ kind: "times_per_day", times: ["6pm"] }).success).toBe(false);
+  });
+
+  it("rejects an out-of-range day of week", () => {
+    expect(habitScheduleSchema.safeParse({ kind: "specific_days", daysOfWeek: [7], times: ["09:00"] }).success).toBe(
+      false
+    );
+  });
+});
+
+describe("memberPreferencesSchema", () => {
+  it("accepts the notification toggle fields alongside the existing display ones", () => {
+    const result = memberPreferencesSchema.safeParse({
+      showWalkTile: false,
+      notifyMedicationDue: false,
+      notifyWalkDue: true,
+      notifyFoodDue: true,
+      notifyCompletedByOthers: false,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("treats every field as optional (a partial preferences update)", () => {
+    expect(memberPreferencesSchema.safeParse({}).success).toBe(true);
   });
 });
 

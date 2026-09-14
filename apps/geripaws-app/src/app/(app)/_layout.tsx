@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform, Pressable } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AppState, type AppStateStatus, Platform, Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/lib/auth-context';
+import { scheduleDueNotifications } from '@/lib/due-notifications';
 import { setupPushNotifications } from '@/lib/push';
 
 function SignOutButton() {
@@ -21,10 +22,25 @@ function SignOutButton() {
 }
 
 export default function AppLayout() {
+  const appState = useRef(AppState.currentState);
+
   useEffect(() => {
     // Best-effort — no-ops until an EAS project ID and Apple push
     // credentials exist (see README, Phase 4).
     setupPushNotifications();
+
+    // Recomputes today's "X is due" local notifications on entry, and again
+    // every time the app is foregrounded — see due-notifications.ts for why
+    // (no reliable background refresh, so this is only as fresh as the last
+    // time the app was opened).
+    scheduleDueNotifications();
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (appState.current !== 'active' && nextState === 'active') {
+        scheduleDueNotifications();
+      }
+      appState.current = nextState;
+    });
+    return () => subscription.remove();
   }, []);
 
   return (
@@ -48,6 +64,7 @@ export default function AppLayout() {
       <Stack.Screen name="pets/[id]/qol/index" options={{ title: 'Quality of Life' }} />
       <Stack.Screen name="pets/[id]/qol/settings" options={{ title: 'QOL Settings', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/qol/new" options={{ title: 'Check-in', presentation: 'modal' }} />
+      <Stack.Screen name="pets/[id]/schedule" options={{ title: 'Walk & Food Schedule', presentation: 'modal' }} />
     </Stack>
   );
 }

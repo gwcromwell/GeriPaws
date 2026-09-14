@@ -327,6 +327,11 @@ export default function TodayScreen() {
                 QOL
               </ThemedText>
             </Link>
+            <Link href={{ pathname: '/pets/[id]/schedule', params: { id: pet.id } }}>
+              <ThemedText type="link" style={{ color: tokens.accent }}>
+                Schedule
+              </ThemedText>
+            </Link>
             <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
               <ThemedText type="link" style={{ color: tokens.accent }}>
                 Sharing
