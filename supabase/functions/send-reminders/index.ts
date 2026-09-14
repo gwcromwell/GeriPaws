@@ -55,14 +55,19 @@ async function getRecipientEmails(petId: string): Promise<string[]> {
     .select("user_id")
     .eq("pet_id", petId)
     .in("role", ["owner", "caregiver"]);
-  if (!members) return [];
+  if (!members || members.length === 0) return [];
 
-  const emails: string[] = [];
-  for (const member of members) {
-    const { data } = await supabase.auth.admin.getUserById(member.user_id);
-    if (data?.user?.email) emails.push(data.user.email);
-  }
-  return emails;
+  // profiles.email mirrors auth.users.email for exactly this reason — see
+  // 00000000000014_profiles.sql — so this reads from a plain, batchable
+  // table instead of one auth.admin.getUserById() call per member.
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("email")
+    .in(
+      "id",
+      members.map((m) => m.user_id)
+    );
+  return (profiles ?? []).map((p) => p.email);
 }
 
 async function sendEmail(to: string[], subject: string, html: string): Promise<void> {
@@ -96,12 +101,26 @@ async function getPushRecipients(petId: string): Promise<PushRecipient[]> {
     .select("user_id, notify_medication_due, notify_walk_due, notify_food_due")
     .eq("pet_id", petId)
     .in("role", ["owner", "caregiver"]);
-  if (!members) return [];
+  if (!members || members.length === 0) return [];
+
+  const { data: tokenRows } = await supabase
+    .from("push_tokens")
+    .select("user_id, token")
+    .in(
+      "user_id",
+      members.map((m) => m.user_id)
+    );
+
+  const tokensByUser = new Map<string, string[]>();
+  for (const row of tokenRows ?? []) {
+    const tokens = tokensByUser.get(row.user_id) ?? [];
+    tokens.push(row.token);
+    tokensByUser.set(row.user_id, tokens);
+  }
 
   const recipients: PushRecipient[] = [];
   for (const member of members) {
-    const { data: tokenRows } = await supabase.from("push_tokens").select("token").eq("user_id", member.user_id);
-    const tokens = (tokenRows ?? []).map((row) => row.token);
+    const tokens = tokensByUser.get(member.user_id) ?? [];
     if (tokens.length === 0) continue;
     recipients.push({
       tokens,

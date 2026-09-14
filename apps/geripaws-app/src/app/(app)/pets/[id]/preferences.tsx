@@ -1,6 +1,6 @@
 import type { IncidentCategory, QolCadence } from '@geripaws/shared';
 import { INCIDENT_CATEGORIES, qolSettingsSchema } from '@geripaws/shared';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
@@ -10,6 +10,7 @@ import { MultiChoiceChips } from '@/components/multi-choice-chips';
 import { PackSwitcher } from '@/components/pack-switcher';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { fetchMyPreferences, updateMyPreferences } from '@/lib/pets';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
 
@@ -47,40 +48,31 @@ export default function PreferencesScreen() {
   const [qolCadence, setQolCadence] = useState<QolCadence>('weekly');
   const [qolShowOnToday, setQolShowOnToday] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    try {
-      const [prefs, qol] = await Promise.all([fetchMyPreferences(id), fetchQolSettings(id)]);
-      if (prefs) {
-        setShowWalk(prefs.show_walk_tile);
-        setShowWater(prefs.show_water_tile);
-        setShowFood(prefs.show_food_tile);
-        setShowWeight(prefs.show_weight_tile);
-        setHideGiven(prefs.hide_given_doses);
-        setNotifyMedicationDue(prefs.notify_medication_due);
-        setNotifyWalkDue(prefs.notify_walk_due);
-        setNotifyFoodDue(prefs.notify_food_due);
-        setNotifyCompletedByOthers(prefs.notify_completed_by_others);
-        setNotifyIncidentCategories(prefs.notify_incident_categories as IncidentCategory[]);
-      }
-      if (qol) {
-        setQolEnabled(qol.enabled);
-        setQolCadence(qol.cadence);
-        setQolShowOnToday(qol.show_on_today);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load preferences');
+    const [prefs, qol] = await Promise.all([fetchMyPreferences(id), fetchQolSettings(id)]);
+    if (prefs) {
+      setShowWalk(prefs.show_walk_tile);
+      setShowWater(prefs.show_water_tile);
+      setShowFood(prefs.show_food_tile);
+      setShowWeight(prefs.show_weight_tile);
+      setHideGiven(prefs.hide_given_doses);
+      setNotifyMedicationDue(prefs.notify_medication_due);
+      setNotifyWalkDue(prefs.notify_walk_due);
+      setNotifyFoodDue(prefs.notify_food_due);
+      setNotifyCompletedByOthers(prefs.notify_completed_by_others);
+      setNotifyIncidentCategories(prefs.notify_incident_categories as IncidentCategory[]);
+    }
+    if (qol) {
+      setQolEnabled(qol.enabled);
+      setQolCadence(qol.cadence);
+      setQolShowOnToday(qol.show_on_today);
     }
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { error, setError } = useScreenLoad(load, 'Failed to load preferences');
 
   async function handleSave() {
     const qolResult = qolSettingsSchema.safeParse({ enabled: qolEnabled, cadence: qolCadence, showOnToday: qolShowOnToday });

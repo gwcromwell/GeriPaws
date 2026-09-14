@@ -1,6 +1,6 @@
 import type { Ailment, Medication, MedicationDose, MedicationRefill, PetRole } from '@geripaws/shared';
 import { computeRefillProjection, refillSetupSchema } from '@geripaws/shared';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
@@ -9,6 +9,7 @@ import { DoseRow } from '@/components/dose-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { fetchAilment } from '@/lib/ailments';
 import { confirmDestructive } from '@/lib/confirm';
 import { formatDate, summarizeSchedule } from '@/lib/format';
@@ -31,36 +32,26 @@ export default function MedicationDetailScreen() {
   const [refill, setRefill] = useState<MedicationRefill | null>(null);
   const [doses, setDoses] = useState<MedicationDose[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const [restockValue, setRestockValue] = useState('');
   const [isRestocking, setIsRestocking] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadMedication = useCallback(async () => {
     if (!medicationId) return;
-    try {
-      const [medData, refillData, doseData, roleData] = await Promise.all([
-        fetchMedication(medicationId),
-        fetchRefill(medicationId),
-        fetchDosesForMedication(medicationId),
-        fetchMyRole(id),
-      ]);
-      setMedication(medData);
-      setAilment(medData.ailment_id ? await fetchAilment(medData.ailment_id) : null);
-      setRefill(refillData);
-      setDoses(doseData);
-      setRole(roleData);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load medication');
-    }
+    const [medData, refillData, doseData, roleData] = await Promise.all([
+      fetchMedication(medicationId),
+      fetchRefill(medicationId),
+      fetchDosesForMedication(medicationId),
+      fetchMyRole(id),
+    ]);
+    setMedication(medData);
+    setAilment(medData.ailment_id ? await fetchAilment(medData.ailment_id) : null);
+    setRefill(refillData);
+    setDoses(doseData);
+    setRole(roleData);
   }, [id, medicationId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { error, setError, reload: load } = useScreenLoad(loadMedication, 'Failed to load medication');
 
   const canEdit = role === 'owner' || role === 'caregiver';
 

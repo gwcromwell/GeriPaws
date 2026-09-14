@@ -1,10 +1,10 @@
-import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteMyAccount, fetchAccountDeletionImpact, type AccountDeletionImpact } from '@/lib/account';
 import { useAuth } from '@/lib/auth-context';
@@ -22,21 +22,12 @@ export default function AccountScreen() {
   const [impact, setImpact] = useState<AccountDeletionImpact | null>(null);
   const [confirmText, setConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try {
-      setImpact(await fetchAccountDeletionImpact());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load account details');
-    }
+    setImpact(await fetchAccountDeletionImpact());
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { error, setError } = useScreenLoad(load, 'Failed to load account details');
 
   const canDelete = confirmText.trim().toUpperCase() === CONFIRM_PHRASE && !isDeleting && impact !== null;
 

@@ -1,5 +1,5 @@
 import type { HabitLog, PetRole, WeightDetails } from '@geripaws/shared';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
 
@@ -12,6 +12,7 @@ import { formatDateTime, formatRelativeTime } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 
 import { useNow } from '@/hooks/use-now';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 export default function WeightScreen() {
   // Keeps the "x ago" label on the latest weigh-in from freezing between fetches.
   useNow(60_000);
@@ -19,29 +20,15 @@ export default function WeightScreen() {
   const router = useRouter();
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
-    try {
-      const [logData, roleData] = await Promise.all([fetchHabitLogs(id, 50, 'weight'), fetchMyRole(id)]);
-      setLogs(logData);
-      setRole(roleData);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load weight history');
-    } finally {
-      setIsLoading(false);
-    }
+    const [logData, roleData] = await Promise.all([fetchHabitLogs(id, 50, 'weight'), fetchMyRole(id)]);
+    setLogs(logData);
+    setRole(roleData);
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { isLoading, error } = useScreenLoad(load, 'Failed to load weight history');
 
   const canLog = role === 'owner' || role === 'caregiver';
   const latest = logs[0];

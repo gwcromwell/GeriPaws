@@ -1,40 +1,27 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
 import { buildVetSummaryHtml, fetchVetSummaryData, type VetSummaryData } from '@/lib/vet-summary';
 
 export default function VetSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<VetSummaryData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
-    try {
-      setData(await fetchVetSummaryData(id));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load summary');
-    } finally {
-      setIsLoading(false);
-    }
+    setData(await fetchVetSummaryData(id));
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { isLoading, error, setError } = useScreenLoad(load, 'Failed to load summary');
 
   async function handleExport() {
     if (!data) return;

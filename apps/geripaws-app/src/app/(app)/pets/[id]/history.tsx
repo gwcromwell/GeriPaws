@@ -1,5 +1,5 @@
 import type { HabitLog, HabitType, PetRole } from '@geripaws/shared';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
 
@@ -8,6 +8,7 @@ import { TabBar } from '@/components/tab-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TimelineRow } from '@/components/timeline-row';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { deleteHabitLog, fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, summarizeHabitLog } from '@/lib/format';
 import { fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
@@ -43,42 +44,28 @@ export default function HistoryScreen() {
   const [doses, setDoses] = useState<MedicationDoseWithMedication[]>([]);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const loadHistory = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
-    try {
-      if (tab === 'timeline') {
-        const [timelineData, roleData] = await Promise.all([fetchTimeline(id, 100), fetchMyRole(id)]);
-        setTimeline(timelineData);
-        setRole(roleData);
-      } else if (tab === 'medications') {
-        const [doseData, roleData] = await Promise.all([fetchAllDosesForPet(id, 50), fetchMyRole(id)]);
-        setDoses(doseData);
-        setRole(roleData);
-      } else {
-        const [logData, roleData] = await Promise.all([
-          fetchHabitLogs(id, 50, tab === 'all' ? undefined : tab),
-          fetchMyRole(id),
-        ]);
-        setLogs(logData);
-        setRole(roleData);
-      }
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load history');
-    } finally {
-      setIsLoading(false);
+    if (tab === 'timeline') {
+      const [timelineData, roleData] = await Promise.all([fetchTimeline(id, 100), fetchMyRole(id)]);
+      setTimeline(timelineData);
+      setRole(roleData);
+    } else if (tab === 'medications') {
+      const [doseData, roleData] = await Promise.all([fetchAllDosesForPet(id, 50), fetchMyRole(id)]);
+      setDoses(doseData);
+      setRole(roleData);
+    } else {
+      const [logData, roleData] = await Promise.all([
+        fetchHabitLogs(id, 50, tab === 'all' ? undefined : tab),
+        fetchMyRole(id),
+      ]);
+      setLogs(logData);
+      setRole(roleData);
     }
   }, [id, tab]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { isLoading, error, reload: load } = useScreenLoad(loadHistory, 'Failed to load history');
 
   const canEdit = role === 'owner' || role === 'caregiver';
 

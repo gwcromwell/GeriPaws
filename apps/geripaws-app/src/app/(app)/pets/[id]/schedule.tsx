@@ -1,5 +1,5 @@
 import type { HabitSchedule } from '@geripaws/shared';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
@@ -13,6 +13,7 @@ import {
 } from '@/components/schedule-editor';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { deleteHabitSchedule, fetchHabitSchedules, upsertHabitSchedule } from '@/lib/habit-schedules';
 
 function scheduleToEditorValue(schedule: HabitSchedule): ScheduleEditorValue {
@@ -34,29 +35,20 @@ export default function HabitScheduleScreen() {
   const [foodEnabled, setFoodEnabled] = useState(false);
   const [foodValue, setFoodValue] = useState<ScheduleEditorValue>(DEFAULT_SCHEDULE_EDITOR_VALUE);
 
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    try {
-      const rows = await fetchHabitSchedules(id);
-      const walk = rows.find((r) => r.type === 'walk');
-      const food = rows.find((r) => r.type === 'food');
-      setWalkEnabled(Boolean(walk));
-      if (walk) setWalkValue(scheduleToEditorValue(walk.schedule));
-      setFoodEnabled(Boolean(food));
-      if (food) setFoodValue(scheduleToEditorValue(food.schedule));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load schedule');
-    }
+    const rows = await fetchHabitSchedules(id);
+    const walk = rows.find((r) => r.type === 'walk');
+    const food = rows.find((r) => r.type === 'food');
+    setWalkEnabled(Boolean(walk));
+    if (walk) setWalkValue(scheduleToEditorValue(walk.schedule));
+    setFoodEnabled(Boolean(food));
+    if (food) setFoodValue(scheduleToEditorValue(food.schedule));
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { error, setError } = useScreenLoad(load, 'Failed to load schedule');
 
   async function handleSave() {
     setError(null);

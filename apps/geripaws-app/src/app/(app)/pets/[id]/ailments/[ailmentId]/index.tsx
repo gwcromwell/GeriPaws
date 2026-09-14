@@ -1,6 +1,6 @@
 import type { Ailment, AilmentNote, AilmentStatus, Medication, PetRole, VetQuestion } from '@geripaws/shared';
 import { createAilmentNoteSchema, createVetQuestionSchema } from '@geripaws/shared';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
@@ -10,6 +10,7 @@ import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import {
   answerVetQuestion,
   createAilmentNote,
@@ -40,39 +41,29 @@ export default function AilmentDetailScreen() {
   const [notes, setNotes] = useState<AilmentNote[]>([]);
   const [questions, setQuestions] = useState<VetQuestion[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const [noteText, setNoteText] = useState('');
   const [questionText, setQuestionText] = useState('');
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
 
-  const load = useCallback(async () => {
+  const loadCondition = useCallback(async () => {
     if (!ailmentId || !id) return;
-    try {
-      const [ailmentData, medData, noteData, questionData, roleData] = await Promise.all([
-        fetchAilment(ailmentId),
-        fetchMedications(id),
-        fetchAilmentNotes(ailmentId),
-        fetchVetQuestions(ailmentId),
-        fetchMyRole(id),
-      ]);
-      setAilment(ailmentData);
-      setMedications(medData.filter((m) => m.ailment_id === ailmentId));
-      setNotes(noteData);
-      setQuestions(questionData);
-      setRole(roleData);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load condition');
-    }
+    const [ailmentData, medData, noteData, questionData, roleData] = await Promise.all([
+      fetchAilment(ailmentId),
+      fetchMedications(id),
+      fetchAilmentNotes(ailmentId),
+      fetchVetQuestions(ailmentId),
+      fetchMyRole(id),
+    ]);
+    setAilment(ailmentData);
+    setMedications(medData.filter((m) => m.ailment_id === ailmentId));
+    setNotes(noteData);
+    setQuestions(questionData);
+    setRole(roleData);
   }, [id, ailmentId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { error, setError, reload: load } = useScreenLoad(loadCondition, 'Failed to load condition');
 
   const canEdit = role === 'owner' || role === 'caregiver';
 

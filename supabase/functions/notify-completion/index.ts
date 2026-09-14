@@ -87,14 +87,16 @@ async function getRecipientTokens(payload: CompletionPayload): Promise<string[]>
   if (payload.actorUserId) query = query.neq("user_id", payload.actorUserId);
 
   const { data: members } = await query;
-  if (!members) return [];
+  if (!members || members.length === 0) return [];
 
-  const tokens: string[] = [];
-  for (const member of members) {
-    const { data } = await supabase.from("push_tokens").select("token").eq("user_id", member.user_id);
-    for (const row of data ?? []) tokens.push(row.token);
-  }
-  return tokens;
+  const { data: tokenRows } = await supabase
+    .from("push_tokens")
+    .select("token")
+    .in(
+      "user_id",
+      members.map((m) => m.user_id)
+    );
+  return (tokenRows ?? []).map((row) => row.token);
 }
 
 async function sendPush(tokens: string[], title: string, body: string): Promise<void> {

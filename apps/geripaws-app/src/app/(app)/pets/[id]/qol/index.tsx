@@ -1,6 +1,6 @@
 import type { PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { computeQolDueStatus, computeQolTrend, QOL_FULL_MAX } from '@geripaws/shared';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
 
@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { TrendChart } from '@/components/trend-chart';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { formatDate } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
@@ -25,34 +26,16 @@ export default function QolScreen() {
   const [settings, setSettings] = useState<QolSettings | null>(null);
   const [responses, setResponses] = useState<QolResponse[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
-    try {
-      const [settingsData, roleData] = await Promise.all([fetchQolSettings(id), fetchMyRole(id)]);
-      setSettings(settingsData);
-      setRole(roleData);
-      if (settingsData?.enabled) {
-        setResponses(await fetchQolResponses(id));
-      } else {
-        setResponses([]);
-      }
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
-    } finally {
-      setIsLoading(false);
-    }
+    const [settingsData, roleData] = await Promise.all([fetchQolSettings(id), fetchMyRole(id)]);
+    setSettings(settingsData);
+    setRole(roleData);
+    setResponses(settingsData?.enabled ? await fetchQolResponses(id) : []);
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { isLoading, error } = useScreenLoad(load, 'Failed to load');
 
   const canEdit = role === 'owner' || role === 'caregiver';
   const enabled = settings?.enabled ?? false;

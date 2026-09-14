@@ -1,6 +1,6 @@
 import { QOL_FULL_MAX, habitLogInputSchema } from '@geripaws/shared';
 import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -11,6 +11,7 @@ import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useNow } from '@/hooks/use-now';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme, type Theme } from '@/hooks/use-theme';
 import { createHabitLog, fetchLatestByType } from '@/lib/habits';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
@@ -89,69 +90,55 @@ export default function TodayScreen() {
   const [myPreferences, setMyPreferences] = useState<PetMember | null>(null);
   const [profiles, setProfiles] = useState<ProfileMap>({});
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [givingKey, setGivingKey] = useState<string | null>(null);
   const [givenAtDraft, setGivenAtDraft] = useState<Date>(new Date());
   const [isSavingDose, setIsSavingDose] = useState(false);
   const [quickLogging, setQuickLogging] = useState<HabitType | null>(null);
 
-  const load = useCallback(async () => {
+  const loadToday = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
-    try {
-      const petData = await fetchPet(id);
-      const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
+    const petData = await fetchPet(id);
+    const dayStart = getDayStart(new Date(), petData.day_boundary_hour, petData.timezone);
 
-      // Fetched once and threaded through to fetchMyRole/fetchMyPreferences,
-      // which would otherwise each make their own redundant auth.getUser()
-      // round trip (a real network call, not a local read). Falls back to
-      // undefined on failure — those calls then fetch it themselves — rather
-      // than letting this block the core screen a caregiver actually needs.
-      const userResult = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-      const myId = userResult.data.user?.id;
+    // Fetched once and threaded through to fetchMyRole/fetchMyPreferences,
+    // which would otherwise each make their own redundant auth.getUser()
+    // round trip (a real network call, not a local read). Falls back to
+    // undefined on failure — those calls then fetch it themselves — rather
+    // than letting this block the core screen a caregiver actually needs.
+    const userResult = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+    const myId = userResult.data.user?.id;
 
-      const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
-        fetchMyRole(id, myId),
-        fetchLatestByType(id),
-        fetchMedications(id),
-        fetchDosesSince(id, dayStart),
-        fetchQolResponses(id, 1),
-        fetchQolSettings(id),
-      ]);
+    const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
+      fetchMyRole(id, myId),
+      fetchLatestByType(id),
+      fetchMedications(id),
+      fetchDosesSince(id, dayStart),
+      fetchQolResponses(id, 1),
+      fetchQolSettings(id),
+    ]);
 
-      setPet(petData);
-      recordLastViewedPet(petData.id);
-      setRole(roleData);
-      setLatest(latestData);
-      setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
-      setLatestQol(qolResponses[0] ?? null);
-      setQolSettings(qolSettingsData);
-      setError(null);
+    setPet(petData);
+    recordLastViewedPet(petData.id);
+    setRole(roleData);
+    setLatest(latestData);
+    setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
+    setLatestQol(qolResponses[0] ?? null);
+    setQolSettings(qolSettingsData);
 
-      // Preferences/attribution are enhancements layered on top of the core
-      // screen (and depend on migrations that may not be applied to every
-      // environment yet) — a failure here must never block the screen a
-      // caregiver actually needs to log a dose or a walk.
-      const [preferences, profileMap] = await Promise.all([
-        fetchMyPreferences(id, myId).catch(() => null),
-        fetchProfilesForPet(id).catch(() => ({})),
-      ]);
-      setMyPreferences(preferences);
-      setProfiles(profileMap);
-      setMyUserId(myId ?? null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dog');
-    } finally {
-      setIsLoading(false);
-    }
+    // Preferences/attribution are enhancements layered on top of the core
+    // screen (and depend on migrations that may not be applied to every
+    // environment yet) — a failure here must never block the screen a
+    // caregiver actually needs to log a dose or a walk.
+    const [preferences, profileMap] = await Promise.all([
+      fetchMyPreferences(id, myId).catch(() => null),
+      fetchProfilesForPet(id).catch(() => ({})),
+    ]);
+    setMyPreferences(preferences);
+    setProfiles(profileMap);
+    setMyUserId(myId ?? null);
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { isLoading, error, setError, reload: load } = useScreenLoad(loadToday, 'Failed to load dog');
 
   // Keeps this screen in sync when another caregiver's device changes
   // something — without this, a screen just sitting open (e.g. a tablet on

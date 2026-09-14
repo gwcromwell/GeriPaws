@@ -1,6 +1,6 @@
 import type { QolCadence } from '@geripaws/shared';
 import { qolSettingsSchema } from '@geripaws/shared';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet } from 'react-native';
 
@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
 
 export default function QolSettingsScreen() {
@@ -17,28 +18,19 @@ export default function QolSettingsScreen() {
   const [enabled, setEnabled] = useState(false);
   const [cadence, setCadence] = useState<QolCadence>('weekly');
   const [showOnToday, setShowOnToday] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    try {
-      const settings = await fetchQolSettings(id);
-      if (settings) {
-        setEnabled(settings.enabled);
-        setCadence(settings.cadence);
-        setShowOnToday(settings.show_on_today);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+    const settings = await fetchQolSettings(id);
+    if (settings) {
+      setEnabled(settings.enabled);
+      setCadence(settings.cadence);
+      setShowOnToday(settings.show_on_today);
     }
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { error, setError } = useScreenLoad(load, 'Failed to load settings');
 
   async function handleSave() {
     const result = qolSettingsSchema.safeParse({ enabled, cadence, showOnToday });

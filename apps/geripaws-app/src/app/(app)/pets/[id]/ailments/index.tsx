@@ -1,11 +1,12 @@
 import type { Ailment, AilmentStatus, Medication, PetRole } from '@geripaws/shared';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme } from '@/hooks/use-theme';
 import { fetchAilments } from '@/lib/ailments';
 import { formatDate, summarizeSchedule } from '@/lib/format';
@@ -38,39 +39,25 @@ export default function AilmentsScreen() {
   const [generalMeds, setGeneralMeds] = useState<Medication[]>([]);
   const [shareLinks, setShareLinks] = useState<PetShareLink[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
-    try {
-      const [ailmentData, medData, roleData] = await Promise.all([
-        fetchAilments(id),
-        fetchMedications(id),
-        fetchMyRole(id),
-      ]);
-      setAilments(ailmentData);
-      setGeneralMeds(medData.filter((m) => m.ailment_id === null));
-      setRole(roleData);
-      if (roleData === 'owner') {
-        setShareLinks(await fetchShareLinks(id));
-      }
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
-    } finally {
-      setIsLoading(false);
+    const [ailmentData, medData, roleData] = await Promise.all([
+      fetchAilments(id),
+      fetchMedications(id),
+      fetchMyRole(id),
+    ]);
+    setAilments(ailmentData);
+    setGeneralMeds(medData.filter((m) => m.ailment_id === null));
+    setRole(roleData);
+    if (roleData === 'owner') {
+      setShareLinks(await fetchShareLinks(id));
     }
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  const { isLoading, error, setError } = useScreenLoad(load, 'Failed to load');
 
   const canEdit = role === 'owner' || role === 'caregiver';
   const isOwner = role === 'owner';
