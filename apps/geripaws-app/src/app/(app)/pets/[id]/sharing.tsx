@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { displayNameFor, fetchProfilesForPet, type ProfileMap } from '@/lib/profiles';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -27,6 +28,7 @@ export default function SharingScreen() {
   const [pet, setPet] = useState<Pet | null>(null);
   const [members, setMembers] = useState<PetMember[]>([]);
   const [invites, setInvites] = useState<PetInvite[]>([]);
+  const [profiles, setProfiles] = useState<ProfileMap>({});
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -39,13 +41,15 @@ export default function SharingScreen() {
   const load = useCallback(async () => {
     if (!id) return;
     try {
-      const [petData, memberData, { data: userData }] = await Promise.all([
+      const [petData, memberData, profileData, { data: userData }] = await Promise.all([
         fetchPet(id),
         fetchPetMembers(id),
+        fetchProfilesForPet(id).catch(() => ({})),
         supabase.auth.getUser(),
       ]);
       setPet(petData);
       setMembers(memberData);
+      setProfiles(profileData);
       setMyUserId(userData.user?.id ?? null);
 
       const myRole = memberData.find((m) => m.user_id === userData.user?.id)?.role;
@@ -119,22 +123,25 @@ export default function SharingScreen() {
       <ThemedText type="subtitle" style={styles.sectionTitle}>
         Caregivers
       </ThemedText>
-      {members.map((m) => (
-        <ThemedView key={m.user_id} style={styles.row}>
-          <ThemedText>{m.user_id === myUserId ? 'You' : m.user_id}</ThemedText>
-          <ThemedText themeColor="textSecondary">{m.role}</ThemedText>
-          {isOwner && m.role !== 'owner' ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${m.user_id} as a caregiver`}
-              onPress={() => removeMember(pet.id, m.user_id).then(load)}>
-              <ThemedText themeColor="error" type="small">
-                Remove
-              </ThemedText>
-            </Pressable>
-          ) : null}
-        </ThemedView>
-      ))}
+      {members.map((m) => {
+        const name = displayNameFor(profiles, m.user_id, myUserId);
+        return (
+          <ThemedView key={m.user_id} style={styles.row}>
+            <ThemedText>{name}</ThemedText>
+            <ThemedText themeColor="textSecondary">{m.role}</ThemedText>
+            {isOwner && m.role !== 'owner' ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${name} as a caregiver`}
+                onPress={() => removeMember(pet.id, m.user_id).then(load)}>
+                <ThemedText themeColor="error" type="small">
+                  Remove
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </ThemedView>
+        );
+      })}
 
       {isOwner ? (
         <>

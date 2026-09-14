@@ -44,7 +44,11 @@ export interface PetMember {
   notify_medication_due: boolean;
   notify_walk_due: boolean;
   notify_food_due: boolean;
+  /** Someone else logged a walk/water/food or gave a medication dose. Incidents are separate — see below. */
   notify_completed_by_others: boolean;
+  /** Which incident categories notify this member when logged by someone else — e.g. seizures but not
+   * house-soiling accidents. Empty = no incident notifications; defaults to every category. */
+  notify_incident_categories: IncidentCategory[];
 }
 
 /** Display-safe mirror of the caregiver's account, for attributing an action to a name. */
@@ -81,6 +85,19 @@ export type IncidentCategory =
   | "disorientation"
   | "other";
 export type IncidentSeverity = "mild" | "moderate" | "severe";
+
+/** Single source of truth for "every incident category" — matches the default
+ * on pet_members.notify_incident_categories (00000000000024) and is what the
+ * notification-preferences UI iterates over. */
+export const INCIDENT_CATEGORIES: IncidentCategory[] = [
+  "urine",
+  "stool",
+  "vomit",
+  "fall",
+  "seizure",
+  "disorientation",
+  "other",
+];
 
 export interface WalkDetails {
   durationMin?: number;

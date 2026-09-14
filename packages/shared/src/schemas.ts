@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const petRoleSchema = z.enum(["owner", "caregiver", "viewer"]);
 
+export const incidentCategorySchema = z.enum(["urine", "stool", "vomit", "fall", "seizure", "disorientation", "other"]);
+
 export const createPetSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   breed: z.string().trim().max(80).optional(),
@@ -51,6 +53,7 @@ export const memberPreferencesSchema = z.object({
   notifyWalkDue: z.boolean().optional(),
   notifyFoodDue: z.boolean().optional(),
   notifyCompletedByOthers: z.boolean().optional(),
+  notifyIncidentCategories: z.array(incidentCategorySchema).optional(),
 });
 export type MemberPreferencesInput = z.infer<typeof memberPreferencesSchema>;
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
@@ -87,7 +90,7 @@ export const foodDetailsSchema = z.object({
 });
 
 export const incidentDetailsSchema = z.object({
-  category: z.enum(["urine", "stool", "vomit", "fall", "seizure", "disorientation", "other"]),
+  category: incidentCategorySchema,
   location: z.string().trim().max(100).optional(),
   severity: z.enum(["mild", "moderate", "severe"]).optional(),
   durationMin: z.number().int().positive().max(600).optional(),

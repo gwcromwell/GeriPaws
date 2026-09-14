@@ -368,6 +368,7 @@ export interface Database {
           notify_walk_due: boolean;
           notify_food_due: boolean;
           notify_completed_by_others: boolean;
+          notify_incident_categories: string[];
         };
         Insert: {
           pet_id: string;
@@ -384,6 +385,7 @@ export interface Database {
           notify_walk_due?: boolean;
           notify_food_due?: boolean;
           notify_completed_by_others?: boolean;
+          notify_incident_categories?: string[];
         };
         Update: {
           pet_id?: string;
@@ -400,6 +402,7 @@ export interface Database {
           notify_walk_due?: boolean;
           notify_food_due?: boolean;
           notify_completed_by_others?: boolean;
+          notify_incident_categories?: string[];
         };
         Relationships: [];
       };

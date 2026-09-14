@@ -1,16 +1,31 @@
-import type { QolCadence } from '@geripaws/shared';
-import { qolSettingsSchema } from '@geripaws/shared';
+import type { IncidentCategory, QolCadence } from '@geripaws/shared';
+import { INCIDENT_CATEGORIES, qolSettingsSchema } from '@geripaws/shared';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
+import { MultiChoiceChips } from '@/components/multi-choice-chips';
 import { PackSwitcher } from '@/components/pack-switcher';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { fetchMyPreferences, updateMyPreferences } from '@/lib/pets';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
+
+const INCIDENT_CATEGORY_LABEL: Record<IncidentCategory, string> = {
+  urine: 'Urine',
+  stool: 'Stool',
+  vomit: 'Vomit',
+  fall: 'Fall',
+  seizure: 'Seizure',
+  disorientation: 'Disorientation',
+  other: 'Other',
+};
+const INCIDENT_CATEGORY_OPTIONS = INCIDENT_CATEGORIES.map((value) => ({
+  value,
+  label: INCIDENT_CATEGORY_LABEL[value],
+}));
 
 export default function PreferencesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +41,7 @@ export default function PreferencesScreen() {
   const [notifyWalkDue, setNotifyWalkDue] = useState(true);
   const [notifyFoodDue, setNotifyFoodDue] = useState(true);
   const [notifyCompletedByOthers, setNotifyCompletedByOthers] = useState(true);
+  const [notifyIncidentCategories, setNotifyIncidentCategories] = useState<IncidentCategory[]>(INCIDENT_CATEGORIES);
 
   const [qolEnabled, setQolEnabled] = useState(false);
   const [qolCadence, setQolCadence] = useState<QolCadence>('weekly');
@@ -48,6 +64,7 @@ export default function PreferencesScreen() {
         setNotifyWalkDue(prefs.notify_walk_due);
         setNotifyFoodDue(prefs.notify_food_due);
         setNotifyCompletedByOthers(prefs.notify_completed_by_others);
+        setNotifyIncidentCategories(prefs.notify_incident_categories as IncidentCategory[]);
       }
       if (qol) {
         setQolEnabled(qol.enabled);
@@ -85,6 +102,7 @@ export default function PreferencesScreen() {
           notifyWalkDue,
           notifyFoodDue,
           notifyCompletedByOthers,
+          notifyIncidentCategories,
         }),
         upsertQolSettings(id, qolResult.data),
       ]);
@@ -249,6 +267,13 @@ export default function PreferencesScreen() {
           ]}
           value={notifyCompletedByOthers ? 'on' : 'off'}
           onChange={(v) => setNotifyCompletedByOthers(v === 'on')}
+        />
+        <MultiChoiceChips
+          label="Incidents logged by someone else"
+          helperText="Choose which kinds — e.g. seizures, but not house-soiling accidents"
+          options={INCIDENT_CATEGORY_OPTIONS}
+          values={notifyIncidentCategories}
+          onChange={setNotifyIncidentCategories}
         />
 
         {error ? (

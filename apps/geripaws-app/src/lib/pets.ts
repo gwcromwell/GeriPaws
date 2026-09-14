@@ -157,6 +157,7 @@ export async function updateMyPreferences(petId: string, input: MemberPreference
   if (input.notifyWalkDue !== undefined) patch.notify_walk_due = input.notifyWalkDue;
   if (input.notifyFoodDue !== undefined) patch.notify_food_due = input.notifyFoodDue;
   if (input.notifyCompletedByOthers !== undefined) patch.notify_completed_by_others = input.notifyCompletedByOthers;
+  if (input.notifyIncidentCategories !== undefined) patch.notify_incident_categories = input.notifyIncidentCategories;
 
   const { error } = await supabase
     .from("pet_members")

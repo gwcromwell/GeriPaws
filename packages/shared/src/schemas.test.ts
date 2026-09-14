@@ -215,6 +215,21 @@ describe("memberPreferencesSchema", () => {
   it("treats every field as optional (a partial preferences update)", () => {
     expect(memberPreferencesSchema.safeParse({}).success).toBe(true);
   });
+
+  it("accepts a subset of incident categories — e.g. seizures but not house-soiling accidents", () => {
+    const result = memberPreferencesSchema.safeParse({ notifyIncidentCategories: ["seizure", "fall"] });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty incident-category list (opted out of incident notifications entirely)", () => {
+    expect(memberPreferencesSchema.safeParse({ notifyIncidentCategories: [] }).success).toBe(true);
+  });
+
+  it("rejects an unknown incident category", () => {
+    expect(memberPreferencesSchema.safeParse({ notifyIncidentCategories: ["bitten-by-a-squirrel"] }).success).toBe(
+      false
+    );
+  });
 });
 
 describe("qolSettingsSchema", () => {
