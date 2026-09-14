@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 
 import { fetchHabitSchedules } from './habit-schedules';
 import { fetchDosesSince, fetchMedications } from './medications';
+import { NOTIFICATION_CATEGORY } from './notification-actions';
 import { fetchMyPets, fetchMyPreferences } from './pets';
 import { supabase } from './supabase';
 
@@ -11,6 +12,9 @@ interface PendingNotification {
   petName: string;
   body: string;
   date: Date;
+  /** Lets the notification carry a one-tap action button — see notification-actions.ts. */
+  categoryIdentifier: string;
+  data: Record<string, string>;
 }
 
 async function fetchHabitLogsSince(
@@ -59,6 +63,9 @@ function isSlotAlreadyLogged(
  * "today's due times" are only as fresh as the last time it was opened.
  * Cancels and fully re-schedules every time rather than diffing, since this
  * is the only feature using scheduled (non-push) notifications.
+ *
+ * Each notification also carries a category/data pair for the one-tap
+ * "Mark given" / "Log now" action button on it — see notification-actions.ts.
  */
 export async function scheduleDueNotifications(): Promise<void> {
   try {
@@ -95,7 +102,13 @@ export async function scheduleDueNotifications(): Promise<void> {
               (d) => d.medication_id === med.id && new Date(d.scheduled_at).getTime() === dueAt.getTime()
             );
             if (given) continue;
-            pending.push({ petName: pet.name, body: `${med.name} is due`, date: dueAt });
+            pending.push({
+              petName: pet.name,
+              body: `${med.name} is due`,
+              date: dueAt,
+              categoryIdentifier: NOTIFICATION_CATEGORY.medicationDue,
+              data: { petId: pet.id, medicationId: med.id, scheduledAt: dueAt.toISOString() },
+            });
           }
         }
       }
@@ -125,6 +138,9 @@ export async function scheduleDueNotifications(): Promise<void> {
                 petName: pet.name,
                 body: habitSchedule.type === 'walk' ? 'Walk time' : 'Meal time',
                 date: dueAt,
+                categoryIdentifier:
+                  habitSchedule.type === 'walk' ? NOTIFICATION_CATEGORY.walkDue : NOTIFICATION_CATEGORY.foodDue,
+                data: { petId: pet.id },
               });
             }
             priorDueAt = dueAt;
@@ -135,7 +151,13 @@ export async function scheduleDueNotifications(): Promise<void> {
 
     for (const item of pending) {
       await Notifications.scheduleNotificationAsync({
-        content: { title: item.petName, body: item.body, sound: 'default' },
+        content: {
+          title: item.petName,
+          body: item.body,
+          sound: 'default',
+          categoryIdentifier: item.categoryIdentifier,
+          data: item.data,
+        },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: item.date },
       });
     }

@@ -19,6 +19,7 @@ import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } fro
 import { fetchMyPreferences, fetchMyRole, fetchPet } from '@/lib/pets';
 import { displayNameFor, fetchProfilesForPet, type ProfileMap } from '@/lib/profiles';
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
+import { recordLastViewedPet } from '@/lib/quick-actions';
 import { supabase } from '@/lib/supabase';
 
 function IncidentRow({ tokens, onPress }: { tokens: Theme; onPress: () => void }) {
@@ -120,6 +121,7 @@ export default function TodayScreen() {
       ]);
 
       setPet(petData);
+      recordLastViewedPet(petData.id);
       setRole(roleData);
       setLatest(latestData);
       setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));

@@ -57,7 +57,8 @@
           "photosPermission": "GeriPaws uses your photo library to set a picture of your dog and to attach photos or videos to incidents and conditions."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-quick-actions"
     ],
     "experiments": {
       "typedRoutes": true,
