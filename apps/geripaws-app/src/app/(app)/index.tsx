@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/lib/auth-context';
 import { fetchMyPets, type PetWithRole } from '@/lib/pets';
 
 
@@ -11,6 +12,8 @@ import { useTheme } from '@/hooks/use-theme';
 export default function PetListScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
   const [pets, setPets] = useState<PetWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +31,16 @@ export default function PetListScreen() {
   }, []);
 
   useEffect(() => {
+    // Keyed on userId, not just mount: this screen can stay mounted across a
+    // sign-out/sign-in swap on the same device (the root layout's
+    // Stack.Protected only re-renders on session truthiness, not identity —
+    // signing into a different account doesn't force a remount), so without
+    // this a newly signed-in user could briefly keep seeing the previous
+    // account's already-fetched dog list. Clearing synchronously here closes
+    // that window instead of leaving it up to the async fetch to overwrite it.
+    setPets([]);
     load();
-  }, [load]);
+  }, [userId, load]);
 
   return (
     <ThemedView style={styles.container}>
