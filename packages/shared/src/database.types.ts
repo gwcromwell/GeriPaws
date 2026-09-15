@@ -667,6 +667,10 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
+      leave_pet: {
+        Args: { target_pet_id: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       ailment_status: AilmentStatus;

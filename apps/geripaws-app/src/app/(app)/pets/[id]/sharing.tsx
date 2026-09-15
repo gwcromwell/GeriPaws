@@ -1,13 +1,15 @@
 import type { Pet, PetInvite, PetMember, PetRole } from '@geripaws/shared';
 import { createInviteSchema } from '@geripaws/shared';
-import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { useScreenLoad } from '@/hooks/use-screen-load';
+import { confirmDestructive } from '@/lib/confirm';
 import { displayNameFor, fetchProfilesForPet, type ProfileMap } from '@/lib/profiles';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/hooks/use-theme';
@@ -18,56 +20,70 @@ import {
   fetchPet,
   fetchPetMembers,
   inviteMember,
+  leavePet,
   removeMember,
   revokeInvite,
 } from '@/lib/pets';
 
 export default function SharingScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pet, setPet] = useState<Pet | null>(null);
   const [members, setMembers] = useState<PetMember[]>([]);
   const [invites, setInvites] = useState<PetInvite[]>([]);
   const [profiles, setProfiles] = useState<ProfileMap>({});
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<Exclude<PetRole, 'owner'>>('caregiver');
   const [isInviting, setIsInviting] = useState(false);
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const loadSharing = useCallback(async () => {
     if (!id) return;
-    try {
-      const [petData, memberData, profileData, { data: userData }] = await Promise.all([
-        fetchPet(id),
-        fetchPetMembers(id),
-        fetchProfilesForPet(id).catch(() => ({})),
-        supabase.auth.getUser(),
-      ]);
-      setPet(petData);
-      setMembers(memberData);
-      setProfiles(profileData);
-      setMyUserId(userData.user?.id ?? null);
+    const [petData, memberData, profileData, { data: userData }] = await Promise.all([
+      fetchPet(id),
+      fetchPetMembers(id),
+      fetchProfilesForPet(id).catch(() => ({})),
+      supabase.auth.getUser(),
+    ]);
+    setPet(petData);
+    setMembers(memberData);
+    setProfiles(profileData);
+    setMyUserId(userData.user?.id ?? null);
 
-      const myRole = memberData.find((m) => m.user_id === userData.user?.id)?.role;
-      if (myRole === 'owner') {
-        setInvites(await fetchPendingInvites(id));
-      }
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dog');
+    const myRole = memberData.find((m) => m.user_id === userData.user?.id)?.role;
+    if (myRole === 'owner') {
+      setInvites(await fetchPendingInvites(id));
     }
   }, [id]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { error, setError, reload: load } = useScreenLoad(loadSharing, 'Failed to load dog');
 
   const myRole = members.find((m) => m.user_id === myUserId)?.role;
   const isOwner = myRole === 'owner';
+
+  function handleLeave() {
+    const message =
+      isOwner && members.length > 1
+        ? "You're this dog's owner — leaving hands ownership to whichever caregiver has been on it longest. Their access and its history won't be affected."
+        : "You'll lose access to this dog. Its data and history stay intact for its other caregivers.";
+    confirmDestructive(`Leave ${pet?.name ?? 'this dog'}?`, message, handleLeaveConfirmed, 'Leave');
+  }
+
+  async function handleLeaveConfirmed() {
+    setIsLeaving(true);
+    try {
+      await leavePet(id);
+      router.replace('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to leave');
+      setIsLeaving(false);
+    }
+  }
 
   async function handleInvite() {
     const result = createInviteSchema.safeParse({ petId: id, email: inviteEmail, role: inviteRole });
@@ -136,6 +152,18 @@ export default function SharingScreen() {
                 onPress={() => removeMember(pet.id, m.user_id).then(load)}>
                 <ThemedText themeColor="error" type="small">
                   Remove
+                </ThemedText>
+              </Pressable>
+            ) : null}
+            {m.user_id === myUserId ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Leave ${pet.name}`}
+                disabled={isLeaving}
+                onPress={handleLeave}
+                hitSlop={8}>
+                <ThemedText themeColor="error" type="small">
+                  {isLeaving ? 'Leaving…' : 'Leave'}
                 </ThemedText>
               </Pressable>
             ) : null}

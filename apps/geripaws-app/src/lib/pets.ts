@@ -239,6 +239,17 @@ export async function removeMember(petId: string, userId: string) {
   if (error) throw error;
 }
 
+/** Removes the signed-in caregiver's own access to a shared pet, without
+ * touching the pet's data — the opposite of deleting it (see the leave_pet
+ * RPC, 00000000000027_leave_pet.sql). If they're the pet's sole owner,
+ * ownership transfers to the longest-tenured remaining caregiver/viewer
+ * first; if there's no one to hand off to, this throws rather than
+ * silently deleting the pet or leaving it ownerless. */
+export async function leavePet(petId: string): Promise<void> {
+  const { error } = await supabase.rpc("leave_pet", { target_pet_id: petId });
+  if (error) throw error;
+}
+
 export async function acceptInvite(token: string): Promise<string> {
   const { data, error } = await supabase.rpc("accept_pet_invite", { invite_token: token });
   if (error) throw error;
