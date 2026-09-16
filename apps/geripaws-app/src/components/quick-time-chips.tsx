@@ -22,7 +22,7 @@ export function QuickTimeChips({ value, onChange }: Props) {
             key={option.label}
             onPress={() => onChange(new Date(Date.now() - option.minutesAgo * 60000))}
             hitSlop={8}
-            style={[styles.chip, isSelected && styles.chipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
+            style={[styles.chip, { borderColor: isSelected ? theme.tint : theme.border }, isSelected && { backgroundColor: theme.tint }]}>
             <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
               {option.label}
             </ThemedText>
@@ -40,10 +40,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  chipSelected: {
-    backgroundColor: '#208AEF',
-    borderColor: '#208AEF',
   },
 });

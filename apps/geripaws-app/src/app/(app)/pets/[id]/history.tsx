@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TimelineRow } from '@/components/timeline-row';
 import { useScreenLoad } from '@/hooks/use-screen-load';
+import { useTheme } from '@/hooks/use-theme';
 import { deleteHabitLog, fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, summarizeHabitLog } from '@/lib/format';
 import { fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
@@ -39,6 +40,7 @@ const TABS: { value: Tab; label: string }[] = [
 export default function HistoryScreen() {
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: Tab }>();
   const router = useRouter();
+  const theme = useTheme();
   const [tab, setTab] = useState<Tab>(initialTab ?? 'timeline');
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [doses, setDoses] = useState<MedicationDoseWithMedication[]>([]);
@@ -173,7 +175,7 @@ export default function HistoryScreen() {
             }
             renderItem={({ item }) => (
               <Pressable accessibilityRole="button"
-                style={styles.row}
+                style={[styles.row, { borderBottomColor: theme.border }]}
                 disabled={!canEdit}
                 onPress={() =>
                   router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: item.type, logId: item.id } })
@@ -222,7 +224,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     gap: 8,
   },
   rowMain: { flex: 1, gap: 2 },

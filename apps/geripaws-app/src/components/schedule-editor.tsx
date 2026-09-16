@@ -152,7 +152,7 @@ export function ScheduleEditor({ value, onChange, allowAsNeeded = true }: Schedu
                       key={day.value}
                       onPress={() => toggleDay(day.value)}
                       hitSlop={8}
-                      style={[styles.dayChip, isSelected && styles.dayChipSelected, isSelected && { backgroundColor: theme.tint, borderColor: theme.tint }]}>
+                      style={[styles.dayChip, { borderColor: isSelected ? theme.tint : theme.border }, isSelected && { backgroundColor: theme.tint }]}>
                       <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
                         {day.label}
                       </ThemedText>
@@ -218,11 +218,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  dayChipSelected: {
-    backgroundColor: '#208AEF',
-    borderColor: '#208AEF',
   },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   timeInputFlex: { flex: 1 },

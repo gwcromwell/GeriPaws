@@ -64,7 +64,7 @@ export default function SignInScreen() {
       />
 
       {error ? (
-        <ThemedText themeColor="error" style={styles.error}>
+        <ThemedText themeColor="error" style={styles.message}>
           {error}
         </ThemedText>
       ) : null}
@@ -85,6 +85,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, marginBottom: 4 },
   subtitle: { fontSize: 20, marginBottom: 16 },
   button: { marginTop: 8 },
-  error: { color: '#d33' },
+  message: { textAlign: 'center' },
   link: { marginTop: 16, alignSelf: 'center' },
 });

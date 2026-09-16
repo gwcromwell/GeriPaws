@@ -146,7 +146,7 @@ export default function AilmentsScreen() {
         {generalMeds.map((med) => (
           <Pressable accessibilityRole="button"
             key={med.id}
-            style={styles.row}
+            style={[styles.row, { borderBottomColor: tokens.border }]}
             onPress={() =>
               router.push({ pathname: '/pets/[id]/medications/[medicationId]', params: { id, medicationId: med.id } })
             }>
@@ -192,7 +192,7 @@ export default function AilmentsScreen() {
             view it.
           </ThemedText>
           {activeLinks.map((link) => (
-            <ThemedView key={link.id} style={styles.shareLinkRow}>
+            <ThemedView key={link.id} style={[styles.shareLinkRow, { borderBottomColor: tokens.border }]}>
               <ThemedText type="small">Expires {formatDate(link.expires_at)}</ThemedText>
               <ThemedView style={styles.shareLinkActions}>
                 <Pressable
@@ -239,7 +239,6 @@ const styles = StyleSheet.create({
   row: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     gap: 2,
   },
   chip: {
@@ -255,7 +254,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     gap: 8,
   },
   shareLinkActions: { flexDirection: 'row', gap: 16 },

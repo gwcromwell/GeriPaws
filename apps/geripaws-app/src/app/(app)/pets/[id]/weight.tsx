@@ -13,11 +13,13 @@ import { fetchMyRole } from '@/lib/pets';
 
 import { useNow } from '@/hooks/use-now';
 import { useScreenLoad } from '@/hooks/use-screen-load';
+import { useTheme } from '@/hooks/use-theme';
 export default function WeightScreen() {
   // Keeps the "x ago" label on the latest weigh-in from freezing between fetches.
   useNow(60_000);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const theme = useTheme();
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [role, setRole] = useState<PetRole | null>(null);
 
@@ -51,7 +53,7 @@ export default function WeightScreen() {
             <ThemedText type="subtitle">Weight</ThemedText>
 
             {latest && latestDetails ? (
-              <ThemedView style={styles.latestCard}>
+              <ThemedView style={[styles.latestCard, { borderColor: theme.border }]}>
                 <ThemedText type="title" style={styles.value}>
                   {latestDetails.value} {latestDetails.unit}
                 </ThemedText>
@@ -96,7 +98,7 @@ export default function WeightScreen() {
           return (
             <Pressable
               accessibilityRole="button"
-              style={styles.row}
+              style={[styles.row, { borderBottomColor: theme.border }]}
               disabled={!canLog}
               onPress={() =>
                 router.push({ pathname: '/pets/[id]/log/[type]', params: { id, type: 'weight', logId: log.id } })
@@ -137,7 +139,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     gap: 4,
     marginTop: 4,
   },
@@ -147,7 +148,6 @@ const styles = StyleSheet.create({
   row: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     gap: 2,
   },
   historyLink: { alignSelf: 'center', marginTop: 16 },

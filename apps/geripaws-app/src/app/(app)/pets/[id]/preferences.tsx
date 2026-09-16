@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { MultiChoiceChips } from '@/components/multi-choice-chips';
 import { PackSwitcher } from '@/components/pack-switcher';
+import { SwitchRow } from '@/components/switch-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useScreenLoad } from '@/hooks/use-screen-load';
@@ -128,70 +129,25 @@ export default function PreferencesScreen() {
         <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
           Shown on Today are on by default
         </ThemedText>
-        <ChoiceChips
-          label="Walk"
-          options={[
-            { value: 'on', label: 'Show' },
-            { value: 'off', label: 'Hide' },
-          ]}
-          value={showWalk ? 'on' : 'off'}
-          onChange={(v) => setShowWalk(v === 'on')}
-        />
-        <ChoiceChips
-          label="Water"
-          options={[
-            { value: 'on', label: 'Show' },
-            { value: 'off', label: 'Hide' },
-          ]}
-          value={showWater ? 'on' : 'off'}
-          onChange={(v) => setShowWater(v === 'on')}
-        />
-        <ChoiceChips
-          label="Food"
-          options={[
-            { value: 'on', label: 'Show' },
-            { value: 'off', label: 'Hide' },
-          ]}
-          value={showFood ? 'on' : 'off'}
-          onChange={(v) => setShowFood(v === 'on')}
-        />
-        <ChoiceChips
-          label="Weight"
-          options={[
-            { value: 'on', label: 'Show' },
-            { value: 'off', label: 'Hide' },
-          ]}
-          value={showWeight ? 'on' : 'off'}
-          onChange={(v) => setShowWeight(v === 'on')}
-        />
+        <SwitchRow label="Walk" value={showWalk} onValueChange={setShowWalk} />
+        <SwitchRow label="Water" value={showWater} onValueChange={setShowWater} />
+        <SwitchRow label="Food" value={showFood} onValueChange={setShowFood} />
+        <SwitchRow label="Weight" value={showWeight} onValueChange={setShowWeight} />
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Medication list
         </ThemedText>
-        <ChoiceChips
-          label="Given doses"
+        <SwitchRow
+          label="Hide given doses"
           helperText="Default shows every dose today, with given ones clearly marked and moved to the bottom"
-          options={[
-            { value: 'show', label: 'Show them' },
-            { value: 'hide', label: 'Hide for a cleaner list' },
-          ]}
-          value={hideGiven ? 'hide' : 'show'}
-          onChange={(v) => setHideGiven(v === 'hide')}
+          value={hideGiven}
+          onValueChange={setHideGiven}
         />
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Quality of life
         </ThemedText>
-        <ChoiceChips
-          label="Tracking"
-          helperText="Optional — off by default"
-          options={[
-            { value: 'on', label: 'On' },
-            { value: 'off', label: 'Off' },
-          ]}
-          value={qolEnabled ? 'on' : 'off'}
-          onChange={(v) => setQolEnabled(v === 'on')}
-        />
+        <SwitchRow label="Tracking" helperText="Optional — off by default" value={qolEnabled} onValueChange={setQolEnabled} />
         {qolEnabled ? (
           <>
             <ChoiceChips
@@ -204,15 +160,11 @@ export default function PreferencesScreen() {
               value={qolCadence}
               onChange={(v) => v && setQolCadence(v)}
             />
-            <ChoiceChips
+            <SwitchRow
               label="Show on Today screen"
               helperText="QOL can be a heavy thing to see every time you open the app — off keeps it out of sight until you go looking for it"
-              options={[
-                { value: 'show', label: 'Show it there' },
-                { value: 'hide', label: 'Keep it off Today' },
-              ]}
-              value={qolShowOnToday ? 'show' : 'hide'}
-              onChange={(v) => setQolShowOnToday(v === 'show')}
+              value={qolShowOnToday}
+              onValueChange={setQolShowOnToday}
             />
           </>
         ) : null}
@@ -223,42 +175,14 @@ export default function PreferencesScreen() {
         <ThemedText themeColor="textSecondary" type="small" style={styles.hint}>
           Personal to you — other caregivers set their own for this dog
         </ThemedText>
-        <ChoiceChips
-          label="Medication due"
-          options={[
-            { value: 'on', label: 'Notify me' },
-            { value: 'off', label: "Don't notify me" },
-          ]}
-          value={notifyMedicationDue ? 'on' : 'off'}
-          onChange={(v) => setNotifyMedicationDue(v === 'on')}
-        />
-        <ChoiceChips
-          label="Walk due"
-          options={[
-            { value: 'on', label: 'Notify me' },
-            { value: 'off', label: "Don't notify me" },
-          ]}
-          value={notifyWalkDue ? 'on' : 'off'}
-          onChange={(v) => setNotifyWalkDue(v === 'on')}
-        />
-        <ChoiceChips
-          label="Food due"
-          options={[
-            { value: 'on', label: 'Notify me' },
-            { value: 'off', label: "Don't notify me" },
-          ]}
-          value={notifyFoodDue ? 'on' : 'off'}
-          onChange={(v) => setNotifyFoodDue(v === 'on')}
-        />
-        <ChoiceChips
+        <SwitchRow label="Medication due" value={notifyMedicationDue} onValueChange={setNotifyMedicationDue} />
+        <SwitchRow label="Walk due" value={notifyWalkDue} onValueChange={setNotifyWalkDue} />
+        <SwitchRow label="Food due" value={notifyFoodDue} onValueChange={setNotifyFoodDue} />
+        <SwitchRow
           label="Completed by someone else"
           helperText="e.g. Amanda gave Kenobi's 8pm Keppra"
-          options={[
-            { value: 'on', label: 'Notify me' },
-            { value: 'off', label: "Don't notify me" },
-          ]}
-          value={notifyCompletedByOthers ? 'on' : 'off'}
-          onChange={(v) => setNotifyCompletedByOthers(v === 'on')}
+          value={notifyCompletedByOthers}
+          onValueChange={setNotifyCompletedByOthers}
         />
         <MultiChoiceChips
           label="Incidents logged by someone else"

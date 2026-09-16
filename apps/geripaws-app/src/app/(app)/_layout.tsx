@@ -2,27 +2,11 @@ import { Stack, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useQuickActionRouting } from 'expo-quick-actions/router';
 import { useEffect, useRef } from 'react';
-import { Alert, AppState, type AppStateStatus, Platform, Pressable } from 'react-native';
+import { Alert, AppState, type AppStateStatus } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAuth } from '@/lib/auth-context';
 import { scheduleDueNotifications } from '@/lib/due-notifications';
 import { handleNotificationResponse, registerNotificationCategories } from '@/lib/notification-actions';
 import { setupPushNotifications } from '@/lib/push';
-
-function SignOutButton() {
-  const { signOut } = useAuth();
-  return (
-    <Pressable accessibilityRole="button"
-      onPress={() => signOut()}
-      hitSlop={12}
-      style={Platform.OS === 'web' ? { marginRight: 16 } : undefined}>
-      <ThemedText type="link" themeColor="tint">
-        Sign out
-      </ThemedText>
-    </Pressable>
-  );
-}
 
 export default function AppLayout() {
   const appState = useRef(AppState.currentState);
@@ -72,7 +56,7 @@ export default function AppLayout() {
   }, [router]);
 
   return (
-    <Stack screenOptions={{ headerRight: () => <SignOutButton /> }}>
+    <Stack>
       <Stack.Screen name="index" options={{ title: 'My Dogs' }} />
       <Stack.Screen name="account" options={{ title: 'Account' }} />
       <Stack.Screen name="pets/new" options={{ title: 'Add a Dog', presentation: 'modal' }} />

@@ -2,13 +2,17 @@
   "expo": {
     "name": "GeriPaws",
     "slug": "geripaws-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "geripawsapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/icon.png",
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon.png",
+        "tinted": "./assets/images/icon.png"
+      },
       "bundleIdentifier": "nyc.obi1.geripaws",
       "supportsTablet": true,
       "infoPlist": {

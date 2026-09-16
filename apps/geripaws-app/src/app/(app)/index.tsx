@@ -65,7 +65,7 @@ export default function PetListScreen() {
         }
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button"
-            style={styles.petRow}
+            style={[styles.petRow, { borderColor: theme.border }]}
             onPress={() => router.push({ pathname: '/pets/[id]', params: { id: item.id } })}>
             <ThemedText type="subtitle" style={styles.petName}>
               {item.name}
@@ -103,12 +103,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     gap: 4,
   },
   petName: { fontSize: 22 },
   addButton: {
-    backgroundColor: '#208AEF',
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',

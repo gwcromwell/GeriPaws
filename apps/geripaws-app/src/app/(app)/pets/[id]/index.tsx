@@ -1,10 +1,11 @@
 import { QOL_FULL_MAX, habitLogInputSchema } from '@geripaws/shared';
 import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AlertIcon, CheckIcon, FoodIcon, WalkIcon, WaterIcon, WeightIcon, type PackIconProps } from '@/components/pack-icons';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/overflow-menu';
 import { PetAvatar } from '@/components/pet-avatar';
 import { QolRing } from '@/components/qol-ring';
 import { QuickTimeChips } from '@/components/quick-time-chips';
@@ -14,6 +15,8 @@ import { useNow } from '@/hooks/use-now';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme, type Theme } from '@/hooks/use-theme';
 import { createHabitLog, fetchLatestByType } from '@/lib/habits';
+import { confirmAction } from '@/lib/confirm';
+import { useAuth } from '@/lib/auth-context';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
 import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
@@ -71,6 +74,7 @@ export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const tokens = useTheme();
+  const { signOut } = useAuth();
   // Keeps "3h ago"-style labels on the tiles below from freezing between
   // fetches — its value is fed into the tiles useMemo below specifically so
   // that memo recomputes on each tick instead of going stale.
@@ -279,6 +283,19 @@ export default function TodayScreen() {
       ? router.push({ pathname: '/pets/[id]/weight', params: { id: pet.id } })
       : router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type } });
 
+  const overflowItems: OverflowMenuItem[] = [
+    { label: 'Ailments', onPress: () => router.push({ pathname: '/pets/[id]/ailments', params: { id: pet.id } }) },
+    { label: 'QOL', onPress: () => router.push({ pathname: '/pets/[id]/qol', params: { id: pet.id } }) },
+    { label: 'Schedule', onPress: () => router.push({ pathname: '/pets/[id]/schedule', params: { id: pet.id } }) },
+    { label: 'Sharing', onPress: () => router.push({ pathname: '/pets/[id]/sharing', params: { id: pet.id } }) },
+    { label: 'Preferences', onPress: () => router.push({ pathname: '/pets/[id]/preferences', params: { id: pet.id } }) },
+    {
+      label: 'Sign out',
+      dividerBefore: true,
+      onPress: () => confirmAction('Sign out?', "You'll need to sign back in to see your dogs.", () => signOut(), 'Sign out'),
+    },
+  ];
+
   const doseSection = (
     <MedicationList
       // Remounts (resetting the "show completed" toggle to the new default)
@@ -303,37 +320,8 @@ export default function TodayScreen() {
 
   return (
     <ThemedView style={styles.flex}>
+      <Stack.Screen options={{ headerRight: () => <OverflowMenu items={overflowItems} /> }} />
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerBar}>
-          <View style={styles.headerLinks}>
-            <Link href={{ pathname: '/pets/[id]/ailments', params: { id: pet.id } }}>
-              <ThemedText type="link" style={{ color: tokens.accent }}>
-                Ailments
-              </ThemedText>
-            </Link>
-            <Link href={{ pathname: '/pets/[id]/qol', params: { id: pet.id } }}>
-              <ThemedText type="link" style={{ color: tokens.accent }}>
-                QOL
-              </ThemedText>
-            </Link>
-            <Link href={{ pathname: '/pets/[id]/schedule', params: { id: pet.id } }}>
-              <ThemedText type="link" style={{ color: tokens.accent }}>
-                Schedule
-              </ThemedText>
-            </Link>
-            <Link href={{ pathname: '/pets/[id]/sharing', params: { id: pet.id } }}>
-              <ThemedText type="link" style={{ color: tokens.accent }}>
-                Sharing
-              </ThemedText>
-            </Link>
-            <Link href={{ pathname: '/pets/[id]/preferences', params: { id: pet.id } }}>
-              <ThemedText type="link" style={{ color: tokens.accent }}>
-                Preferences
-              </ThemedText>
-            </Link>
-          </View>
-        </View>
-
         {role === 'viewer' ? (
           <ThemedText themeColor="textSecondary" type="small">
             You have view-only access to {pet.name}.
@@ -423,10 +411,10 @@ function EveningWalkToday({
         accessibilityLabel={`Edit ${pet.name}'s profile`}
         onPress={onEditPress}
         style={[styles.nameplate, { borderBottomColor: tokens.border }]}>
-        <PetAvatar uri={pet.photo_url} size={44} />
+        <PetAvatar uri={pet.photo_url} size={72} />
         <View>
-          <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 20 }}>{pet.name}</ThemedText>
-          <ThemedText themeColor="textSecondary" type="small">
+          <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 32, lineHeight: 36 }}>{pet.name}</ThemedText>
+          <ThemedText themeColor="textSecondary" type="small" style={styles.nameplateSub}>
             {[age, pet.breed].filter(Boolean).join(' · ')}
           </ThemedText>
         </View>
@@ -516,9 +504,9 @@ function GoodDaysToday({
         accessibilityLabel={`Edit ${pet.name}'s profile`}
         onPress={onEditPress}
         style={styles.gdNameplate}>
-        <PetAvatar uri={pet.photo_url} size={40} />
+        <PetAvatar uri={pet.photo_url} size={56} />
         <View>
-          <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 21 }}>{pet.name}</ThemedText>
+          <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 26 }}>{pet.name}</ThemedText>
           <ThemedText themeColor="textSecondary" type="small">
             {[age, pet.breed].filter(Boolean).join(' · ')}
           </ThemedText>
@@ -760,11 +748,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   flexOne: { flex: 1 },
   container: { padding: 16, gap: 12 },
-  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerLinks: { flexDirection: 'row', gap: 16 },
 
-  nameplate: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 14, borderBottomWidth: 1, marginBottom: 4 },
-  gdNameplate: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  nameplate: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 4, paddingBottom: 18, borderBottomWidth: 1, marginBottom: 4 },
+  nameplateSub: { marginTop: 4 },
+  gdNameplate: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
 
   ewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1 },
   ewRowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2 },
