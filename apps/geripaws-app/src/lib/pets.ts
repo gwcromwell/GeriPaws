@@ -8,9 +8,16 @@ type PetUpdate = Database["public"]["Tables"]["pets"]["Update"];
 type PetMemberUpdate = Database["public"]["Tables"]["pet_members"]["Update"];
 
 export async function fetchMyPets(): Promise<PetWithRole[]> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error("Not signed in");
+
   const { data, error } = await supabase
     .from("pet_members")
+    // pet_members_select's RLS lets a member see every member's row for a
+    // shared pet (needed for fetchPetMembers), not just their own — without
+    // this filter, a pet shared with N people would come back N times here.
     .select("role, pets(*)")
+    .eq("user_id", userData.user.id)
     .order("joined_at", { ascending: true });
 
   if (error) throw error;

@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import { scheduleDueNotifications } from './due-notifications';
 import { createHabitLog } from './habits';
@@ -24,8 +25,12 @@ const ACTION = {
 } as const;
 
 /** Registers the categories above with their action buttons. Safe to call
- * every time the app launches — this just re-declares the same categories. */
+ * every time the app launches — this just re-declares the same categories.
+ * Category-based action buttons aren't a web notification concept — expo-notifications
+ * doesn't implement this method there at all, so it must be skipped rather than awaited. */
 export async function registerNotificationCategories(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY.medicationDue, [
     { identifier: ACTION.markGiven, buttonTitle: 'Mark given', options: { opensAppToForeground: true } },
   ]);
