@@ -2,6 +2,8 @@ import { useState, type ChangeEvent } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   value: Date;
@@ -18,9 +20,12 @@ function toInputValue(date: Date): string {
 }
 
 // Web has no native date/time dialog — the only cross-browser equivalent is
-// the browser's own <input type="datetime-local"> widget, so this renders
-// that directly rather than a react-native primitive.
+// the browser's own <input type="datetime-local"> widget. Wrapped in the same
+// card look as the rest of the app (ThemedTextInput's border/radius/colors)
+// since the bare input reads as un-styled browser chrome otherwise.
 export function CustomTimePicker({ value, onChange, onClose }: Props) {
+  const theme = useTheme();
+  const colorScheme = useColorScheme();
   const [draft, setDraft] = useState(() => toInputValue(value));
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
@@ -36,9 +41,21 @@ export function CustomTimePicker({ value, onChange, onClose }: Props) {
         value={draft}
         max={toInputValue(new Date())}
         onChange={handleChange}
-        // A real DOM element, not an RN primitive — needs a plain CSS object,
-        // not a StyleSheet.create() reference.
-        style={{ fontSize: 14, padding: 6, fontFamily: 'inherit' }}
+        // A real DOM element, not an RN primitive — needs a plain CSS object
+        // (matching ThemedTextInput's look), not a StyleSheet.create() ref.
+        // colorScheme tells the browser's own calendar/clock icon and popup
+        // to render in the app's current light/dark mode instead of always
+        // light, which otherwise looks broken against a dark card.
+        style={{
+          fontSize: 16,
+          padding: 12,
+          borderRadius: 8,
+          border: `1px solid ${theme.backgroundSelected}`,
+          backgroundColor: theme.backgroundElement,
+          color: theme.text,
+          fontFamily: theme.bodyFont,
+          colorScheme: colorScheme ?? 'light',
+        }}
       />
       <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8} style={styles.doneButton}>
         <ThemedText type="link" themeColor="tint">
@@ -52,6 +69,6 @@ export function CustomTimePicker({ value, onChange, onClose }: Props) {
 export function openAndroidTimePicker(_value: Date, _onChange: (date: Date) => void) {}
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'flex-end', gap: 4 },
+  wrap: { alignItems: 'flex-start', gap: 8 },
   doneButton: { paddingVertical: 4, paddingHorizontal: 8 },
 });

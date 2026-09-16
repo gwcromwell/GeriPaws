@@ -54,6 +54,6 @@ export function openAndroidTimePicker(value: Date, onChange: (date: Date) => voi
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'flex-end', gap: 4 },
+  wrap: { alignItems: 'flex-start', gap: 4 },
   doneButton: { paddingVertical: 4, paddingHorizontal: 8 },
 });

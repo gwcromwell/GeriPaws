@@ -40,7 +40,10 @@ export function QuickTimeChips({ value, onChange }: Props) {
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
               key={option.label}
-              onPress={() => onChange(new Date(Date.now() - option.minutesAgo * 60000))}
+              onPress={() => {
+                setShowCustomPicker(false);
+                onChange(new Date(Date.now() - option.minutesAgo * 60000));
+              }}
               hitSlop={8}
               style={[styles.chip, { borderColor: isSelected ? theme.tint : theme.border }, isSelected && { backgroundColor: theme.tint }]}>
               <ThemedText type="small" themeColor={isSelected ? 'background' : 'text'}>
