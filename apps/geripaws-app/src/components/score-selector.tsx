@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { PanResponder, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,7 +22,9 @@ export function ScoreSelector({ label, value, onChange }: Props) {
   const theme = useTheme();
   const widthRef = useRef(0);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const valueFromX = useCallback((x: number) => {
     const w = widthRef.current;
@@ -31,16 +33,22 @@ export function ScoreSelector({ label, value, onChange }: Props) {
     return Math.round(MIN + ratio * (MAX - MIN));
   }, []);
 
-  const panResponder = useMemo(
-    () =>
+  // Built in an effect, not useMemo — react-hooks/refs only allows reading a
+  // ref outside render (effects, event handlers), and PanResponder.create's
+  // callbacks close over onChangeRef. Only ever (re)built once, since
+  // valueFromX's own deps are empty, so this doesn't churn the gesture
+  // handler across renders — it's just constructed a render late.
+  const [panResponder, setPanResponder] = useState<ReturnType<typeof PanResponder.create> | null>(null);
+  useEffect(() => {
+    setPanResponder(
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (e: GestureResponderEvent) => onChangeRef.current(valueFromX(e.nativeEvent.locationX)),
         onPanResponderMove: (e: GestureResponderEvent) => onChangeRef.current(valueFromX(e.nativeEvent.locationX)),
-      }),
-    [valueFromX]
-  );
+      })
+    );
+  }, [valueFromX]);
 
   function handleLayout(e: LayoutChangeEvent) {
     widthRef.current = e.nativeEvent.layout.width;
@@ -81,7 +89,7 @@ export function ScoreSelector({ label, value, onChange }: Props) {
         }}
         style={styles.trackWrap}
         onLayout={handleLayout}
-        {...panResponder.panHandlers}>
+        {...panResponder?.panHandlers}>
         <View style={[styles.track, { backgroundColor: theme.border }]} />
         <View style={[styles.fill, { backgroundColor: theme.tint, width: `${pct}%` }]} />
         <View
