@@ -14,7 +14,7 @@ export function OccurredAtField({ value, onChange }: Props) {
     <View style={styles.container}>
       <ThemedText type="smallBold">When</ThemedText>
       <ThemedText themeColor="textSecondary" type="small">
-        Defaults to now — pick how long ago it actually happened
+        Defaults to now — pick how long ago it actually happened, or set a custom time
       </ThemedText>
       <QuickTimeChips value={value} onChange={onChange} />
       <ThemedText themeColor="textSecondary" type="small">
