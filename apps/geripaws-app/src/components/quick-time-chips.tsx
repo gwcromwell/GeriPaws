@@ -13,7 +13,10 @@ type Props = {
 
 export function QuickTimeChips({ value, onChange }: Props) {
   const theme = useTheme();
-  const [showIosPicker, setShowIosPicker] = useState(false);
+  // iOS and web both render CustomTimePicker inline; Android has no combined
+  // date+time inline mode, so it goes straight to the two native dialogs
+  // instead (see custom-time-picker.tsx).
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
 
   const isPresetSelected = QUICK_TIME_OFFSETS.some(
     (option) => Math.abs(Date.now() - option.minutesAgo * 60000 - value.getTime()) < 30000
@@ -22,8 +25,8 @@ export function QuickTimeChips({ value, onChange }: Props) {
   function openCustomPicker() {
     if (Platform.OS === 'android') {
       openAndroidTimePicker(value, onChange);
-    } else if (Platform.OS === 'ios') {
-      setShowIosPicker(true);
+    } else {
+      setShowCustomPicker(true);
     }
   }
 
@@ -46,24 +49,22 @@ export function QuickTimeChips({ value, onChange }: Props) {
             </Pressable>
           );
         })}
-        {Platform.OS !== 'web' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: !isPresetSelected }}
-            onPress={openCustomPicker}
-            hitSlop={8}
-            style={[
-              styles.chip,
-              { borderColor: !isPresetSelected ? theme.tint : theme.border },
-              !isPresetSelected && { backgroundColor: theme.tint },
-            ]}>
-            <ThemedText type="small" themeColor={!isPresetSelected ? 'background' : 'text'}>
-              Custom
-            </ThemedText>
-          </Pressable>
-        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: !isPresetSelected }}
+          onPress={openCustomPicker}
+          hitSlop={8}
+          style={[
+            styles.chip,
+            { borderColor: !isPresetSelected ? theme.tint : theme.border },
+            !isPresetSelected && { backgroundColor: theme.tint },
+          ]}>
+          <ThemedText type="small" themeColor={!isPresetSelected ? 'background' : 'text'}>
+            Custom
+          </ThemedText>
+        </Pressable>
       </View>
-      {showIosPicker ? <CustomTimePicker value={value} onChange={onChange} onClose={() => setShowIosPicker(false)} /> : null}
+      {showCustomPicker ? <CustomTimePicker value={value} onChange={onChange} onClose={() => setShowCustomPicker(false)} /> : null}
     </View>
   );
 }
