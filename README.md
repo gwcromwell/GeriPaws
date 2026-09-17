@@ -288,3 +288,5 @@ enum addition is `00000000000008_weight_tracking.sql`).
 - Vet share links display a proper copyable URL on web (using the page's own
   origin), but native has no fixed production web domain to build one from
   yet — copy/share on native shows a placeholder path until that's decided.
+
+<img width="5044" height="6344" alt="diagram" src="https://github.com/user-attachments/assets/615e0450-d321-4e71-9382-d677aba6567b" />
