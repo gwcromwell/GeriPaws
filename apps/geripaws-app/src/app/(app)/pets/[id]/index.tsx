@@ -297,14 +297,15 @@ export default function TodayScreen() {
       : router.push({ pathname: '/pets/[id]/log/[type]', params: { id: pet.id, type } });
 
   const overflowItems: OverflowMenuItem[] = [
+    { label: 'All dogs', onPress: () => router.push('/') },
     { label: 'Ailments', onPress: () => router.push({ pathname: '/pets/[id]/ailments', params: { id: pet.id } }) },
     { label: 'QOL', onPress: () => router.push({ pathname: '/pets/[id]/qol', params: { id: pet.id } }) },
     { label: 'Schedule', onPress: () => router.push({ pathname: '/pets/[id]/schedule', params: { id: pet.id } }) },
     { label: 'Sharing', onPress: () => router.push({ pathname: '/pets/[id]/sharing', params: { id: pet.id } }) },
     { label: 'Preferences', onPress: () => router.push({ pathname: '/pets/[id]/preferences', params: { id: pet.id } }) },
+    { label: 'Account', dividerBefore: true, onPress: () => router.push('/account') },
     {
       label: 'Sign out',
-      dividerBefore: true,
       onPress: () => confirmAction('Sign out?', "You'll need to sign back in to see your dogs.", () => signOut(), 'Sign out'),
     },
   ];
