@@ -208,7 +208,7 @@ export default function AilmentDetailScreen() {
         Condition notes
       </ThemedText>
       <ThemedText themeColor="textSecondary" type="small">
-        Track changes over time, e.g. "seizure frequency down since continuous Keppra"
+        Track changes over time, e.g. "seizure frequency down since continuous Gabapentin"
       </ThemedText>
       {notes.map((note) => (
         <ThemedView key={note.id} style={styles.noteRow}>

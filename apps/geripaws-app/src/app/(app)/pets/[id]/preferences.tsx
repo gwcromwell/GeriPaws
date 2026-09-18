@@ -184,7 +184,7 @@ export default function PreferencesScreen() {
         <SwitchRow label="Water due" value={notifyWaterDue} onValueChange={setNotifyWaterDue} />
         <SwitchRow
           label="Completed by someone else"
-          helperText="e.g. Amanda gave Kenobi's 8pm Keppra"
+          helperText="e.g. John gave Rascal's 8pm Gabapentin"
           value={notifyCompletedByOthers}
           onValueChange={setNotifyCompletedByOthers}
         />

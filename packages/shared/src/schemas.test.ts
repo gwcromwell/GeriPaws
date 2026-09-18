@@ -76,11 +76,11 @@ describe("createInviteSchema", () => {
   it("lowercases and trims the email", () => {
     const result = createInviteSchema.safeParse({
       petId: "5b1a6f2e-6c1a-4b7a-9c1a-0f2e6c1a4b7a",
-      email: "  Amanda.Carter@Example.COM  ",
+      email: "  John.Doe@Example.COM  ",
       role: "caregiver",
     });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.email).toBe("amanda.carter@example.com");
+    if (result.success) expect(result.data.email).toBe("john.doe@example.com");
   });
 
   it("rejects inviting someone as 'owner'", () => {

@@ -1,4 +1,4 @@
--- Lets the app attribute an action ("Given by Amanda") to a caregiver by
+-- Lets the app attribute an action ("Given by John") to a caregiver by
 -- name instead of a bare user id. auth.users isn't queryable from the client
 -- (nor should it be — it's Supabase's own auth table), so this mirrors just
 -- the display-safe bits into a table the app can actually select from.

@@ -17,11 +17,11 @@ const ALL_OFF: RecipientNotifyPrefs = {
 };
 
 const ISSUES: Issue[] = [
-  { kind: "medication_overdue", message: "Keppra was due at 8:00 PM" },
+  { kind: "medication_overdue", message: "Gabapentin was due at 8:00 PM" },
   { kind: "walk_overdue", message: "A walk was due at 6:00 PM" },
   { kind: "food_overdue", message: "Dinner was due at 6:00 PM" },
   { kind: "water_overdue", message: "Water was due at 6:00 PM" },
-  { kind: "refill_low", message: "Keppra is running low" },
+  { kind: "refill_low", message: "Gabapentin is running low" },
   { kind: "qol_overdue", message: "A QOL check-in is overdue" },
 ];
 

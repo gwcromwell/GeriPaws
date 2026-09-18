@@ -5,7 +5,7 @@
 // 00000000000025_notify_incident_completion.sql) whenever a habit is logged
 // (walk/water/food/incident) or a medication dose is recorded as given.
 // Pushes the other owners/caregivers of that pet — excluding whoever just
-// did it — so "Amanda gave Kenobi's Keppra" or "Amanda logged a seizure"
+// did it — so "John gave Rascal's Gabapentin" or "John logged a seizure"
 // reaches the rest of the household immediately, instead of waiting for the
 // hourly send-reminders digest.
 //
@@ -45,8 +45,8 @@ async function getActorName(userId: string | null): Promise<string> {
   const { data } = await supabase.from("profiles").select("display_name, email").eq("id", userId).maybeSingle();
   // Never show the full email address in a push notification — fall back to
   // the part before the @ (matches the app's own displayNameFor, see
-  // apps/geripaws-app/src/lib/profiles.ts) rather than "amanda@example.com
-  // gave Kenobi's Keppra".
+  // apps/geripaws-app/src/lib/profiles.ts) rather than "john@example.com
+  // gave Rascal's Gabapentin".
   return data?.display_name || data?.email?.split("@")[0] || "Someone";
 }
 

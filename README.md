@@ -48,7 +48,7 @@ supabase/functions/      Edge Functions:
                           - notify-completion: fired by a DB trigger the
                             moment a habit is logged or a medication dose is
                             given, pushing the rest of the household near-
-                            real-time ("Amanda gave Kenobi's Keppra").
+                            real-time ("John gave Rascal's Gabapentin").
                           - get-shared-pet: public (no auth), read-only
                             endpoint behind a vet share-link token.
 ```
@@ -164,7 +164,7 @@ The account-independent pieces that make this all work:
   caregiver's own notification preferences (`pet_members.notify_*_due` —
   see `pets/[id]/preferences.tsx`; the email digest stays unfiltered).
 - `src/lib/due-notifications.ts` schedules **on-device, exact-time** local
-  notifications for "X is due" (e.g. Kenobi's 8pm Keppra), separately from
+  notifications for "X is due" (e.g. Rascal's 8pm Gabapentin), separately from
   the hourly server digest above — these fire at the precise scheduled
   moment rather than up to an hour late. Recomputed on entering the app and
   whenever it's foregrounded (`(app)/_layout.tsx`'s `AppState` listener),
@@ -172,7 +172,7 @@ The account-independent pieces that make this all work:
   are only as fresh as the last time it was opened.
 - `supabase/functions/notify-completion` pushes the rest of a pet's
   household the moment someone logs a habit or gives a medication dose
-  ("Amanda gave Kenobi's Keppra"), gated per recipient by
+  ("John gave Rascal's Gabapentin"), gated per recipient by
   `pet_members.notify_completed_by_others`. Fired by a DB trigger (
   `00000000000023_notify_completion_trigger.sql`) via `pg_net`, the same
   mechanism the hourly cron job uses to call an Edge Function from SQL —
@@ -247,8 +247,8 @@ enum addition is `00000000000008_weight_tracking.sql`).
 - **Notification preferences** — four booleans on `pet_members`
   (`00000000000021_notification_preferences.sql`): `notify_medication_due`,
   `notify_walk_due`, `notify_food_due`, `notify_completed_by_others`. Personal
-  per caregiver *and* per dog — Amanda and Greg can each choose differently
-  for Kenobi, and differently again for another shared dog. Editable from
+  per caregiver *and* per dog — John and Sam can each choose differently
+  for Rascal, and differently again for another shared dog. Editable from
   `pets/[id]/preferences.tsx` alongside the existing Today-screen tile
   preferences.
 - **Due notifications** and **completion notifications** — see the Phase 4

@@ -189,7 +189,7 @@ export interface VetQuestion {
 }
 
 /**
- * times_per_day: fixed clock times every day, e.g. Keppra at 08:00 and 20:00.
+ * times_per_day: fixed clock times every day, e.g. Gabapentin at 08:00 and 20:00.
  * interval_hours: every N hours starting from a given time, e.g. every 8 hours from 06:00.
  * specific_days: fixed clock times on selected weekdays only (0=Sunday..6=Saturday).
  *

@@ -96,9 +96,9 @@ export default function AccountScreen() {
             helperText={
               nameSaved
                 ? 'Saved.'
-                : "Shown to other caregivers instead of your email — e.g. \"Amanda gave Kenobi's Keppra\". Leave blank to fall back to your email."
+                : "Shown to other caregivers instead of your email — e.g. \"John gave Rascal's Gabapentin\". Leave blank to fall back to your email."
             }
-            placeholder="e.g. Amanda"
+            placeholder="e.g. John"
             autoCapitalize="words"
             value={displayName}
             onChangeText={(text) => {

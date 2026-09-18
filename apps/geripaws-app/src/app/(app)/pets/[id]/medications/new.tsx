@@ -185,7 +185,7 @@ export default function NewMedicationScreen() {
           </ThemedText>
         ) : null}
 
-        <ThemedTextInput label="Name" placeholder="e.g. Keppra" returnKeyType="next" value={name} onChangeText={setName} />
+        <ThemedTextInput label="Name" placeholder="e.g. Gabapentin" returnKeyType="next" value={name} onChangeText={setName} />
         <View style={styles.row}>
           <View style={styles.flexHalf}>
             <ThemedTextInput label="Dose" placeholder="e.g. 250" returnKeyType="next" value={dosage} onChangeText={setDosage} />

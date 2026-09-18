@@ -1,5 +1,5 @@
 // Human-readable phrasing for each incident category, used to build the
-// "Amanda logged a seizure" push message. Pulled into its own pure function
+// "John logged a seizure" push message. Pulled into its own pure function
 // so it's unit-testable without spinning up the Edge Function — see
 // incident-labels.test.ts.
 
