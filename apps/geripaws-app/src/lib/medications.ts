@@ -171,6 +171,19 @@ async function incrementRefill(medicationId: string): Promise<void> {
     .eq('medication_id', medicationId);
 }
 
+/** Postgres's unique_violation code — thrown by medication_doses' (medication_id, scheduled_at)
+ * constraint when two caregivers race to log the same dose slot (e.g. both tapping "Mark given"
+ * on the same due-reminder notification within moments of each other). Surfaced as a plain,
+ * expected outcome rather than a raw database error bubbling up to the caller. */
+const UNIQUE_VIOLATION = '23505';
+
+function throwFriendlySlotError(error: { code?: string; message: string }): never {
+  if (error.code === UNIQUE_VIOLATION) {
+    throw new Error('This dose was already logged by another caregiver.');
+  }
+  throw new Error(error.message);
+}
+
 export async function markDoseGiven(
   petId: string,
   medicationId: string,
@@ -194,7 +207,7 @@ export async function markDoseGiven(
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throwFriendlySlotError(error);
 
   await decrementRefill(medicationId);
   return data as MedicationDose;
@@ -222,7 +235,7 @@ export async function markDoseSkipped(
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throwFriendlySlotError(error);
   return data as MedicationDose;
 }
 

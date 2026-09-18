@@ -18,7 +18,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { computeDosesPerDay, computeDueTimesForDay, getDayStart, isQolOverdue } from "./schedule-lib.ts";
-import { filterIssuesForRecipient, type Issue, type RecipientNotifyPrefs } from "./notification-filter.ts";
+import { filterIssuesForRecipient, type Issue, type IssueKind, type RecipientNotifyPrefs } from "./notification-filter.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -98,7 +98,7 @@ interface PushRecipient {
 async function getPushRecipients(petId: string): Promise<PushRecipient[]> {
   const { data: members } = await supabase
     .from("pet_members")
-    .select("user_id, notify_medication_due, notify_walk_due, notify_food_due")
+    .select("user_id, notify_medication_due, notify_walk_due, notify_food_due, notify_water_due")
     .eq("pet_id", petId)
     .in("role", ["owner", "caregiver"]);
   if (!members || members.length === 0) return [];
@@ -128,6 +128,7 @@ async function getPushRecipients(petId: string): Promise<PushRecipient[]> {
         notify_medication_due: member.notify_medication_due,
         notify_walk_due: member.notify_walk_due,
         notify_food_due: member.notify_food_due,
+        notify_water_due: member.notify_water_due,
       },
     });
   }
@@ -159,6 +160,7 @@ Deno.serve(async () => {
   for (const pet of pets) {
     const timeZone = pet.timezone || "UTC";
     const dayStart = getDayStart(now, pet.day_boundary_hour ?? 0, timeZone);
+    const graceMs = (pet.due_grace_minutes ?? 10) * 60_000;
     const issues: Issue[] = [];
 
     const { data: medications } = await supabase.from("medications").select("*").eq("pet_id", pet.id);
@@ -174,7 +176,7 @@ Deno.serve(async () => {
       if (med.active_until && new Date(med.active_until) < now) continue;
 
       for (const scheduledAt of computeDueTimesForDay(med.schedule, dayStart, timeZone)) {
-        if (scheduledAt >= now) continue;
+        if (now.getTime() - scheduledAt.getTime() <= graceMs) continue;
 
         const given = (dosesToday ?? []).some(
           (d) => d.medication_id === med.id && new Date(d.scheduled_at).getTime() === scheduledAt.getTime()
@@ -203,15 +205,23 @@ Deno.serve(async () => {
         .from("habit_logs")
         .select("*")
         .eq("pet_id", pet.id)
-        .in("type", ["walk", "food"])
+        .in("type", ["walk", "food", "water"])
         .gte("occurred_at", dayStart.toISOString());
 
+      const HABIT_ISSUE_KIND: Record<string, IssueKind> = {
+        walk: "walk_overdue",
+        food: "food_overdue",
+        water: "water_overdue",
+      };
+      const HABIT_LABEL: Record<string, string> = { walk: "walk", food: "meal", water: "water refill" };
+
       for (const habitSchedule of habitSchedules) {
-        const kind = habitSchedule.type === "walk" ? "walk_overdue" : "food_overdue";
-        const label = habitSchedule.type === "walk" ? "walk" : "meal";
+        const kind = HABIT_ISSUE_KIND[habitSchedule.type];
+        const label = HABIT_LABEL[habitSchedule.type];
+        if (!kind || !label) continue;
 
         for (const scheduledAt of computeDueTimesForDay(habitSchedule.schedule, dayStart, timeZone)) {
-          if (scheduledAt >= now) continue;
+          if (now.getTime() - scheduledAt.getTime() <= graceMs) continue;
 
           // Walks/food aren't discrete slots like medication doses — any log
           // of that type at or after this due time counts as satisfying it.

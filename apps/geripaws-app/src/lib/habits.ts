@@ -34,6 +34,20 @@ export async function fetchLatestByType(petId: string): Promise<Record<HabitType
   return latest;
 }
 
+/** Every log of the given types since `since` — used to check whether a scheduled walk/food/water
+ * slot has been satisfied (see habit-due-status.ts), where "today's logs of these types" matters,
+ * not just the single latest one fetchLatestByType returns. */
+export async function fetchLogsSince(petId: string, since: Date, types: HabitType[]): Promise<HabitLog[]> {
+  const { data, error } = await supabase
+    .from('habit_logs')
+    .select('*')
+    .eq('pet_id', petId)
+    .in('type', types)
+    .gte('occurred_at', since.toISOString());
+  if (error) throw error;
+  return (data ?? []) as HabitLog[];
+}
+
 export async function fetchHabitLogs(petId: string, limit = 50, type?: HabitType): Promise<HabitLog[]> {
   let query = supabase.from('habit_logs').select('*').eq('pet_id', petId);
   if (type) query = query.eq('type', type);

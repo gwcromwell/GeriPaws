@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
@@ -33,55 +34,58 @@ export default function SignInScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>
-        GeriPaws
-      </ThemedText>
-      <ThemedText type="subtitle" style={styles.subtitle}>
-        Sign in
-      </ThemedText>
-
-      <ThemedTextInput
-        label="Email"
-        helperText="The email address you signed up with"
-        placeholder="you@example.com"
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        returnKeyType="next"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <ThemedTextInput
-        label="Password"
-        placeholder="Your password"
-        autoComplete="password"
-        secureTextEntry
-        returnKeyType="go"
-        onSubmitEditing={handleSubmit}
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      {error ? (
-        <ThemedText themeColor="error" style={styles.message}>
-          {error}
+    <ThemedView style={styles.flex}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.container}>
+        <ThemedText type="title" style={styles.title}>
+          GeriPaws
         </ThemedText>
-      ) : null}
-
-      <Button label={isSubmitting ? 'Signing in…' : 'Sign in'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
-
-      <Link href="/sign-up" style={styles.link}>
-        <ThemedText type="link" themeColor="tint">
-          Need an account? Sign up
+        <ThemedText type="subtitle" style={styles.subtitle}>
+          Sign in
         </ThemedText>
-      </Link>
+
+        <ThemedTextInput
+          label="Email"
+          helperText="The email address you signed up with"
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          returnKeyType="next"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <ThemedTextInput
+          label="Password"
+          placeholder="Your password"
+          autoComplete="password"
+          secureTextEntry
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        {error ? (
+          <ThemedText themeColor="error" style={styles.message}>
+            {error}
+          </ThemedText>
+        ) : null}
+
+        <Button label={isSubmitting ? 'Signing in…' : 'Sign in'} onPress={handleSubmit} disabled={isSubmitting} style={styles.button} />
+
+        <Link href="/sign-up" style={styles.link}>
+          <ThemedText type="link" themeColor="tint">
+            Need an account? Sign up
+          </ThemedText>
+        </Link>
+      </KeyboardAwareScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center', gap: 12 },
+  flex: { flex: 1 },
+  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 12 },
   title: { fontSize: 32, marginBottom: 4 },
   subtitle: { fontSize: 20, marginBottom: 16 },
   button: { marginTop: 8 },

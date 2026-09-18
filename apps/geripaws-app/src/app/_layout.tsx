@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { ErrorBoundary } from '@/components/error-boundary';
 import { SetupRequired } from '@/components/setup-required';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { StylePackProvider } from '@/lib/style-pack-context';
@@ -70,16 +71,18 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {isConfigured ? (
-        <StylePackProvider>
-          <AuthProvider>
-            <RootNavigator />
-          </AuthProvider>
-        </StylePackProvider>
-      ) : (
-        <SetupRequired />
-      )}
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        {isConfigured ? (
+          <StylePackProvider>
+            <AuthProvider>
+              <RootNavigator />
+            </AuthProvider>
+          </StylePackProvider>
+        ) : (
+          <SetupRequired />
+        )}
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

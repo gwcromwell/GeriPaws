@@ -1,19 +1,12 @@
 import type {
   HabitLog,
   IncidentDetails,
-  HabitType,
   MedicationSchedule,
   WalkDetails,
   WaterDetails,
   FoodDetails,
   WeightDetails,
 } from '@geripaws/shared';
-
-export const OVERDUE_HOURS: Record<Extract<HabitType, 'walk' | 'water' | 'food'>, number> = {
-  walk: 8,
-  water: 6,
-  food: 8,
-};
 
 export function formatRelativeTime(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime();
@@ -27,12 +20,6 @@ export function formatRelativeTime(isoDate: string): string {
 
   const days = Math.round(hours / 24);
   return `${days}d ago`;
-}
-
-export function isOverdue(isoDate: string, type: HabitType): boolean {
-  if (type === 'incident' || type === 'weight') return false;
-  const hoursSince = (Date.now() - new Date(isoDate).getTime()) / 3_600_000;
-  return hoursSince >= OVERDUE_HOURS[type];
 }
 
 export function formatDateTime(isoDate: string): string {

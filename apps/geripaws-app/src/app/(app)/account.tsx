@@ -3,12 +3,14 @@ import { StyleSheet, TextInput } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteMyAccount, fetchAccountDeletionImpact, type AccountDeletionImpact } from '@/lib/account';
 import { useAuth } from '@/lib/auth-context';
 import { confirmAction, confirmDestructive } from '@/lib/confirm';
+import { fetchMyProfile, updateMyProfile } from '@/lib/profiles';
 
 const CONFIRM_PHRASE = 'DELETE';
 
@@ -22,14 +24,33 @@ export default function AccountScreen() {
   const [impact, setImpact] = useState<AccountDeletionImpact | null>(null);
   const [confirmText, setConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
 
   const load = useCallback(async () => {
-    setImpact(await fetchAccountDeletionImpact());
+    const [impactData, profile] = await Promise.all([fetchAccountDeletionImpact(), fetchMyProfile()]);
+    setImpact(impactData);
+    setDisplayName(profile.display_name ?? '');
   }, []);
 
   const { error, setError } = useScreenLoad(load, 'Failed to load account details');
 
   const canDelete = confirmText.trim().toUpperCase() === CONFIRM_PHRASE && !isDeleting && impact !== null;
+
+  async function handleSaveName() {
+    setIsSavingName(true);
+    setNameSaved(false);
+    setError(null);
+    try {
+      await updateMyProfile({ displayName });
+      setNameSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save name');
+    } finally {
+      setIsSavingName(false);
+    }
+  }
 
   function handleSignOutPress() {
     confirmAction('Sign out?', "You'll need to sign back in to see your dogs.", () => signOut(), 'Sign out');
@@ -68,6 +89,31 @@ export default function AccountScreen() {
             Signed in as {session.user.email}
           </ThemedText>
         ) : null}
+
+        <ThemedView style={styles.nameSection}>
+          <ThemedTextInput
+            label="Display name"
+            helperText={
+              nameSaved
+                ? 'Saved.'
+                : "Shown to other caregivers instead of your email — e.g. \"Amanda gave Kenobi's Keppra\". Leave blank to fall back to your email."
+            }
+            placeholder="e.g. Amanda"
+            autoCapitalize="words"
+            value={displayName}
+            onChangeText={(text) => {
+              setDisplayName(text);
+              setNameSaved(false);
+            }}
+          />
+          <Button
+            variant="secondary"
+            label={isSavingName ? 'Saving…' : 'Save name'}
+            onPress={handleSaveName}
+            disabled={isSavingName}
+            style={styles.saveNameButton}
+          />
+        </ThemedView>
 
         <Button
           variant="secondary"
@@ -162,6 +208,8 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 16, gap: 8 },
+  nameSection: { marginTop: 16, gap: 8 },
+  saveNameButton: { alignSelf: 'flex-start' },
   signOutButton: { marginTop: 16 },
   dangerZone: {
     borderWidth: 1.5,

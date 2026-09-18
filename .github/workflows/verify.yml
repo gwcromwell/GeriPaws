@@ -51,7 +51,9 @@ jobs:
 
       - name: Unit tests for Edge Function schedule/timezone logic
         working-directory: supabase/functions
-        run: deno test --allow-env send-reminders/schedule-lib.test.ts
+        run: |
+          deno test --allow-env send-reminders/schedule-lib.test.ts
+          deno test --allow-env send-reminders/notification-filter.test.ts
 
       - name: Unit tests for Edge Function CORS handling (pet-sharing invite/link functions)
         working-directory: supabase/functions

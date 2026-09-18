@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatAge, formatTimeOfDay, isOverdue, formatRelativeTime, summarizeHabitLog, summarizeSchedule } from "./format";
+import { formatAge, formatTimeOfDay, formatRelativeTime, summarizeHabitLog, summarizeSchedule } from "./format";
 import type { HabitLog } from "@geripaws/shared";
 
 const NOW = new Date("2026-01-15T12:00:00Z");
@@ -32,28 +32,6 @@ describe("formatRelativeTime", () => {
 
   it("shows days at 24h and beyond", () => {
     expect(formatRelativeTime(isoMinutesAgo(60 * 25))).toBe("1d ago");
-  });
-});
-
-describe("isOverdue", () => {
-  it("incidents and weight entries are never overdue", () => {
-    expect(isOverdue(isoMinutesAgo(60 * 1000), "incident")).toBe(false);
-    expect(isOverdue(isoMinutesAgo(60 * 1000), "weight")).toBe(false);
-  });
-
-  it("walk is overdue at 8h, not before", () => {
-    expect(isOverdue(isoMinutesAgo(60 * 8 - 1), "walk")).toBe(false);
-    expect(isOverdue(isoMinutesAgo(60 * 8), "walk")).toBe(true);
-  });
-
-  it("water is overdue at 6h", () => {
-    expect(isOverdue(isoMinutesAgo(60 * 6 - 1), "water")).toBe(false);
-    expect(isOverdue(isoMinutesAgo(60 * 6), "water")).toBe(true);
-  });
-
-  it("food is overdue at 8h", () => {
-    expect(isOverdue(isoMinutesAgo(60 * 8 - 1), "food")).toBe(false);
-    expect(isOverdue(isoMinutesAgo(60 * 8), "food")).toBe(true);
   });
 });
 

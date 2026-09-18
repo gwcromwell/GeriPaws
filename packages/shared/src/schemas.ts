@@ -29,8 +29,14 @@ export const updatePetSchema = z.object({
   allergies: z.string().trim().max(500).nullable().optional(),
   insuranceProvider: z.string().trim().max(120).nullable().optional(),
   insurancePolicyNumber: z.string().trim().max(60).nullable().optional(),
+  dueGraceMinutes: z.number().int().min(0).max(120).optional(),
 });
 export type UpdatePetInput = z.infer<typeof updatePetSchema>;
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().trim().max(60).nullable().optional(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const createInviteSchema = z.object({
   petId: z.string().uuid(),
@@ -52,6 +58,7 @@ export const memberPreferencesSchema = z.object({
   notifyMedicationDue: z.boolean().optional(),
   notifyWalkDue: z.boolean().optional(),
   notifyFoodDue: z.boolean().optional(),
+  notifyWaterDue: z.boolean().optional(),
   notifyCompletedByOthers: z.boolean().optional(),
   notifyIncidentCategories: z.array(incidentCategorySchema).optional(),
 });

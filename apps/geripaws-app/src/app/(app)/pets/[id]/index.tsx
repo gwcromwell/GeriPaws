@@ -1,5 +1,5 @@
 import { QOL_FULL_MAX, habitLogInputSchema } from '@geripaws/shared';
-import type { HabitLog, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
+import type { HabitLog, HabitScheduleRow, HabitType, Medication, Pet, PetMember, PetRole, QolResponse, QolSettings } from '@geripaws/shared';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -14,10 +14,12 @@ import { ThemedView } from '@/components/themed-view';
 import { useNow } from '@/hooks/use-now';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme, type Theme } from '@/hooks/use-theme';
-import { createHabitLog, fetchLatestByType } from '@/lib/habits';
+import { createHabitLog, fetchLatestByType, fetchLogsSince } from '@/lib/habits';
+import { fetchHabitSchedules } from '@/lib/habit-schedules';
+import { computeHabitDueStatus, type HabitDueStatus } from '@/lib/habit-due-status';
 import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/lib/auth-context';
-import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay, isOverdue } from '@/lib/format';
+import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay } from '@/lib/format';
 import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
 import { fetchDosesSince, fetchMedications, markDoseGiven, markDoseSkipped } from '@/lib/medications';
 import { fetchMyPreferences, fetchMyRole, fetchPet } from '@/lib/pets';
@@ -56,7 +58,7 @@ interface TileData {
   type: HabitType;
   label: string;
   sub: string;
-  overdue: boolean;
+  dueStatus: HabitDueStatus;
   Icon: ComponentType<PackIconProps>;
 }
 
@@ -89,6 +91,8 @@ export default function TodayScreen() {
     weight: null,
   });
   const [dueDoses, setDueDoses] = useState<DueDose[]>([]);
+  const [habitSchedules, setHabitSchedules] = useState<HabitScheduleRow[]>([]);
+  const [todaysHabitLogs, setTodaysHabitLogs] = useState<HabitLog[]>([]);
   const [latestQol, setLatestQol] = useState<QolResponse | null>(null);
   const [qolSettings, setQolSettings] = useState<QolSettings | null>(null);
   const [myPreferences, setMyPreferences] = useState<PetMember | null>(null);
@@ -112,14 +116,17 @@ export default function TodayScreen() {
     const userResult = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
     const myId = userResult.data.user?.id;
 
-    const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData] = await Promise.all([
-      fetchMyRole(id, myId),
-      fetchLatestByType(id),
-      fetchMedications(id),
-      fetchDosesSince(id, dayStart),
-      fetchQolResponses(id, 1),
-      fetchQolSettings(id),
-    ]);
+    const [roleData, latestData, medications, dosesToday, qolResponses, qolSettingsData, habitSchedulesData, habitLogsToday] =
+      await Promise.all([
+        fetchMyRole(id, myId),
+        fetchLatestByType(id),
+        fetchMedications(id),
+        fetchDosesSince(id, dayStart),
+        fetchQolResponses(id, 1),
+        fetchQolSettings(id),
+        fetchHabitSchedules(id),
+        fetchLogsSince(id, dayStart, ['walk', 'water', 'food']),
+      ]);
 
     setPet(petData);
     recordLastViewedPet(petData.id);
@@ -128,6 +135,8 @@ export default function TodayScreen() {
     setDueDoses(computeTodayDueDoses(petData, medications, dosesToday));
     setLatestQol(qolResponses[0] ?? null);
     setQolSettings(qolSettingsData);
+    setHabitSchedules(habitSchedulesData);
+    setTodaysHabitLogs(habitLogsToday);
 
     // Preferences/attribution are enhancements layered on top of the core
     // screen (and depend on migrations that may not be applied to every
@@ -159,6 +168,7 @@ export default function TodayScreen() {
     const channel = supabase
       .channel(`today-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_logs', filter: `pet_id=eq.${id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_schedules', filter: `pet_id=eq.${id}` }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'medication_doses', filter: `pet_id=eq.${id}` }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'medications', filter: `pet_id=eq.${id}` }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'qol_responses', filter: `pet_id=eq.${id}` }, reload)
@@ -238,26 +248,29 @@ export default function TodayScreen() {
     const weightLog = latest.weight;
     const weightDetails = weightLog?.details as { value: number; unit: string } | undefined;
     const who = (userId: string | null | undefined) => displayNameFor(profiles, userId, myUserId);
+    const dayStart = pet ? getDayStart(new Date(), pet.day_boundary_hour, pet.timezone) : null;
 
     return [
       ...HABIT_TILES.map(({ type, label, Icon }) => {
         const log = latest[type];
-        const overdue = log ? isOverdue(log.occurred_at, type) : false;
+        const dueStatus: HabitDueStatus =
+          pet && dayStart
+            ? computeHabitDueStatus(type, habitSchedules, todaysHabitLogs, dayStart, pet.timezone, pet.due_grace_minutes)
+            : 'none';
+        const prefix = dueStatus === 'overdue' ? 'Overdue — ' : dueStatus === 'due' ? 'Due now — ' : '';
         return {
           type,
           label,
           Icon,
-          overdue,
-          sub: log
-            ? `${overdue ? 'Overdue — ' : ''}${formatRelativeTime(log.occurred_at)} · ${who(log.logged_by)}`
-            : 'Not logged yet',
+          dueStatus,
+          sub: log ? `${prefix}${formatRelativeTime(log.occurred_at)} · ${who(log.logged_by)}` : `${prefix}Not logged yet`,
         };
       }),
       {
         type: 'weight' as HabitType,
         label: 'Weight',
         Icon: WeightIcon,
-        overdue: false,
+        dueStatus: 'none' as HabitDueStatus,
         sub: weightDetails
           ? `${weightDetails.value} ${weightDetails.unit} · ${formatRelativeTime(weightLog!.occurred_at)} · ${who(weightLog!.logged_by)}`
           : 'Not logged yet',
@@ -268,7 +281,7 @@ export default function TodayScreen() {
     // on every useNow tick — eslint's static analysis can't see that hidden
     // dependency, so its "unnecessary dependency" warning here is wrong.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latest, profiles, myUserId, TILE_VISIBILITY, now]);
+  }, [latest, profiles, myUserId, TILE_VISIBILITY, now, pet, habitSchedules, todaysHabitLogs]);
 
   if (!pet) {
     return (
@@ -420,9 +433,10 @@ function EveningWalkToday({
         </View>
       </Pressable>
 
-      {tiles.map(({ type, label, sub, overdue, Icon }) => {
+      {tiles.map(({ type, label, sub, dueStatus, Icon }) => {
         const isQuickLoggable = canLog && QUICK_LOGGABLE.has(type);
         const isLogging = quickLogging === type;
+        const statusColor = dueStatus === 'overdue' ? tokens.overdue : dueStatus === 'due' ? tokens.good : null;
         return (
           <View key={type} style={[styles.ewRow, { borderBottomColor: tokens.border }]}>
             <Pressable
@@ -431,14 +445,14 @@ function EveningWalkToday({
               disabled={!canLog}
               onPress={() => onTilePress(type)}
               style={styles.ewRowMain}>
-              <View style={[styles.ewIcon, { backgroundColor: overdue ? tokens.overdue + '22' : tokens.tileBg }]}>
-                <Icon color={overdue ? tokens.overdue : tokens.accentDeep} size={17} />
+              <View style={[styles.ewIcon, { backgroundColor: statusColor ? statusColor + '22' : tokens.tileBg }]}>
+                <Icon color={statusColor ?? tokens.accentDeep} size={17} />
               </View>
               <View style={styles.flexOne}>
                 <ThemedText type="smallBold">{label}</ThemedText>
                 <ThemedText
                   type="small"
-                  style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
+                  style={{ color: statusColor ?? tokens.textSecondary, fontWeight: statusColor ? '700' : '400' }}>
                   {sub}
                 </ThemedText>
               </View>
@@ -526,13 +540,14 @@ function GoodDaysToday({
       ) : null}
 
       <View style={styles.gdGrid}>
-        {tiles.map(({ type, label, sub, overdue, Icon }) => {
+        {tiles.map(({ type, label, sub, dueStatus, Icon }) => {
           const isQuickLoggable = canLog && QUICK_LOGGABLE.has(type);
           const isLogging = quickLogging === type;
+          const statusColor = dueStatus === 'overdue' ? tokens.overdue : dueStatus === 'due' ? tokens.good : null;
           return (
             <View
               key={type}
-              style={[styles.gdTile, { backgroundColor: tokens.panel }, overdue && { borderColor: tokens.overdue, borderWidth: 1.5 }]}>
+              style={[styles.gdTile, { backgroundColor: tokens.panel }, statusColor && { borderColor: statusColor, borderWidth: 1.5 }]}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Log ${label.toLowerCase()} in detail — ${sub}`}
@@ -542,9 +557,7 @@ function GoodDaysToday({
                   <Icon color="#fff" size={15} />
                 </View>
                 <ThemedText style={{ fontFamily: tokens.displayFont, fontWeight: '400', fontSize: 13 }}>{label}</ThemedText>
-                <ThemedText
-                  type="small"
-                  style={{ color: overdue ? tokens.overdue : tokens.textSecondary, fontWeight: overdue ? '700' : '400' }}>
+                <ThemedText type="small" style={{ color: statusColor ?? tokens.textSecondary, fontWeight: statusColor ? '700' : '400' }}>
                   {sub}
                 </ThemedText>
               </Pressable>
@@ -614,7 +627,12 @@ function MedicationList({
   function renderDose(due: DueDose, emphasize: boolean) {
     const key = doseKey(due);
     const isGiving = givingKey === key;
-    const dotColor = due.status === 'given' ? tokens.good : due.status === 'overdue' ? tokens.overdue : tokens.accent;
+    const dotColor =
+      due.status === 'given' || due.status === 'due'
+        ? tokens.good
+        : due.status === 'overdue'
+          ? tokens.overdue
+          : tokens.accent;
 
     return (
       <View
@@ -631,7 +649,16 @@ function MedicationList({
             <ThemedText type="smallBold" style={emphasize ? { color: tokens.overdue } : undefined}>
               {due.medication.name} — {due.medication.dosage} {due.medication.unit}
             </ThemedText>
-            <ThemedText type="small" style={{ color: emphasize || due.status === 'overdue' ? tokens.overdue : tokens.textSecondary }}>
+            <ThemedText
+              type="small"
+              style={{
+                color:
+                  emphasize || due.status === 'overdue'
+                    ? tokens.overdue
+                    : due.status === 'due'
+                      ? tokens.good
+                      : tokens.textSecondary,
+              }}>
               {formatTimeOfDay(
                 `${String(due.scheduledAt.getHours()).padStart(2, '0')}:${String(due.scheduledAt.getMinutes()).padStart(2, '0')}`
               )}
@@ -643,7 +670,9 @@ function MedicationList({
                   ? ` · Skipped by ${displayNameFor(profiles, due.dose?.given_by, myUserId)}`
                   : due.status === 'overdue'
                     ? ' · Overdue'
-                    : ''}
+                    : due.status === 'due'
+                      ? ' · Due now'
+                      : ''}
             </ThemedText>
           </View>
           {canLog && due.status !== 'given' && due.status !== 'skipped' && !isGiving ? (

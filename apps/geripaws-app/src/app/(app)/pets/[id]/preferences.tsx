@@ -42,6 +42,7 @@ export default function PreferencesScreen() {
   const [notifyMedicationDue, setNotifyMedicationDue] = useState(true);
   const [notifyWalkDue, setNotifyWalkDue] = useState(true);
   const [notifyFoodDue, setNotifyFoodDue] = useState(true);
+  const [notifyWaterDue, setNotifyWaterDue] = useState(true);
   const [notifyCompletedByOthers, setNotifyCompletedByOthers] = useState(true);
   const [notifyIncidentCategories, setNotifyIncidentCategories] = useState<IncidentCategory[]>(INCIDENT_CATEGORIES);
 
@@ -63,6 +64,7 @@ export default function PreferencesScreen() {
       setNotifyMedicationDue(prefs.notify_medication_due);
       setNotifyWalkDue(prefs.notify_walk_due);
       setNotifyFoodDue(prefs.notify_food_due);
+      setNotifyWaterDue(prefs.notify_water_due);
       setNotifyCompletedByOthers(prefs.notify_completed_by_others);
       setNotifyIncidentCategories(prefs.notify_incident_categories as IncidentCategory[]);
     }
@@ -94,6 +96,7 @@ export default function PreferencesScreen() {
           notifyMedicationDue,
           notifyWalkDue,
           notifyFoodDue,
+          notifyWaterDue,
           notifyCompletedByOthers,
           notifyIncidentCategories,
         }),
@@ -178,6 +181,7 @@ export default function PreferencesScreen() {
         <SwitchRow label="Medication due" value={notifyMedicationDue} onValueChange={setNotifyMedicationDue} />
         <SwitchRow label="Walk due" value={notifyWalkDue} onValueChange={setNotifyWalkDue} />
         <SwitchRow label="Food due" value={notifyFoodDue} onValueChange={setNotifyFoodDue} />
+        <SwitchRow label="Water due" value={notifyWaterDue} onValueChange={setNotifyWaterDue} />
         <SwitchRow
           label="Completed by someone else"
           helperText="e.g. Amanda gave Kenobi's 8pm Keppra"

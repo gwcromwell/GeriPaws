@@ -1,8 +1,30 @@
-import type { Profile } from '@geripaws/shared';
+import type { Profile, UpdateProfileInput } from '@geripaws/shared';
 
 import { supabase } from './supabase';
 
 export type ProfileMap = Record<string, Profile>;
+
+/** The signed-in caregiver's own profile row — used to show/edit the display
+ * name shown to other caregivers instead of their email (see displayNameFor). */
+export async function fetchMyProfile(): Promise<Profile> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error('Not signed in');
+
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userData.user.id).single();
+  if (error) throw error;
+  return data as Profile;
+}
+
+export async function updateMyProfile(input: UpdateProfileInput): Promise<void> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error('Not signed in');
+
+  const patch: { display_name?: string | null } = {};
+  if (input.displayName !== undefined) patch.display_name = input.displayName?.trim() || null;
+
+  const { error } = await supabase.from('profiles').update(patch).eq('id', userData.user.id);
+  if (error) throw error;
+}
 
 /** Profiles for everyone who shares this pet — keyed by user id, for attributing an action to a name. */
 export async function fetchProfilesForPet(petId: string): Promise<ProfileMap> {

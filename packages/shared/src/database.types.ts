@@ -13,7 +13,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 type AilmentStatus = 'active' | 'monitoring' | 'resolved';
 type HabitType = 'walk' | 'water' | 'food' | 'incident' | 'weight';
 type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
-type NotificationKind = 'medication_overdue' | 'refill_low' | 'qol_overdue';
+type NotificationKind = 'medication_overdue' | 'refill_low' | 'qol_overdue' | 'walk_overdue' | 'food_overdue' | 'water_overdue';
 type PetRole = 'owner' | 'caregiver' | 'viewer';
 type PetStatus = 'active' | 'passed';
 type QolCadence = 'daily' | 'weekly' | 'monthly';
@@ -367,6 +367,7 @@ export interface Database {
           notify_medication_due: boolean;
           notify_walk_due: boolean;
           notify_food_due: boolean;
+          notify_water_due: boolean;
           notify_completed_by_others: boolean;
           notify_incident_categories: string[];
         };
@@ -384,6 +385,7 @@ export interface Database {
           notify_medication_due?: boolean;
           notify_walk_due?: boolean;
           notify_food_due?: boolean;
+          notify_water_due?: boolean;
           notify_completed_by_others?: boolean;
           notify_incident_categories?: string[];
         };
@@ -401,6 +403,7 @@ export interface Database {
           notify_medication_due?: boolean;
           notify_walk_due?: boolean;
           notify_food_due?: boolean;
+          notify_water_due?: boolean;
           notify_completed_by_others?: boolean;
           notify_incident_categories?: string[];
         };
@@ -448,6 +451,7 @@ export interface Database {
           photo_url: string | null;
           status: PetStatus;
           day_boundary_hour: number;
+          due_grace_minutes: number;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -471,6 +475,7 @@ export interface Database {
           photo_url?: string | null;
           status?: PetStatus;
           day_boundary_hour?: number;
+          due_grace_minutes?: number;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -494,6 +499,7 @@ export interface Database {
           photo_url?: string | null;
           status?: PetStatus;
           day_boundary_hour?: number;
+          due_grace_minutes?: number;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;

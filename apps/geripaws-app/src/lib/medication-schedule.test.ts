@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { computeTodayDueDoses, groupDueDoses, type DueDose } from "./medication-schedule";
 import type { Medication, MedicationDose } from "@geripaws/shared";
 
-const PET = { day_boundary_hour: 0, timezone: "America/New_York" };
+const PET = { day_boundary_hour: 0, timezone: "America/New_York", due_grace_minutes: 10 };
 const NOW = new Date("2026-01-15T18:00:00Z"); // 1pm EST
 
 function medication(overrides: Partial<Medication> = {}): Medication {
@@ -60,17 +60,35 @@ describe("computeTodayDueDoses", () => {
     expect(computeTodayDueDoses(PET, [med], [], NOW)).not.toEqual([]);
   });
 
-  it("marks a past dose with no logged record as overdue", () => {
-    // 8am EST (13:00Z) is in the past relative to NOW (13:00 EST / 18:00Z).
+  it("marks a past-the-grace-period dose with no logged record as overdue", () => {
+    // 8am EST (13:00Z) is well past NOW (13:00 EST / 18:00Z) and its 10-minute grace period.
     const med = medication();
     const [due] = computeTodayDueDoses(PET, [med], [], NOW);
     expect(due.status).toBe("overdue");
   });
 
-  it("marks a future dose as due (not overdue)", () => {
+  it("marks a dose within the grace period as due, not overdue", () => {
+    const med = medication({ schedule: { kind: "times_per_day", times: ["12:55"] } }); // 12:55 EST, 5 min before NOW (13:00 EST)
+    const [due] = computeTodayDueDoses(PET, [med], [], NOW);
+    expect(due.status).toBe("due");
+  });
+
+  it("treats the grace-period boundary itself as still due, not overdue", () => {
+    const med = medication({ schedule: { kind: "times_per_day", times: ["12:50"] } }); // exactly 10 min before NOW
+    const [due] = computeTodayDueDoses(PET, [med], [], NOW);
+    expect(due.status).toBe("due");
+  });
+
+  it("marks a dose one minute past the grace period as overdue", () => {
+    const med = medication({ schedule: { kind: "times_per_day", times: ["12:49"] } }); // 11 min before NOW
+    const [due] = computeTodayDueDoses(PET, [med], [], NOW);
+    expect(due.status).toBe("overdue");
+  });
+
+  it("marks a future dose as upcoming (not due or overdue)", () => {
     const med = medication();
     const [, evening] = computeTodayDueDoses(PET, [med], [], NOW);
-    expect(evening.status).toBe("due");
+    expect(evening.status).toBe("upcoming");
   });
 
   it("matches an existing dose by instant, not by raw string equality", () => {

@@ -20,6 +20,9 @@ export interface Pet {
   insurance_policy_number: string | null;
   status: PetStatus;
   day_boundary_hour: number;
+  /** Minutes after a due time before it's shown as overdue rather than "due now" — gives a
+   * caregiver a moment to log something without it immediately reading as missed. */
+  due_grace_minutes: number;
   /** IANA timezone (e.g. "America/New_York") — what medication schedule times are relative to. */
   timezone: string;
   /** Null once the creating account has been deleted — an audit field, not used for access control. */
@@ -44,6 +47,7 @@ export interface PetMember {
   notify_medication_due: boolean;
   notify_walk_due: boolean;
   notify_food_due: boolean;
+  notify_water_due: boolean;
   /** Someone else logged a walk/water/food or gave a medication dose. Incidents are separate — see below. */
   notify_completed_by_others: boolean;
   /** Which incident categories notify this member when logged by someone else — e.g. seizures but not
@@ -190,8 +194,8 @@ export interface VetQuestion {
  * specific_days: fixed clock times on selected weekdays only (0=Sunday..6=Saturday).
  *
  * Shared by medications (which also allow "as_needed") and habit schedules
- * (walk/food expected times, which don't — a walk or a meal is always
- * expected once scheduled, there's no PRN equivalent).
+ * (walk/food/water expected times, which don't — a walk, a meal, or a water
+ * refill is always expected once scheduled, there's no PRN equivalent).
  */
 export type RecurringSchedule =
   | { kind: "times_per_day"; times: string[] }
@@ -201,9 +205,12 @@ export type RecurringSchedule =
 /** as_needed: PRN — no schedule to compute due times or a refill burn rate from. */
 export type MedicationSchedule = RecurringSchedule | { kind: "as_needed" };
 
-/** Expected times for a walk or a meal — see habit_schedules table. */
+/** Expected times for a walk, a meal, or a water refill — see habit_schedules table.
+ * Absence of a row for a given (pet_id, type) means no schedule is set — overdue
+ * checks (both the Today screen and send-reminders) simply skip that type entirely
+ * rather than falling back to a guessed cadence. */
 export type HabitSchedule = RecurringSchedule;
-export type HabitScheduleType = "walk" | "food";
+export type HabitScheduleType = "walk" | "food" | "water";
 
 export interface HabitScheduleRow {
   pet_id: string;

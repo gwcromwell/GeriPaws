@@ -83,6 +83,7 @@ export async function updatePet(petId: string, input: UpdatePetInput): Promise<P
   if (input.allergies !== undefined) patch.allergies = input.allergies;
   if (input.insuranceProvider !== undefined) patch.insurance_provider = input.insuranceProvider;
   if (input.insurancePolicyNumber !== undefined) patch.insurance_policy_number = input.insurancePolicyNumber;
+  if (input.dueGraceMinutes !== undefined) patch.due_grace_minutes = input.dueGraceMinutes;
 
   const { data, error } = await supabase.from("pets").update(patch).eq("id", petId).select().single();
   if (error) throw error;
@@ -163,6 +164,7 @@ export async function updateMyPreferences(petId: string, input: MemberPreference
   if (input.notifyMedicationDue !== undefined) patch.notify_medication_due = input.notifyMedicationDue;
   if (input.notifyWalkDue !== undefined) patch.notify_walk_due = input.notifyWalkDue;
   if (input.notifyFoodDue !== undefined) patch.notify_food_due = input.notifyFoodDue;
+  if (input.notifyWaterDue !== undefined) patch.notify_water_due = input.notifyWaterDue;
   if (input.notifyCompletedByOthers !== undefined) patch.notify_completed_by_others = input.notifyCompletedByOthers;
   if (input.notifyIncidentCategories !== undefined) patch.notify_incident_categories = input.notifyIncidentCategories;
 

@@ -2,7 +2,7 @@ import { computeDueTimesForDay, getDayStart, type Medication, type MedicationDos
 
 export { getDayStart };
 
-export type DueDoseStatus = 'due' | 'overdue' | 'given' | 'skipped';
+export type DueDoseStatus = 'upcoming' | 'due' | 'overdue' | 'given' | 'skipped';
 
 export interface DueDose {
   medication: Medication;
@@ -22,12 +22,13 @@ function isMedicationActive(medication: Medication, now: Date): boolean {
 }
 
 export function computeTodayDueDoses(
-  pet: { day_boundary_hour: number; timezone: string },
+  pet: { day_boundary_hour: number; timezone: string; due_grace_minutes: number },
   medications: Medication[],
   dosesToday: MedicationDose[],
   now: Date = new Date()
 ): DueDose[] {
   const dayStart = getDayStart(now, pet.day_boundary_hour, pet.timezone);
+  const graceMs = pet.due_grace_minutes * 60_000;
   const result: DueDose[] = [];
 
   for (const medication of medications) {
@@ -45,7 +46,8 @@ export function computeTodayDueDoses(
       let status: DueDoseStatus;
       if (existing?.skipped) status = 'skipped';
       else if (existing?.given_at) status = 'given';
-      else if (scheduledAt < now) status = 'overdue';
+      else if (scheduledAt > now) status = 'upcoming';
+      else if (now.getTime() - scheduledAt.getTime() > graceMs) status = 'overdue';
       else status = 'due';
 
       result.push({ medication, scheduledAt, status, dose: existing });

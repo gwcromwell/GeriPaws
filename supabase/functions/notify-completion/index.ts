@@ -43,7 +43,11 @@ interface CompletionPayload {
 async function getActorName(userId: string | null): Promise<string> {
   if (!userId) return "Someone";
   const { data } = await supabase.from("profiles").select("display_name, email").eq("id", userId).maybeSingle();
-  return data?.display_name || data?.email || "Someone";
+  // Never show the full email address in a push notification — fall back to
+  // the part before the @ (matches the app's own displayNameFor, see
+  // apps/geripaws-app/src/lib/profiles.ts) rather than "amanda@example.com
+  // gave Kenobi's Keppra".
+  return data?.display_name || data?.email?.split("@")[0] || "Someone";
 }
 
 async function buildMessage(payload: CompletionPayload, actorName: string): Promise<string> {

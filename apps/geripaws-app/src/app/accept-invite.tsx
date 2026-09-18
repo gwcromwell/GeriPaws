@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
@@ -51,7 +52,7 @@ export default function AcceptInviteScreen() {
 
   if (!token) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={styles.centered}>
         <ThemedText themeColor="error">This invite link is missing its token.</ThemedText>
       </ThemedView>
     );
@@ -59,7 +60,7 @@ export default function AcceptInviteScreen() {
 
   if (session) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={styles.centered}>
         <ThemedText>{error ?? 'Accepting invite…'}</ThemedText>
       </ThemedView>
     );
@@ -86,61 +87,65 @@ export default function AcceptInviteScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="subtitle">
-        {mode === 'sign-in' ? 'Sign in to accept this invite' : 'Create an account to accept this invite'}
-      </ThemedText>
-      {mode === 'sign-up' ? (
-        <ThemedText themeColor="textSecondary" type="small">
-          No password was sent — choose your own below to create your account.
+    <ThemedView style={styles.flex}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.container}>
+        <ThemedText type="subtitle">
+          {mode === 'sign-in' ? 'Sign in to accept this invite' : 'Create an account to accept this invite'}
         </ThemedText>
-      ) : null}
+        {mode === 'sign-up' ? (
+          <ThemedText themeColor="textSecondary" type="small">
+            No password was sent — choose your own below to create your account.
+          </ThemedText>
+        ) : null}
 
-      <ThemedTextInput
-        label="Email"
-        helperText="Use the address this invite was sent to"
-        placeholder="you@example.com"
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        returnKeyType="next"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <ThemedTextInput
-        label="Password"
-        helperText={mode === 'sign-up' ? 'At least 8 characters' : undefined}
-        placeholder={mode === 'sign-up' ? 'Choose a password' : 'Your password'}
-        autoComplete={mode === 'sign-up' ? 'password-new' : 'password'}
-        secureTextEntry
-        returnKeyType="go"
-        onSubmitEditing={handleSubmit}
-        value={password}
-        onChangeText={setPassword}
-      />
+        <ThemedTextInput
+          label="Email"
+          helperText="Use the address this invite was sent to"
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          returnKeyType="next"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <ThemedTextInput
+          label="Password"
+          helperText={mode === 'sign-up' ? 'At least 8 characters' : undefined}
+          placeholder={mode === 'sign-up' ? 'Choose a password' : 'Your password'}
+          autoComplete={mode === 'sign-up' ? 'password-new' : 'password'}
+          secureTextEntry
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
-      {info ? <ThemedText>{info}</ThemedText> : null}
+        {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
+        {info ? <ThemedText>{info}</ThemedText> : null}
 
-      <Button label={mode === 'sign-in' ? 'Sign in' : 'Sign up'} onPress={handleSubmit} style={styles.button} />
+        <Button label={mode === 'sign-in' ? 'Sign in' : 'Sign up'} onPress={handleSubmit} style={styles.button} />
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {
-          setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
-          setError(null);
-          setInfo(null);
-        }}>
-        <ThemedText type="link" themeColor="tint" style={styles.switchMode}>
-          {mode === 'sign-in' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-        </ThemedText>
-      </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
+            setError(null);
+            setInfo(null);
+          }}>
+          <ThemedText type="link" themeColor="tint" style={styles.switchMode}>
+            {mode === 'sign-in' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          </ThemedText>
+        </Pressable>
+      </KeyboardAwareScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center', gap: 12 },
+  flex: { flex: 1 },
+  centered: { flex: 1, padding: 24, justifyContent: 'center', gap: 12 },
+  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 12 },
   button: { marginTop: 8 },
   switchMode: { textAlign: 'center', marginTop: 8 },
 });

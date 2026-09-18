@@ -76,7 +76,7 @@ export default function AppLayout() {
       <Stack.Screen name="pets/[id]/qol/index" options={{ title: 'Quality of Life' }} />
       <Stack.Screen name="pets/[id]/qol/settings" options={{ title: 'QOL Settings', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/qol/new" options={{ title: 'Check-in', presentation: 'modal' }} />
-      <Stack.Screen name="pets/[id]/schedule" options={{ title: 'Walk & Food Schedule', presentation: 'modal' }} />
+      <Stack.Screen name="pets/[id]/schedule" options={{ title: 'Walk, Food & Water Schedule', presentation: 'modal' }} />
     </Stack>
   );
 }

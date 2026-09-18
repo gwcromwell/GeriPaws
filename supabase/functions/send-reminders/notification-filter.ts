@@ -7,7 +7,13 @@
 // Pulled out of index.ts's Deno.serve handler so this branching logic is
 // unit-testable without a Supabase client or network access.
 
-export type IssueKind = "medication_overdue" | "refill_low" | "qol_overdue" | "walk_overdue" | "food_overdue";
+export type IssueKind =
+  | "medication_overdue"
+  | "refill_low"
+  | "qol_overdue"
+  | "walk_overdue"
+  | "food_overdue"
+  | "water_overdue";
 
 export interface Issue {
   kind: IssueKind;
@@ -18,6 +24,7 @@ export interface RecipientNotifyPrefs {
   notify_medication_due: boolean;
   notify_walk_due: boolean;
   notify_food_due: boolean;
+  notify_water_due: boolean;
 }
 
 // refill_low and qol_overdue have no dedicated toggle (none was requested) —
@@ -26,6 +33,7 @@ const GATED_KIND_TO_PREF: Partial<Record<IssueKind, keyof RecipientNotifyPrefs>>
   medication_overdue: "notify_medication_due",
   walk_overdue: "notify_walk_due",
   food_overdue: "notify_food_due",
+  water_overdue: "notify_water_due",
 };
 
 export function filterIssuesForRecipient(issues: Issue[], prefs: RecipientNotifyPrefs): Issue[] {
