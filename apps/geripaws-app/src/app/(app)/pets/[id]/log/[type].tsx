@@ -130,7 +130,7 @@ export default function LogHabitScreen() {
         return {
           durationMin: durationMin ? Number(durationMin) : undefined,
           elimination,
-          stoolQuality,
+          stoolQuality: elimination === 'poop' || elimination === 'both' ? stoolQuality : undefined,
           diaperNeeded: diaperNeeded === 'yes',
           diaperChanged: diaperChanged === 'yes',
           notes: notes || undefined,
@@ -230,21 +230,28 @@ export default function LogHabitScreen() {
               { value: 'none', label: 'Nothing' },
             ]}
             value={elimination}
-            onChange={setElimination}
+            onChange={(v) => {
+              setElimination(v);
+              // Only pooping produces stool to assess — clear a stale selection
+              // rather than silently submitting it once it's no longer shown.
+              if (v !== 'poop' && v !== 'both') setStoolQuality(undefined);
+            }}
           />
-          <ChoiceChips
-            label="Stool quality"
-            helperText="Optional — helps spot digestive changes over time"
-            options={[
-              { value: 'normal', label: 'Normal' },
-              { value: 'soft', label: 'Soft' },
-              { value: 'diarrhea', label: 'Diarrhea' },
-              { value: 'hard', label: 'Hard' },
-              { value: 'bloody', label: 'Bloody' },
-            ]}
-            value={stoolQuality}
-            onChange={setStoolQuality}
-          />
+          {elimination === 'poop' || elimination === 'both' ? (
+            <ChoiceChips
+              label="Stool quality"
+              helperText="Optional — helps spot digestive changes over time"
+              options={[
+                { value: 'normal', label: 'Normal' },
+                { value: 'soft', label: 'Soft' },
+                { value: 'diarrhea', label: 'Diarrhea' },
+                { value: 'hard', label: 'Hard' },
+                { value: 'bloody', label: 'Bloody' },
+              ]}
+              value={stoolQuality}
+              onChange={setStoolQuality}
+            />
+          ) : null}
           <ChoiceChips
             label="Diaper needed?"
             options={[
