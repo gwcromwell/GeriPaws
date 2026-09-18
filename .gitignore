@@ -13,8 +13,8 @@ web-build/
 .env.*.local
 
 # Supabase
-supabase/.temp/
-supabase/.branches/
+**/supabase/.temp/
+**/supabase/.branches/
 
 # Editor
 .vscode/*

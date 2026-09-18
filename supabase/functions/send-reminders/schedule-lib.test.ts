@@ -92,7 +92,7 @@ Deno.test("computeDueTimesForDay — as_needed and unknown kinds produce nothing
 
 Deno.test("computeDosesPerDay — every schedule kind", () => {
   assertEquals(computeDosesPerDay({ kind: "times_per_day", times: ["08:00", "20:00"] }), 2);
-  assertEquals(computeDosesPerDay({ kind: "interval_hours", intervalHours: 8 }), 3);
+  assertEquals(computeDosesPerDay({ kind: "interval_hours", intervalHours: 8, startTime: "08:00" }), 3);
   assertEquals(computeDosesPerDay({ kind: "specific_days", daysOfWeek: [1, 4], times: ["08:00", "20:00"] }), 4 / 7);
   assertEquals(computeDosesPerDay({ kind: "as_needed" }), null);
 });

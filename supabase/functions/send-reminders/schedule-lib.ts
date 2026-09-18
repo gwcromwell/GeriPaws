@@ -15,6 +15,15 @@
 // function's whole directory), so the "no cross-function imports" rule this
 // duplicates packages/shared to satisfy is unaffected.
 
+// Mirrors packages/shared/src/types.ts's RecurringSchedule/MedicationSchedule —
+// duplicated (not imported) for the same self-containment reason as the logic
+// above. Keep in sync if the shared union changes shape.
+type RecurringSchedule =
+  | { kind: "times_per_day"; times: string[] }
+  | { kind: "interval_hours"; intervalHours: number; startTime: string }
+  | { kind: "specific_days"; daysOfWeek: number[]; times: string[] };
+type MedicationSchedule = RecurringSchedule | { kind: "as_needed" };
+
 /** Offset (in minutes) of `timeZone` from UTC at the given instant — positive east of UTC. */
 export function getTzOffsetMinutes(timeZone: string, instant: Date): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
@@ -99,8 +108,7 @@ export function applyTimeToDay(dayStart: Date, time: string, timeZone: string): 
  * the pet's own timezone — where `dayStart` is the start of that day already
  * adjusted for the pet's day_boundary_hour (see getDayStart below).
  */
-// deno-lint-ignore no-explicit-any
-export function computeDueTimesForDay(schedule: any, dayStart: Date, timeZone: string): Date[] {
+export function computeDueTimesForDay(schedule: MedicationSchedule, dayStart: Date, timeZone: string): Date[] {
   switch (schedule.kind) {
     case "times_per_day":
       return schedule.times.map((t: string) => applyTimeToDay(dayStart, t, timeZone));
@@ -123,8 +131,7 @@ export function computeDueTimesForDay(schedule: any, dayStart: Date, timeZone: s
 }
 
 /** Average doses per day this schedule implies, or null for as-needed (PRN) schedules. */
-// deno-lint-ignore no-explicit-any
-export function computeDosesPerDay(schedule: any): number | null {
+export function computeDosesPerDay(schedule: MedicationSchedule): number | null {
   switch (schedule.kind) {
     case "times_per_day":
       return schedule.times.length;
