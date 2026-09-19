@@ -1,0 +1,51 @@
+name: E2E (live Supabase)
+
+# Deliberately manual-trigger only, not wired into test.yml's every-push/PR
+# run: these tests create and delete real accounts against the live project
+# (see apps/geripaws-app/e2e/), so running them on every branch push would
+# both touch production data far more often than needed and require handing
+# a DB-capable credential to a workflow that runs on untrusted PR branches.
+# Run this by hand before a release, or promote it to `on: pull_request`
+# later if that tradeoff becomes worth it.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: corepack enable
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: apps/geripaws-app
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e suite
+        working-directory: apps/geripaws-app
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          CI: "1"
+        run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/geripaws-app/playwright-report/
+          retention-days: 14

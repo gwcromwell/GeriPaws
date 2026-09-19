@@ -10,6 +10,7 @@
     "ios": "pnpm --filter geripaws-app ios",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "pnpm --filter geripaws-app test:e2e",
     "typecheck": "pnpm --filter @geripaws/shared exec tsc --noEmit && pnpm --filter geripaws-app exec tsc --noEmit",
     "lint": "pnpm --filter geripaws-app lint"
   },
