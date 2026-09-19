@@ -6,11 +6,12 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { AvatarPicker } from '@/components/avatar-picker';
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
-import { DateOfBirthField } from '@/components/date-of-birth-field';
+import { DateOfBirthField } from '@/components/date-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { createPet, updatePet, uploadPetPhoto } from '@/lib/pets';
+import { MaxContentWidth } from '@/constants/theme';
 
 export default function NewPetScreen() {
   const router = useRouter();
@@ -117,7 +118,7 @@ export default function NewPetScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, gap: 16 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

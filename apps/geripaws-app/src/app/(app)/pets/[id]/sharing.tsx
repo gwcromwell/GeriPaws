@@ -12,6 +12,7 @@ import { useScreenLoad } from '@/hooks/use-screen-load';
 import { confirmDestructive } from '@/lib/confirm';
 import { displayNameFor, fetchProfilesForPet, type ProfileMap } from '@/lib/profiles';
 import { supabase } from '@/lib/supabase';
+import { MaxContentWidth } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import {
@@ -123,13 +124,16 @@ export default function SharingScreen() {
 
   if (!pet) {
     return (
-      <ThemedView style={styles.container}>
-        {error ? <ThemedText themeColor="error">{error}</ThemedText> : <ThemedText>Loading…</ThemedText>}
+      <ThemedView style={styles.flex}>
+        <ThemedView style={styles.container}>
+          {error ? <ThemedText themeColor="error">{error}</ThemedText> : <ThemedText>Loading…</ThemedText>}
+        </ThemedView>
       </ThemedView>
     );
   }
 
   return (
+    <ThemedView style={styles.flex}>
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>
         {pet.name}
@@ -149,7 +153,14 @@ export default function SharingScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${name} as a caregiver`}
-                onPress={() => removeMember(pet.id, m.user_id).then(load)}>
+                onPress={() =>
+                  confirmDestructive(
+                    `Remove ${name}?`,
+                    `${name} will lose access to ${pet.name}. They can be invited again later.`,
+                    () => removeMember(pet.id, m.user_id).then(load),
+                    'Remove'
+                  )
+                }>
                 <ThemedText themeColor="error" type="small">
                   Remove
                 </ThemedText>
@@ -230,7 +241,14 @@ export default function SharingScreen() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Revoke invite for ${invite.email}`}
-                      onPress={() => revokeInvite(invite.id).then(load)}
+                      onPress={() =>
+                        confirmDestructive(
+                          'Revoke invite?',
+                          `The invite link sent to ${invite.email} will stop working.`,
+                          () => revokeInvite(invite.id).then(load),
+                          'Revoke'
+                        )
+                      }
                       hitSlop={12}>
                       <ThemedText themeColor="error" type="small">
                         Revoke
@@ -255,11 +273,13 @@ export default function SharingScreen() {
         </ThemedText>
       ) : null}
     </ThemedView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8 },
+  flex: { flex: 1 },
+  container: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   title: { fontSize: 28 },
   sectionTitle: { marginTop: 20, marginBottom: 4 },
   row: {

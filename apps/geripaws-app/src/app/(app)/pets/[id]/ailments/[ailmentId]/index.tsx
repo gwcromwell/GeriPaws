@@ -25,6 +25,7 @@ import { confirmDestructive } from '@/lib/confirm';
 import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
 import { fetchMedications } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
+import { MaxContentWidth } from '@/constants/theme';
 
 const STATUS_OPTIONS: { value: AilmentStatus; label: string }[] = [
   { value: 'active', label: 'Active' },
@@ -284,7 +285,7 @@ export default function AilmentDetailScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 8 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   title: { fontSize: 28 },
   sectionTitle: { marginTop: 20, marginBottom: 4 },
   row: {

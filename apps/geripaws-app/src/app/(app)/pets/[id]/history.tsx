@@ -10,11 +10,13 @@ import { ThemedView } from '@/components/themed-view';
 import { TimelineRow } from '@/components/timeline-row';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme } from '@/hooks/use-theme';
+import { confirmDestructive } from '@/lib/confirm';
 import { deleteHabitLog, fetchHabitLogs } from '@/lib/habits';
 import { formatDateTime, summarizeHabitLog } from '@/lib/format';
 import { fetchAllDosesForPet, type MedicationDoseWithMedication } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
 import { fetchTimeline, type TimelineEntry } from '@/lib/timeline';
+import { MaxContentWidth } from '@/constants/theme';
 
 const TYPE_LABEL: Record<HabitLog['type'], string> = {
   walk: 'Walk',
@@ -73,6 +75,7 @@ export default function HistoryScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <ThemedView style={styles.centered}>
       <TabBar tabs={TABS} value={tab} onChange={setTab} />
       <ThemedView style={styles.body}>
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
@@ -193,7 +196,11 @@ export default function HistoryScreen() {
                     accessibilityLabel={`Delete ${TYPE_LABEL[item.type].toLowerCase()} entry from ${formatDateTime(item.occurred_at)}`}
                     onPress={(e) => {
                       e.stopPropagation();
-                      deleteHabitLog(item.id).then(load);
+                      confirmDestructive(
+                        `Delete ${TYPE_LABEL[item.type].toLowerCase()} entry?`,
+                        `This removes the entry from ${formatDateTime(item.occurred_at)}. This cannot be undone.`,
+                        () => deleteHabitLog(item.id).then(load)
+                      );
                     }}
                     hitSlop={12}>
                     <ThemedText themeColor="error" type="small">
@@ -207,12 +214,14 @@ export default function HistoryScreen() {
         </>
       )}
       </ThemedView>
+      </ThemedView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centered: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%' },
   body: { flex: 1, padding: 16 },
   list: { gap: 4 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },

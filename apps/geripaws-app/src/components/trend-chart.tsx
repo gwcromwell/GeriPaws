@@ -28,9 +28,13 @@ export function TrendChart({ points: rawPoints, maxValue, color }: Props) {
   const max = maxValue !== undefined ? maxValue : Math.max(...values);
   const range = max - min || 1;
 
+  const chartLabel = `Trend chart, ${points.length} entr${points.length === 1 ? 'y' : 'ies'} from ${formatDate(
+    points[0].date
+  )} to ${formatDate(points[points.length - 1].date)}. Values: ${values.join(', ')}.`;
+
   return (
     <View style={styles.container}>
-      <View style={[styles.chart, { height: CHART_HEIGHT }]}>
+      <View style={[styles.chart, { height: CHART_HEIGHT }]} accessibilityRole="image" accessibilityLabel={chartLabel}>
         {points.map((point) => {
           const heightPct = Math.max(4, ((point.value - min) / range) * 100);
           return (

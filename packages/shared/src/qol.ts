@@ -3,22 +3,26 @@ import type { QolCadence, QolFullScores, QolQuickScores, QolScores } from "./typ
 export const QOL_FULL_MAX = 70;
 export const QOL_QUICK_RAW_MAX = 50;
 
-export const QOL_FULL_DIMENSIONS: { key: keyof Omit<QolFullScores, "scale">; label: string }[] = [
-  { key: "hurt", label: "Hurt" },
-  { key: "hunger", label: "Hunger" },
-  { key: "hydration", label: "Hydration" },
-  { key: "hygiene", label: "Hygiene" },
-  { key: "happiness", label: "Happiness" },
-  { key: "mobility", label: "Mobility" },
-  { key: "moreGoodDaysThanBad", label: "More good days than bad" },
+export const QOL_FULL_DIMENSIONS: { key: keyof Omit<QolFullScores, "scale">; label: string; description: string }[] = [
+  { key: "hurt", label: "Hurt", description: "Is pain well controlled, and can they breathe easily?" },
+  { key: "hunger", label: "Hunger", description: "Are they eating enough on their own?" },
+  { key: "hydration", label: "Hydration", description: "Are they drinking enough, with no signs of dehydration?" },
+  { key: "hygiene", label: "Hygiene", description: "Can they be kept clean and dry, especially after accidents?" },
+  { key: "happiness", label: "Happiness", description: "Do they still show interest, joy, and respond to you?" },
+  { key: "mobility", label: "Mobility", description: "Can they get up, walk, eat, and drink without help?" },
+  {
+    key: "moreGoodDaysThanBad",
+    label: "More good days than bad",
+    description: "Looking at the past week or two as a whole, are good days winning?",
+  },
 ];
 
-export const QOL_QUICK_DIMENSIONS: { key: keyof Omit<QolQuickScores, "scale">; label: string }[] = [
-  { key: "comfort", label: "Comfort" },
-  { key: "appetite", label: "Appetite" },
-  { key: "happiness", label: "Happiness" },
-  { key: "mobility", label: "Mobility" },
-  { key: "overall", label: "Overall" },
+export const QOL_QUICK_DIMENSIONS: { key: keyof Omit<QolQuickScores, "scale">; label: string; description: string }[] = [
+  { key: "comfort", label: "Comfort", description: "Overall physical comfort — pain, breathing, general ease" },
+  { key: "appetite", label: "Appetite", description: "Eating and drinking normally" },
+  { key: "happiness", label: "Happiness", description: "Still showing interest and joy" },
+  { key: "mobility", label: "Mobility", description: "Getting around without help" },
+  { key: "overall", label: "Overall", description: "Your gut sense of their quality of life today" },
 ];
 
 /** Always normalized to a 0-70 scale so full and quick check-ins plot on the same trend line. */

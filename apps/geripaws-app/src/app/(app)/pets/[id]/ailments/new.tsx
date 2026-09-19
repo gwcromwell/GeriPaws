@@ -5,11 +5,13 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
+import { DateField } from '@/components/date-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { createAilment } from '@/lib/ailments';
 import { CONDITION_TEMPLATES } from '@/lib/condition-templates';
+import { MaxContentWidth } from '@/constants/theme';
 
 export default function NewAilmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,13 +80,11 @@ export default function NewAilmentScreen() {
         value={name}
         onChangeText={setName}
       />
-      <ThemedTextInput
+      <DateField
         label="Date diagnosed"
-        helperText="Optional — YYYY-MM-DD"
-        placeholder="2026-01-15"
-        returnKeyType="next"
-        value={diagnosedAt}
-        onChangeText={setDiagnosedAt}
+        helperText="Optional"
+        value={diagnosedAt || undefined}
+        onChange={(v) => setDiagnosedAt(v ?? '')}
       />
       <ThemedTextInput
         label="Diagnosing vet"
@@ -118,7 +118,7 @@ export default function NewAilmentScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, gap: 16 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

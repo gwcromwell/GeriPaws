@@ -12,20 +12,25 @@ import type {
   WeightDetails,
 } from '@geripaws/shared';
 import { habitLogInputSchema } from '@geripaws/shared';
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { AttachmentGrid } from '@/components/attachment-grid';
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
+import { MediaPicker, type PickedMedia } from '@/components/media-picker';
 import { OccurredAtField } from '@/components/occurred-at-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { uploadAttachment } from '@/lib/attachments';
 import { createHabitLog, fetchHabitLog, updateHabitLog } from '@/lib/habits';
+import { prepareImageForUpload } from '@/lib/media';
 
 import { useTheme } from '@/hooks/use-theme';
+import { MaxContentWidth } from '@/constants/theme';
 const TITLES: Record<HabitType, string> = {
   walk: 'Log a walk',
   water: 'Log water',
@@ -53,10 +58,14 @@ export default function LogHabitScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingLog, setIsLoadingLog] = useState(isEditing);
-  // Set once a brand-new incident is first saved, so photos/video can then be
-  // attached to it without leaving the screen — see handleSubmit below.
-  const [createdLogId, setCreatedLogId] = useState<string | null>(null);
-  const attachmentEntityId = logId ?? createdLogId;
+  // Photos/video picked for a brand-new incident before it has an id yet —
+  // staged locally and uploaded right after the record is created, as part
+  // of the same Save action (see handleSubmit below).
+  const [stagedMedia, setStagedMedia] = useState<PickedMedia[]>([]);
+  // Set once a brand-new incident's record has been created — lets a retry
+  // (after a partial attachment-upload failure) update instead of
+  // re-creating a duplicate entry.
+  const [createdIncidentId, setCreatedIncidentId] = useState<string | null>(null);
 
   // walk fields
   const [durationMin, setDurationMin] = useState('');
@@ -173,21 +182,46 @@ export default function LogHabitScreen() {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (attachmentEntityId) {
-        await updateHabitLog(attachmentEntityId, { occurredAt: result.data.occurredAt, details: result.data.details });
+      if (logId) {
+        await updateHabitLog(logId, { occurredAt: result.data.occurredAt, details: result.data.details });
         router.back();
+        return;
+      }
+
+      let newLogId = createdIncidentId;
+      if (newLogId) {
+        // Retrying after a previous attempt already created the record but
+        // failed to upload every attachment — update it instead of creating
+        // a duplicate.
+        await updateHabitLog(newLogId, { occurredAt: result.data.occurredAt, details: result.data.details });
       } else {
         const created = await createHabitLog(result.data);
-        if (type === 'incident') {
-          // Stay on screen instead of navigating away — an incident needs to
-          // exist before photos/video can be attached to it (see
-          // attachmentEntityId above), so this reveals that section rather
-          // than requiring a separate trip back into edit mode.
-          setCreatedLogId(created.id);
-        } else {
-          router.back();
+        newLogId = created.id;
+        setCreatedIncidentId(created.id);
+      }
+
+      if (type === 'incident' && stagedMedia.length > 0) {
+        const failed: PickedMedia[] = [];
+        for (let i = 0; i < stagedMedia.length; i++) {
+          const item = stagedMedia[i];
+          try {
+            const uri =
+              item.mediaType === 'image' ? await prepareImageForUpload(item.uri, item.width, item.height) : item.uri;
+            await uploadAttachment(id, 'habit_log', newLogId, uri, item.mediaType, i);
+          } catch {
+            failed.push(item);
+          }
+        }
+        if (failed.length > 0) {
+          setStagedMedia(failed);
+          setError(
+            `Saved, but ${failed.length} attachment${failed.length > 1 ? 's' : ''} failed to upload — tap Save to retry.`
+          );
+          return;
         }
       }
+
+      router.back();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -387,8 +421,43 @@ export default function LogHabitScreen() {
         onChangeText={setNotes}
       />
 
-      {type === 'incident' ? (
-        <AttachmentGrid petId={id} entityType="habit_log" entityId={attachmentEntityId} canEdit={!isLoadingLog} />
+      {type === 'incident' && logId ? (
+        <AttachmentGrid petId={id} entityType="habit_log" entityId={logId} canEdit={!isLoadingLog} />
+      ) : null}
+
+      {type === 'incident' && !logId ? (
+        <View style={styles.attachmentsSection}>
+          <ThemedText type="smallBold">Photos & video</ThemedText>
+          <View style={styles.attachmentsGrid}>
+            {stagedMedia.map((item, index) => (
+              <View key={`${item.uri}-${index}`} style={styles.attachmentTileWrap}>
+                <View style={[styles.attachmentTile, { backgroundColor: theme.tileBg }]}>
+                  {item.mediaType === 'image' ? (
+                    <Image source={{ uri: item.uri }} style={styles.attachmentThumb} contentFit="cover" />
+                  ) : (
+                    <ThemedText type="title" style={{ color: theme.accent }}>
+                      ▶
+                    </ThemedText>
+                  )}
+                </View>
+                <Pressable
+                  onPress={() => setStagedMedia((prev) => prev.filter((_, i) => i !== index))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove"
+                  hitSlop={12}
+                  style={[styles.attachmentDeleteBadge, { backgroundColor: theme.error }]}>
+                  <ThemedText type="small" themeColor="background">
+                    ×
+                  </ThemedText>
+                </Pressable>
+              </View>
+            ))}
+            <MediaPicker
+              onPick={(items) => setStagedMedia((prev) => [...prev, ...items])}
+              disabled={isSubmitting}
+            />
+          </View>
+        </View>
       ) : null}
 
       {error ? (
@@ -398,7 +467,7 @@ export default function LogHabitScreen() {
       ) : null}
 
       <Button
-        label={isSubmitting ? 'Saving…' : createdLogId ? 'Done' : 'Save'}
+        label={isSubmitting ? 'Saving…' : 'Save'}
         onPress={handleSubmit}
         disabled={isSubmitting}
         style={styles.button}
@@ -410,7 +479,7 @@ export default function LogHabitScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, gap: 16 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   notesInput: {
     borderWidth: 1,
     borderRadius: 8,
@@ -421,4 +490,19 @@ const styles = StyleSheet.create({
   },
   button: { marginTop: 8 },
   message: { textAlign: 'center' },
+  attachmentsSection: { gap: 8 },
+  attachmentsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  attachmentTileWrap: { position: 'relative' },
+  attachmentTile: { width: 72, height: 72, borderRadius: 10, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  attachmentThumb: { width: '100%', height: '100%' },
+  attachmentDeleteBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

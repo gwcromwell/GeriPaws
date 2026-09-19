@@ -63,12 +63,12 @@ export default function AppLayout() {
       <Stack.Screen name="pets/[id]/index" options={{ title: 'Today' }} />
       <Stack.Screen name="pets/[id]/edit" options={{ title: 'Edit Profile', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/preferences" options={{ title: 'Preferences', presentation: 'modal' }} />
-      <Stack.Screen name="pets/[id]/sharing" options={{ title: 'Sharing' }} />
+      <Stack.Screen name="pets/[id]/sharing" options={{ title: 'Caregivers' }} />
       <Stack.Screen name="pets/[id]/history" options={{ title: 'History' }} />
       <Stack.Screen name="pets/[id]/weight" options={{ title: 'Weight' }} />
       <Stack.Screen name="pets/[id]/log/[type]" options={{ title: 'Log Entry', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/ailments/index" options={{ title: 'Ailments & Medications' }} />
-      <Stack.Screen name="pets/[id]/vet-summary" options={{ title: 'Vet Visit Summary' }} />
+      <Stack.Screen name="pets/[id]/vet-summary" options={{ title: 'For Your Vet' }} />
       <Stack.Screen name="pets/[id]/ailments/new" options={{ title: 'Add a Condition', presentation: 'modal' }} />
       <Stack.Screen name="pets/[id]/ailments/[ailmentId]/index" options={{ title: 'Condition' }} />
       <Stack.Screen name="pets/[id]/medications/new" options={{ title: 'Medication', presentation: 'modal' }} />

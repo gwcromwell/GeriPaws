@@ -9,6 +9,7 @@ import { ChoiceChips } from '@/components/choice-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useScreenLoad } from '@/hooks/use-screen-load';
+import { MaxContentWidth } from '@/constants/theme';
 import { fetchQolSettings, upsertQolSettings } from '@/lib/qol';
 
 export default function QolSettingsScreen() {
@@ -51,6 +52,7 @@ export default function QolSettingsScreen() {
   }
 
   return (
+    <ThemedView style={styles.flex}>
     <ThemedView style={styles.container}>
       <ThemedText type="subtitle">Quality of Life settings</ThemedText>
 
@@ -100,11 +102,13 @@ export default function QolSettingsScreen() {
 
       <Button label={isSubmitting ? 'Saving…' : 'Save'} onPress={handleSave} disabled={isSubmitting} style={styles.button} />
     </ThemedView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 16 },
+  flex: { flex: 1 },
+  container: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

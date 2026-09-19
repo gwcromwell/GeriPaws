@@ -12,6 +12,7 @@ import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { confirmDestructive } from '@/lib/confirm';
 import { createQolResponse, deleteQolResponse, fetchQolResponse, updateQolResponse } from '@/lib/qol';
+import { MaxContentWidth } from '@/constants/theme';
 
 export default function QolCheckInScreen() {
   const { id, responseId } = useLocalSearchParams<{ id: string; responseId?: string }>();
@@ -49,6 +50,12 @@ export default function QolCheckInScreen() {
   const dimensions = scale === 'full' ? QOL_FULL_DIMENSIONS : QOL_QUICK_DIMENSIONS;
 
   async function handleSubmit() {
+    const missing = dimensions.filter(({ key }) => values[key] === undefined).map(({ label }) => label);
+    if (missing.length > 0) {
+      setError(`Please score: ${missing.join(', ')}`);
+      return;
+    }
+
     const rawScores = { scale, ...values };
     const scoresResult = qolScoresSchema.safeParse(rawScores);
     if (!scoresResult.success) {
@@ -109,10 +116,11 @@ export default function QolCheckInScreen() {
           </ThemedText>
         )}
 
-        {dimensions.map(({ key, label }) => (
+        {dimensions.map(({ key, label, description }) => (
           <ScoreSelector
             key={key}
             label={label}
+            description={description}
             value={values[key]}
             onChange={(v) => setValues((prev) => ({ ...prev, [key]: v }))}
           />
@@ -155,7 +163,7 @@ export default function QolCheckInScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, gap: 16 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   button: { marginTop: 8 },
   deleteButton: { marginTop: 8 },
   message: { textAlign: 'center' },

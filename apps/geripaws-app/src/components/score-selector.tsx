@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   label: string;
+  description?: string;
   value: number | undefined;
   onChange: (value: number) => void;
 };
@@ -18,7 +19,7 @@ const THUMB_SIZE = 22;
  * dimension (see the GeriPaws UI Review, Priority 2: a full check-in used to
  * render 7 rows of 11 chips each, most of which scrolled off-screen). Same
  * component name and props as before so qol/new.tsx didn't need to change. */
-export function ScoreSelector({ label, value, onChange }: Props) {
+export function ScoreSelector({ label, description, value, onChange }: Props) {
   const theme = useTheme();
   const widthRef = useRef(0);
   const onChangeRef = useRef(onChange);
@@ -77,10 +78,15 @@ export function ScoreSelector({ label, value, onChange }: Props) {
           </ThemedText>
         </View>
       </View>
+      {description ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {description}
+        </ThemedText>
+      ) : null}
 
       <View
         accessibilityRole="adjustable"
-        accessibilityLabel={label}
+        accessibilityLabel={description ? `${label} — ${description}` : label}
         accessibilityValue={{ min: MIN, max: MAX, now: shown }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(event) => {

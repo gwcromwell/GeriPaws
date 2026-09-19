@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { confirmDestructive } from '@/lib/confirm';
 import { formatDateTime } from '@/lib/format';
 import { deleteDose, updateDoseGivenAt, updateDoseSkipped } from '@/lib/medications';
 
@@ -50,9 +51,15 @@ export function DoseRow({ dose, canEdit, title, onPressTitle, onChanged }: Props
     }
   }
 
-  async function handleDelete() {
-    await deleteDose(dose.id);
-    onChanged();
+  function handleDelete() {
+    confirmDestructive(
+      'Delete dose record',
+      `This removes the dose scheduled ${formatDateTime(dose.scheduled_at)} from the medication's history. This cannot be undone.`,
+      async () => {
+        await deleteDose(dose.id);
+        onChanged();
+      }
+    );
   }
 
   return (

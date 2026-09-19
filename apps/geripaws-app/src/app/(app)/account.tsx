@@ -11,6 +11,7 @@ import { deleteMyAccount, fetchAccountDeletionImpact, type AccountDeletionImpact
 import { useAuth } from '@/lib/auth-context';
 import { confirmAction, confirmDestructive } from '@/lib/confirm';
 import { fetchMyProfile, updateMyProfile } from '@/lib/profiles';
+import { MaxContentWidth } from '@/constants/theme';
 
 const CONFIRM_PHRASE = 'DELETE';
 
@@ -207,7 +208,7 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 8 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   nameSection: { marginTop: 16, gap: 8 },
   saveNameButton: { alignSelf: 'flex-start' },
   signOutButton: { marginTop: 16 },

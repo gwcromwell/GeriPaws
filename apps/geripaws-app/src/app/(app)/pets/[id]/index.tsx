@@ -17,7 +17,7 @@ import { useTheme, type Theme } from '@/hooks/use-theme';
 import { createHabitLog, fetchLatestByType, fetchLogsSince } from '@/lib/habits';
 import { fetchHabitSchedules } from '@/lib/habit-schedules';
 import { computeHabitDueStatus, type HabitDueStatus } from '@/lib/habit-due-status';
-import { confirmAction } from '@/lib/confirm';
+import { confirmAction, confirmDestructive } from '@/lib/confirm';
 import { useAuth } from '@/lib/auth-context';
 import { formatAge, formatDateTime, formatRelativeTime, formatTimeOfDay } from '@/lib/format';
 import { computeTodayDueDoses, getDayStart, groupDueDoses, type DueDose } from '@/lib/medication-schedule';
@@ -27,6 +27,7 @@ import { displayNameFor, fetchProfilesForPet, type ProfileMap } from '@/lib/prof
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
 import { recordLastViewedPet } from '@/lib/quick-actions';
 import { supabase } from '@/lib/supabase';
+import { MaxContentWidth } from '@/constants/theme';
 
 function IncidentRow({ tokens, onPress }: { tokens: Theme; onPress: () => void }) {
   return (
@@ -70,7 +71,7 @@ const HABIT_TILES: { type: Extract<HabitType, 'walk' | 'water' | 'food'>; label:
 
 /** Food and water can be logged with zero detail beyond "it happened, just
  * now" — walk, weight, and incidents still open the full form. */
-const QUICK_LOGGABLE: ReadonlySet<HabitType> = new Set(['food', 'water']);
+const QUICK_LOGGABLE: ReadonlySet<HabitType> = new Set(['food', 'water', 'walk']);
 
 export default function TodayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -200,7 +201,16 @@ export default function TodayScreen() {
     }
   }
 
-  async function handleSkipDose(medication: Medication, scheduledAt: Date) {
+  function handleSkipDose(medication: Medication, scheduledAt: Date) {
+    confirmDestructive(
+      `Skip ${medication.name}?`,
+      `This marks the ${formatDateTime(scheduledAt.toISOString())} dose as skipped instead of given.`,
+      () => handleSkipDoseConfirmed(medication, scheduledAt),
+      'Skip'
+    );
+  }
+
+  async function handleSkipDoseConfirmed(medication: Medication, scheduledAt: Date) {
     try {
       await markDoseSkipped(id, medication.id, scheduledAt);
       await load();
@@ -301,7 +311,8 @@ export default function TodayScreen() {
     { label: 'Ailments', onPress: () => router.push({ pathname: '/pets/[id]/ailments', params: { id: pet.id } }) },
     { label: 'QOL', onPress: () => router.push({ pathname: '/pets/[id]/qol', params: { id: pet.id } }) },
     { label: 'Schedule', onPress: () => router.push({ pathname: '/pets/[id]/schedule', params: { id: pet.id } }) },
-    { label: 'Sharing', onPress: () => router.push({ pathname: '/pets/[id]/sharing', params: { id: pet.id } }) },
+    { label: 'For your vet', onPress: () => router.push({ pathname: '/pets/[id]/vet-summary', params: { id: pet.id } }) },
+    { label: 'Caregivers', onPress: () => router.push({ pathname: '/pets/[id]/sharing', params: { id: pet.id } }) },
     { label: 'Preferences', onPress: () => router.push({ pathname: '/pets/[id]/preferences', params: { id: pet.id } }) },
     { label: 'Account', dividerBefore: true, onPress: () => router.push('/account') },
     {
@@ -777,7 +788,7 @@ function MedicationList({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   flexOne: { flex: 1 },
-  container: { padding: 16, gap: 12 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 12 },
 
   nameplate: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 4, paddingBottom: 18, borderBottomWidth: 1, marginBottom: 4 },
   nameplateSub: { marginTop: 4 },

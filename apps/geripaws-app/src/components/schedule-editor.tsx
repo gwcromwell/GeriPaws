@@ -169,7 +169,12 @@ export function ScheduleEditor({ value, onChange, allowAsNeeded = true }: Schedu
           {value.times.map((t, index) => (
             <View key={index} style={styles.timeRow}>
               <View style={styles.timeInputFlex}>
-                <ThemedTextInput placeholder="08:00" value={t} onChangeText={(v) => updateTime(index, v)} />
+                <ThemedTextInput
+                  accessibilityLabel={`Time ${index + 1}`}
+                  placeholder="08:00"
+                  value={t}
+                  onChangeText={(v) => updateTime(index, v)}
+                />
               </View>
               {value.times.length > 1 ? (
                 <Pressable

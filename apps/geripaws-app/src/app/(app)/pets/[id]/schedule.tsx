@@ -16,6 +16,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { deleteHabitSchedule, fetchHabitSchedules, upsertHabitSchedule } from '@/lib/habit-schedules';
 import { fetchMyRole, fetchPet, updatePet } from '@/lib/pets';
+import { MaxContentWidth } from '@/constants/theme';
 
 const DUE_GRACE_OPTIONS = [
   { value: '0', label: 'None' },
@@ -204,7 +205,7 @@ export default function HabitScheduleScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, gap: 12 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 12 },
   sectionTitle: { marginTop: 20, marginBottom: 2 },
   hint: { marginBottom: 4 },
   button: { marginTop: 16 },

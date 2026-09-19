@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
+import { MaxContentWidth } from '@/constants/theme';
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
@@ -85,7 +86,7 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 12 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', flexGrow: 1, padding: 24, justifyContent: 'center', gap: 12 },
   title: { fontSize: 32, marginBottom: 4 },
   subtitle: { fontSize: 20, marginBottom: 16 },
   button: { marginTop: 8 },

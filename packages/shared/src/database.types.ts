@@ -677,6 +677,10 @@ export interface Database {
         Args: { target_pet_id: string };
         Returns: undefined;
       };
+      preview_pet_invite: {
+        Args: { invite_token: string };
+        Returns: { pet_name: string; role: PetRole }[];
+      };
     };
     Enums: {
       ailment_status: AilmentStatus;

@@ -14,6 +14,7 @@ import { fetchMyRole } from '@/lib/pets';
 import { useNow } from '@/hooks/use-now';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { useTheme } from '@/hooks/use-theme';
+import { MaxContentWidth } from '@/constants/theme';
 export default function WeightScreen() {
   // Keeps the "x ago" label on the latest weigh-in from freezing between fetches.
   useNow(60_000);
@@ -134,7 +135,7 @@ export default function WeightScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 8 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   latestCard: {
     padding: 16,
     borderRadius: 12,

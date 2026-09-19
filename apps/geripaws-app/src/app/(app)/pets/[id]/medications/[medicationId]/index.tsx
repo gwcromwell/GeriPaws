@@ -6,13 +6,14 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { DoseRow } from '@/components/dose-row';
+import { QuickTimeChips } from '@/components/quick-time-chips';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useScreenLoad } from '@/hooks/use-screen-load';
 import { fetchAilment } from '@/lib/ailments';
 import { confirmDestructive } from '@/lib/confirm';
-import { formatDate, summarizeSchedule } from '@/lib/format';
+import { formatDate, formatDateTime, summarizeSchedule } from '@/lib/format';
 import {
   deleteMedication,
   fetchDosesForMedication,
@@ -22,6 +23,7 @@ import {
   upsertRefill,
 } from '@/lib/medications';
 import { fetchMyRole } from '@/lib/pets';
+import { MaxContentWidth } from '@/constants/theme';
 
 export default function MedicationDetailScreen() {
   const { id, medicationId } = useLocalSearchParams<{ id: string; medicationId: string }>();
@@ -35,6 +37,10 @@ export default function MedicationDetailScreen() {
 
   const [restockValue, setRestockValue] = useState('');
   const [isRestocking, setIsRestocking] = useState(false);
+
+  const [isLoggingNow, setIsLoggingNow] = useState(false);
+  const [givenAtDraft, setGivenAtDraft] = useState(new Date());
+  const [isSavingDose, setIsSavingDose] = useState(false);
 
   const loadMedication = useCallback(async () => {
     if (!medicationId) return;
@@ -55,13 +61,22 @@ export default function MedicationDetailScreen() {
 
   const canEdit = role === 'owner' || role === 'caregiver';
 
-  async function handleLogNow() {
+  function startLogNow() {
+    setGivenAtDraft(new Date());
+    setIsLoggingNow(true);
+  }
+
+  async function confirmLogNow() {
     if (!medication) return;
+    setIsSavingDose(true);
     try {
-      await markDoseGiven(id, medication.id, new Date());
+      await markDoseGiven(id, medication.id, givenAtDraft, givenAtDraft);
+      setIsLoggingNow(false);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log dose');
+    } finally {
+      setIsSavingDose(false);
     }
   }
 
@@ -183,7 +198,33 @@ export default function MedicationDetailScreen() {
           </>
         )}
 
-        {canEdit ? <Button variant="secondary" label="Log a dose now" onPress={handleLogNow} /> : null}
+        {canEdit && !isLoggingNow ? <Button variant="secondary" label="Log a dose now" onPress={startLogNow} /> : null}
+        {canEdit && isLoggingNow ? (
+          <ThemedView style={styles.logNowForm}>
+            <ThemedText type="small" themeColor="textSecondary">
+              When was it given?
+            </ThemedText>
+            <QuickTimeChips value={givenAtDraft} onChange={setGivenAtDraft} />
+            <ThemedText type="small" themeColor="textSecondary">
+              {formatDateTime(givenAtDraft.toISOString())}
+            </ThemedText>
+            <ThemedView style={styles.logNowActions}>
+              <Button
+                variant="secondary"
+                label="Cancel"
+                onPress={() => setIsLoggingNow(false)}
+                disabled={isSavingDose}
+                style={styles.logNowButton}
+              />
+              <Button
+                label={isSavingDose ? 'Saving…' : 'Confirm'}
+                onPress={confirmLogNow}
+                disabled={isSavingDose}
+                style={styles.logNowButton}
+              />
+            </ThemedView>
+          </ThemedView>
+        ) : null}
 
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Recent doses
@@ -218,10 +259,13 @@ export default function MedicationDetailScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 8 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   title: { fontSize: 28 },
   sectionTitle: { marginTop: 20, marginBottom: 4 },
   restockRow: { gap: 8, marginTop: 8 },
   message: { textAlign: 'center', marginTop: 12 },
   deleteButton: { marginTop: 16, marginBottom: 24 },
+  logNowForm: { gap: 8 },
+  logNowActions: { flexDirection: 'row', gap: 8 },
+  logNowButton: { flex: 1 },
 });

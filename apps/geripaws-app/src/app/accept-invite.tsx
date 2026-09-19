@@ -9,7 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
-import { acceptInvite } from '@/lib/pets';
+import { acceptInvite, previewInvite, type PetInvitePreview } from '@/lib/pets';
+import { MaxContentWidth } from '@/constants/theme';
+
+type SessionStatus = 'loading-preview' | 'confirm' | 'accepting' | 'done' | 'invalid' | 'preview-error';
 
 export default function AcceptInviteScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -25,43 +28,120 @@ export default function AcceptInviteScreen() {
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'accepting' | 'done'>('idle');
+  // Once signed in, a preview (which dog, which role) loads before anything
+  // is joined — the invitee confirms explicitly rather than being added the
+  // moment they open the link. See preview_pet_invite (migration 00...32).
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>('loading-preview');
+  const [preview, setPreview] = useState<PetInvitePreview | null>(null);
 
   useEffect(() => {
-    if (session && token && status === 'idle') {
-      setStatus('accepting');
-      acceptInvite(token)
-        .then((petId) => {
-          // The invite was accepted at this point — a problem navigating
-          // away shouldn't be reported as an accept failure, so it's kept
-          // out of the .catch() below (which is only for acceptInvite()
-          // itself failing).
-          setStatus('done');
-          try {
-            router.replace({ pathname: '/pets/[id]', params: { id: petId } });
-          } catch (navErr) {
-            console.error('Invite accepted, but failed to navigate to the pet', navErr);
-          }
-        })
-        .catch((err) => {
-          setStatus('idle');
-          setError(err instanceof Error && err.message ? err.message : 'Failed to accept invite');
-        });
+    if (!session || !token) return;
+    let cancelled = false;
+    previewInvite(token)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result) {
+          setSessionStatus('invalid');
+          return;
+        }
+        setPreview(result);
+        setSessionStatus('confirm');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error && err.message ? err.message : 'Failed to load invite');
+        setSessionStatus('preview-error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session, token]);
+
+  async function handleAccept() {
+    if (!token) return;
+    setSessionStatus('accepting');
+    setError(null);
+    try {
+      const petId = await acceptInvite(token);
+      setSessionStatus('done');
+      try {
+        router.replace({ pathname: '/pets/[id]', params: { id: petId } });
+      } catch (navErr) {
+        console.error('Invite accepted, but failed to navigate to the pet', navErr);
+      }
+    } catch (err) {
+      setSessionStatus('confirm');
+      setError(err instanceof Error && err.message ? err.message : 'Failed to accept invite');
     }
-  }, [session, token, status, router]);
+  }
+
+  function handleDecline() {
+    router.replace('/');
+  }
 
   if (!token) {
     return (
-      <ThemedView style={styles.centered}>
-        <ThemedText themeColor="error">This invite link is missing its token.</ThemedText>
+      <ThemedView style={styles.flex}>
+        <ThemedView style={styles.centered}>
+          <ThemedText themeColor="error">This invite link is missing its token.</ThemedText>
+        </ThemedView>
       </ThemedView>
     );
   }
 
   if (session) {
+    if (sessionStatus === 'loading-preview' || sessionStatus === 'accepting' || sessionStatus === 'done') {
+      return (
+        <ThemedView style={styles.flex}>
+          <ThemedView style={styles.centered}>
+            <ThemedText>{sessionStatus === 'accepting' || sessionStatus === 'done' ? 'Joining…' : 'Loading invite…'}</ThemedText>
+          </ThemedView>
+        </ThemedView>
+      );
+    }
+
+    if (sessionStatus === 'invalid') {
+      return (
+        <ThemedView style={styles.flex}>
+          <ThemedView style={styles.centered}>
+            <ThemedText themeColor="error">
+              This invite link is no longer valid — it may have expired, already been used, or been sent to a
+              different email address than the one you're signed in with.
+            </ThemedText>
+          </ThemedView>
+        </ThemedView>
+      );
+    }
+
+    if (sessionStatus === 'preview-error') {
+      return (
+        <ThemedView style={styles.flex}>
+          <ThemedView style={styles.centered}>
+            <ThemedText themeColor="error">{error ?? 'Failed to load this invite.'}</ThemedText>
+          </ThemedView>
+        </ThemedView>
+      );
+    }
+
+    // sessionStatus === 'confirm'
     return (
-      <ThemedView style={styles.centered}>
-        <ThemedText>{error ?? 'Accepting invite…'}</ThemedText>
+      <ThemedView style={styles.flex}>
+        <ThemedView style={styles.centered}>
+          <ThemedText type="subtitle">Join {preview?.petName}?</ThemedText>
+          <ThemedText themeColor="textSecondary">
+            You've been invited to help care for {preview?.petName} as a {preview?.role}.{' '}
+            {preview?.role === 'viewer'
+              ? "You'll be able to see their information, but not log anything."
+              : "You'll be able to log habits and manage medications."}
+          </ThemedText>
+          {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
+          <Button label="Accept and join" onPress={handleAccept} style={styles.button} />
+          <Pressable accessibilityRole="button" onPress={handleDecline}>
+            <ThemedText type="link" themeColor="textSecondary" style={styles.switchMode}>
+              Not now
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
       </ThemedView>
     );
   }
@@ -144,8 +224,8 @@ export default function AcceptInviteScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  centered: { flex: 1, padding: 24, justifyContent: 'center', gap: 12 },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 12 },
+  centered: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, justifyContent: 'center', gap: 12 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', flexGrow: 1, padding: 24, justifyContent: 'center', gap: 12 },
   button: { marginTop: 8 },
   switchMode: { textAlign: 'center', marginTop: 8 },
 });

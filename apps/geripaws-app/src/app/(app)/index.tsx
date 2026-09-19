@@ -6,7 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth-context';
 import { fetchMyPets, type PetWithRole } from '@/lib/pets';
-
+import { MaxContentWidth } from '@/constants/theme';
 
 import { useTheme } from '@/hooks/use-theme';
 export default function PetListScreen() {
@@ -43,6 +43,7 @@ export default function PetListScreen() {
   }, [userId, load]);
 
   return (
+    <ThemedView style={styles.flex}>
     <ThemedView style={styles.container}>
       {error ? (
         <ThemedText themeColor="error" style={styles.message}>
@@ -91,11 +92,13 @@ export default function PetListScreen() {
         </ThemedText>
       </Link>
     </ThemedView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12 },
+  flex: { flex: 1 },
+  container: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 12 },
   list: { gap: 12 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   message: { textAlign: 'center' },

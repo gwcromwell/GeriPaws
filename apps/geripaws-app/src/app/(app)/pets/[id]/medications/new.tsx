@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
+import { DateField } from '@/components/date-field';
 import {
   buildScheduleFromEditor,
   DEFAULT_SCHEDULE_EDITOR_VALUE,
@@ -14,6 +15,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
+import { MaxContentWidth } from '@/constants/theme';
 import {
   createMedication,
   deleteRefill,
@@ -205,14 +207,11 @@ export default function NewMedicationScreen() {
 
         <ScheduleEditor value={scheduleValue} onChange={setScheduleValue} />
 
-        <ThemedTextInput
+        <DateField
           label="Stop date"
           helperText="Optional — for a short course like antibiotics. Leave blank for ongoing medications."
-          placeholder="2026-02-01"
-          returnKeyType={trackRefill ? 'next' : 'go'}
-          onSubmitEditing={trackRefill ? undefined : handleSubmit}
-          value={activeUntil}
-          onChangeText={setActiveUntil}
+          value={activeUntil || undefined}
+          onChange={(v) => setActiveUntil(v ?? '')}
         />
 
         <ChoiceChips
@@ -271,7 +270,7 @@ export default function NewMedicationScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, gap: 16 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   row: { flexDirection: 'row', gap: 12 },
   flexHalf: { flex: 1 },
   button: { marginTop: 8 },

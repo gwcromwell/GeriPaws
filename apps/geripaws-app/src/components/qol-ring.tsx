@@ -22,7 +22,10 @@ export function QolRing({ score, max, color, trackColor, size = 56 }: Props) {
   const center = size / 2;
 
   return (
-    <View style={{ width: size, height: size }}>
+    <View
+      style={{ width: size, height: size }}
+      accessibilityRole="image"
+      accessibilityLabel={`Quality of life score: ${Math.round(pct * 100)} percent, ${score} out of ${max}`}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Circle cx={center} cy={center} r={radius} fill="none" stroke={trackColor} strokeWidth={STROKE_WIDTH} />
         <Circle

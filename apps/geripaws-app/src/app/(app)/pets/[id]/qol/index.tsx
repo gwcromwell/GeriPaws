@@ -12,6 +12,7 @@ import { useScreenLoad } from '@/hooks/use-screen-load';
 import { formatDate } from '@/lib/format';
 import { fetchMyRole } from '@/lib/pets';
 import { fetchQolResponses, fetchQolSettings } from '@/lib/qol';
+import { MaxContentWidth } from '@/constants/theme';
 
 const DUE_LABEL: Record<string, string> = {
   never: 'No check-ins yet',
@@ -167,7 +168,7 @@ export default function QolScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 8 },
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   body: { lineHeight: 20 },
   latestCard: {

@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAge } from '@/lib/format';
 
-interface Props {
+interface DateFieldProps {
+  label: string;
+  helperText?: string;
   /** ISO "YYYY-MM-DD", or undefined if unknown. */
   value?: string;
   onChange: (value: string | undefined) => void;
+  /** Optional content shown below the fields once a full date is entered
+   * (e.g. a computed age) — receives the resolved ISO value. */
+  footer?: (value: string) => ReactNode;
 }
 
 function parse(value?: string): { year: string; month: string; day: string } {
@@ -17,7 +22,12 @@ function parse(value?: string): { year: string; month: string; day: string } {
   return { year, month, day };
 }
 
-export function DateOfBirthField({ value, onChange }: Props) {
+/** Three separate numeric-only segments (MM/DD/YYYY) instead of a single
+ * free-typed "YYYY-MM-DD" field — each segment can only ever hold digits, so
+ * there's no ambiguous format to get wrong, and no error only caught on
+ * submit. Used for birthdate, medication stop dates, and ailment diagnosis
+ * dates alike. */
+export function DateField({ label, helperText, value, onChange, footer }: DateFieldProps) {
   const theme = useTheme();
   const [parts, setParts] = useState(() => parse(value));
 
@@ -41,13 +51,15 @@ export function DateOfBirthField({ value, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <ThemedText type="smallBold">Birthdate</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Optional — used to show age and to time senior-care milestones
-      </ThemedText>
+      <ThemedText type="smallBold">{label}</ThemedText>
+      {helperText ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {helperText}
+        </ThemedText>
+      ) : null}
       <View style={styles.row}>
         <TextInput
-          accessibilityLabel="Birth month"
+          accessibilityLabel={`${label} month`}
           style={[...inputStyle, styles.month]}
           placeholder="MM"
           placeholderTextColor={theme.textSecondary}
@@ -57,7 +69,7 @@ export function DateOfBirthField({ value, onChange }: Props) {
           onChangeText={(month) => update({ ...parts, month: month.replace(/\D/g, '') })}
         />
         <TextInput
-          accessibilityLabel="Birth day"
+          accessibilityLabel={`${label} day`}
           style={[...inputStyle, styles.day]}
           placeholder="DD"
           placeholderTextColor={theme.textSecondary}
@@ -67,7 +79,7 @@ export function DateOfBirthField({ value, onChange }: Props) {
           onChangeText={(day) => update({ ...parts, day: day.replace(/\D/g, '') })}
         />
         <TextInput
-          accessibilityLabel="Birth year"
+          accessibilityLabel={`${label} year`}
           style={[...inputStyle, styles.year]}
           placeholder="YYYY"
           placeholderTextColor={theme.textSecondary}
@@ -77,12 +89,30 @@ export function DateOfBirthField({ value, onChange }: Props) {
           onChangeText={(year) => update({ ...parts, year: year.replace(/\D/g, '') })}
         />
       </View>
-      {value ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatAge(value)} old
-        </ThemedText>
-      ) : null}
+      {value && footer ? footer(value) : null}
     </View>
+  );
+}
+
+interface DateOfBirthFieldProps {
+  /** ISO "YYYY-MM-DD", or undefined if unknown. */
+  value?: string;
+  onChange: (value: string | undefined) => void;
+}
+
+export function DateOfBirthField({ value, onChange }: DateOfBirthFieldProps) {
+  return (
+    <DateField
+      label="Birthdate"
+      helperText="Optional — used to show age and to time senior-care milestones"
+      value={value}
+      onChange={onChange}
+      footer={(v) => (
+        <ThemedText type="small" themeColor="textSecondary">
+          {formatAge(v)} old
+        </ThemedText>
+      )}
+    />
   );
 }
 

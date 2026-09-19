@@ -264,3 +264,19 @@ export async function acceptInvite(token: string): Promise<string> {
   if (error) throw error;
   return data as string;
 }
+
+export interface PetInvitePreview {
+  petName: string;
+  role: PetRole;
+}
+
+/** What an invite is for — shown to the signed-in invitee so they can
+ * confirm before joining, rather than being added the moment they open the
+ * link. Returns null if the invite doesn't exist, is no longer pending, or
+ * isn't addressed to the signed-in account's email (see the RPC). */
+export async function previewInvite(token: string): Promise<PetInvitePreview | null> {
+  const { data, error } = await supabase.rpc("preview_pet_invite", { invite_token: token });
+  if (error) throw error;
+  const row = data?.[0];
+  return row ? { petName: row.pet_name, role: row.role } : null;
+}
