@@ -50,7 +50,7 @@ async function getActorName(userId: string | null): Promise<string> {
   return data?.display_name || data?.email?.split("@")[0] || "Someone";
 }
 
-async function buildMessage(payload: CompletionPayload, actorName: string): Promise<string> {
+async function buildMessage(payload: CompletionPayload, actorName: string, petTimeZone: string): Promise<string> {
   switch (payload.kind) {
     case "walk":
       return `${actorName} logged a walk`;
@@ -66,7 +66,16 @@ async function buildMessage(payload: CompletionPayload, actorName: string): Prom
         .maybeSingle();
       const name = medication?.name ?? "a medication";
       if (payload.scheduledAt) {
-        const time = new Date(payload.scheduledAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        // Every recipient sees the dose time in the *pet's* timezone, not
+        // the server's (this Edge Function always runs in UTC) — otherwise
+        // "10pm Eastern" reads as "2am" to everyone, regardless of their own
+        // timezone too, since a pet has one timezone shared by its household
+        // (see packages/shared/src/tz.ts).
+        const time = new Date(payload.scheduledAt).toLocaleTimeString("en-US", {
+          timeZone: petTimeZone,
+          hour: "numeric",
+          minute: "2-digit",
+        });
         return `${actorName} gave the ${time} ${name}`;
       }
       return `${actorName} gave ${name}`;
@@ -123,13 +132,13 @@ Deno.serve(async (req) => {
     return new Response("Missing petId, kind, or referenceId", { status: 400 });
   }
 
-  const { data: pet } = await supabase.from("pets").select("name").eq("id", payload.petId).maybeSingle();
+  const { data: pet } = await supabase.from("pets").select("name, timezone").eq("id", payload.petId).maybeSingle();
   if (!pet) return new Response("Pet not found", { status: 404 });
 
   const [tokens, actorName] = await Promise.all([getRecipientTokens(payload), getActorName(payload.actorUserId)]);
 
   if (tokens.length > 0) {
-    const message = await buildMessage(payload, actorName);
+    const message = await buildMessage(payload, actorName, pet.timezone || "UTC");
     await sendPush(tokens, pet.name, message);
   }
 

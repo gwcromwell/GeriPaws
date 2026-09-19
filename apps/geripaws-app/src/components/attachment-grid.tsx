@@ -107,6 +107,12 @@ export function AttachmentGrid({ petId, entityType, entityId, canEdit }: Props) 
         {canEdit ? <MediaPicker onPick={handlePick} disabled={isUploading} label={isUploading ? '…' : '+ Add'} /> : null}
       </View>
 
+      {isUploading ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Uploading — a video can take a minute or more, especially on a slow connection.
+        </ThemedText>
+      ) : null}
+
       {error ? (
         <ThemedText themeColor="error" type="small">
           {error}

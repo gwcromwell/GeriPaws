@@ -66,6 +66,11 @@ export default function LogHabitScreen() {
   // (after a partial attachment-upload failure) update instead of
   // re-creating a duplicate entry.
   const [createdIncidentId, setCreatedIncidentId] = useState<string | null>(null);
+  // True only during the attachment-upload loop below — a large video can
+  // take a while to read and upload with no native progress event available
+  // (see lib/attachments.ts), so this drives visible "Uploading…" text
+  // rather than leaving the screen looking stuck with no feedback.
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   // walk fields
   const [durationMin, setDurationMin] = useState('');
@@ -201,21 +206,29 @@ export default function LogHabitScreen() {
       }
 
       if (type === 'incident' && stagedMedia.length > 0) {
+        setIsUploadingMedia(true);
         const failed: PickedMedia[] = [];
+        let lastErrorMessage = 'Failed to upload';
         for (let i = 0; i < stagedMedia.length; i++) {
           const item = stagedMedia[i];
           try {
             const uri =
               item.mediaType === 'image' ? await prepareImageForUpload(item.uri, item.width, item.height) : item.uri;
             await uploadAttachment(id, 'habit_log', newLogId, uri, item.mediaType, i);
-          } catch {
+          } catch (err) {
             failed.push(item);
+            // Preserved and surfaced below, rather than discarded — a video
+            // over the size limit needs to say so, not just "failed", since
+            // "tap Save to retry" is actively misleading when retrying can
+            // never succeed (see MAX_ATTACHMENT_BYTES in @geripaws/shared).
+            lastErrorMessage = err instanceof Error ? err.message : lastErrorMessage;
           }
         }
+        setIsUploadingMedia(false);
         if (failed.length > 0) {
           setStagedMedia(failed);
           setError(
-            `Saved, but ${failed.length} attachment${failed.length > 1 ? 's' : ''} failed to upload — tap Save to retry.`
+            `Saved, but ${failed.length} attachment${failed.length > 1 ? 's' : ''} failed to upload: ${lastErrorMessage}`
           );
           return;
         }
@@ -273,7 +286,7 @@ export default function LogHabitScreen() {
           />
           {elimination === 'poop' || elimination === 'both' ? (
             <ChoiceChips
-              label="Stool quality"
+              label="Poop quality"
               helperText="Optional — helps spot digestive changes over time"
               options={[
                 { value: 'normal', label: 'Normal' },
@@ -346,7 +359,7 @@ export default function LogHabitScreen() {
             label="Type"
             options={[
               { value: 'urine', label: 'Urine' },
-              { value: 'stool', label: 'Stool' },
+              { value: 'stool', label: 'Poop' },
               { value: 'vomit', label: 'Vomit' },
               { value: 'fall', label: 'Fall' },
               { value: 'seizure', label: 'Seizure' },
@@ -457,6 +470,12 @@ export default function LogHabitScreen() {
               disabled={isSubmitting}
             />
           </View>
+          {isUploadingMedia ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              Uploading — a video can take a minute or more, especially on a slow connection. Stay on this screen
+              until it finishes.
+            </ThemedText>
+          ) : null}
         </View>
       ) : null}
 
@@ -467,7 +486,7 @@ export default function LogHabitScreen() {
       ) : null}
 
       <Button
-        label={isSubmitting ? 'Saving…' : 'Save'}
+        label={isUploadingMedia ? 'Uploading…' : isSubmitting ? 'Saving…' : 'Save'}
         onPress={handleSubmit}
         disabled={isSubmitting}
         style={styles.button}

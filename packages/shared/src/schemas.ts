@@ -280,9 +280,14 @@ export const createQolResponseSchema = z.object({
 export type CreateQolResponseInput = z.infer<typeof createQolResponseSchema>;
 
 // Matches the incident-media Storage bucket's file_size_limit (see migration
-// 00000000000015_attachments.sql) — kept in sync manually since Postgres
-// storage.buckets and this schema can't share a single source of truth.
-export const MAX_ATTACHMENT_BYTES = 150 * 1024 * 1024;
+// 00000000000033_raise_attachment_size_limit.sql) — kept in sync manually
+// since Postgres storage.buckets and this schema can't share a single source
+// of truth. 500 MB comfortably fits a several-minute phone video at typical
+// (1080p HEVC) recording settings — video is uploaded as picked, with no
+// client-side compression (see prepareImageForUpload, which only handles
+// images), so the previous 150 MB cap routinely rejected a real seizure
+// clip with no clear explanation to the caregiver who just recorded it.
+export const MAX_ATTACHMENT_BYTES = 500 * 1024 * 1024;
 
 export const attachmentEntityTypeSchema = z.enum(["habit_log", "ailment"]);
 export const mediaTypeSchema = z.enum(["image", "video"]);

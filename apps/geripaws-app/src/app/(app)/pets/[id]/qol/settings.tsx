@@ -2,7 +2,7 @@ import type { QolCadence } from '@geripaws/shared';
 import { qolSettingsSchema } from '@geripaws/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ChoiceChips } from '@/components/choice-chips';
@@ -53,7 +53,7 @@ export default function QolSettingsScreen() {
 
   return (
     <ThemedView style={styles.flex}>
-    <ThemedView style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <ThemedText type="subtitle">Quality of Life settings</ThemedText>
 
       <ChoiceChips
@@ -101,14 +101,16 @@ export default function QolSettingsScreen() {
       ) : null}
 
       <Button label={isSubmitting ? 'Saving…' : 'Save'} onPress={handleSave} disabled={isSubmitting} style={styles.button} />
-    </ThemedView>
+    </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
+  // No flex: 1 here — this is a ScrollView's contentContainerStyle (see the
+  // identical note in sharing.tsx).
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 24, gap: 16 },
   button: { marginTop: 8 },
   message: { textAlign: 'center' },
 });

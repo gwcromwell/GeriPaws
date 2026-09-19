@@ -18,7 +18,7 @@ import { MaxContentWidth } from '@/constants/theme';
 
 const INCIDENT_CATEGORY_LABEL: Record<IncidentCategory, string> = {
   urine: 'Urine',
-  stool: 'Stool',
+  stool: 'Poop',
   vomit: 'Vomit',
   fall: 'Fall',
   seizure: 'Seizure',

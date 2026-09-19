@@ -5,7 +5,7 @@
 
 const INCIDENT_LABELS: Record<string, string> = {
   urine: "a urine accident",
-  stool: "a stool accident",
+  stool: "a poop accident",
   vomit: "vomiting",
   fall: "a fall",
   seizure: "a seizure",

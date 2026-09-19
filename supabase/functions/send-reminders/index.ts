@@ -224,9 +224,14 @@ Deno.serve(async () => {
           if (now.getTime() - scheduledAt.getTime() <= graceMs) continue;
 
           // Walks/food aren't discrete slots like medication doses — any log
-          // of that type at or after this due time counts as satisfying it.
+          // of that type from the grace window before this due time onward
+          // counts as satisfying it (not just at-or-after — a caregiver who
+          // logs a little early shouldn't have that ignored and then see an
+          // overdue reminder anyway; mirrors habit-due-status.ts on the app
+          // side, which this must stay in sync with).
           const logged = (habitLogsToday ?? []).some(
-            (log) => log.type === habitSchedule.type && new Date(log.occurred_at).getTime() >= scheduledAt.getTime()
+            (log) =>
+              log.type === habitSchedule.type && new Date(log.occurred_at).getTime() >= scheduledAt.getTime() - graceMs
           );
           if (logged) continue;
 

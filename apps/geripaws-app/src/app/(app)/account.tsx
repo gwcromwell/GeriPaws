@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
@@ -83,7 +83,7 @@ export default function AccountScreen() {
 
   return (
     <ThemedView style={styles.flex}>
-      <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <ThemedText type="subtitle">Account</ThemedText>
         {session?.user.email ? (
           <ThemedText themeColor="textSecondary" type="small">
@@ -201,7 +201,7 @@ export default function AccountScreen() {
             </>
           ) : null}
         </ThemedView>
-      </ThemedView>
+      </ScrollView>
     </ThemedView>
   );
 }

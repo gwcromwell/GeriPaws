@@ -2,7 +2,7 @@ import type { Pet, PetInvite, PetMember, PetRole } from '@geripaws/shared';
 import { createInviteSchema } from '@geripaws/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Platform, Pressable, Share, StyleSheet } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
@@ -134,7 +134,7 @@ export default function SharingScreen() {
 
   return (
     <ThemedView style={styles.flex}>
-    <ThemedView style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <ThemedText type="title" style={styles.title}>
         {pet.name}
       </ThemedText>
@@ -272,14 +272,18 @@ export default function SharingScreen() {
           {info}
         </ThemedText>
       ) : null}
-    </ThemedView>
+    </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
+  // No flex: 1 here — this is a ScrollView's contentContainerStyle, and
+  // flex: 1 on that fights content-based sizing and can silently break
+  // scrolling instead of just filling available space the way it does on a
+  // plain View.
+  container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
   title: { fontSize: 28 },
   sectionTitle: { marginTop: 20, marginBottom: 4 },
   row: {
