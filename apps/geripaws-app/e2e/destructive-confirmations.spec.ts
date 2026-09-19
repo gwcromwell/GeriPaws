@@ -72,7 +72,8 @@ test('deleting a habit log entry requires confirmation', async ({ page }) => {
     await page.getByRole('button', { name: 'Quick log food now, no details' }).click();
 
     await page.goto(`/pets/${petId}/history`);
-    await page.getByRole('button', { name: 'Food', exact: true }).click();
+    await page.getByRole('button', { name: 'Showing:' }).click();
+    await page.getByRole('menuitem', { name: 'Food', exact: true }).click();
     const deleteLink = page.getByRole('button', { name: /^Delete food entry from/ });
 
     page.once('dialog', (dialog) => dialog.dismiss());

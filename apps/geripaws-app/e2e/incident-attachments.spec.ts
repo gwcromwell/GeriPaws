@@ -74,11 +74,12 @@ test('a staged photo uploads and persists when the incident is saved', async ({ 
 
     // Reopen the entry from History and confirm the attachment actually
     // made it through the upload, not just the local staging step. The
-    // "Habits" (all-types) tab is used rather than "Incidents" because only
-    // it labels each row with its type, which is what this locates by — the
-    // row itself has no accessibilityLabel of its own.
+    // "Habits" (all-types) filter is used rather than "Incidents" because
+    // only it labels each row with its type, which is what this locates by —
+    // the row itself has no accessibilityLabel of its own.
     await page.goto(`/pets/${petId}/history`);
-    await page.getByRole('button', { name: 'Habits', exact: true }).click();
+    await page.getByRole('button', { name: 'Showing:' }).click();
+    await page.getByRole('menuitem', { name: 'Habits', exact: true }).click();
     await page.getByText('Incident', { exact: true }).click();
     await expect(page.getByText('Photos & video')).toBeVisible();
     await expect(page.getByRole('button', { name: 'View photo' })).toBeVisible();

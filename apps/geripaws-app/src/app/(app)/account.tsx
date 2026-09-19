@@ -1,5 +1,6 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
@@ -21,6 +22,7 @@ function joinNames(items: { name: string }[]): string {
 
 export default function AccountScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { session, signOut } = useAuth();
   const [impact, setImpact] = useState<AccountDeletionImpact | null>(null);
   const [confirmText, setConfirmText] = useState('');
@@ -84,6 +86,16 @@ export default function AccountScreen() {
   return (
     <ThemedView style={styles.flex}>
       <ScrollView contentContainerStyle={styles.container}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          hitSlop={8}
+          style={styles.backLink}>
+          <ThemedText type="link" themeColor="tint">
+            ‹ Back
+          </ThemedText>
+        </Pressable>
         <ThemedText type="subtitle">Account</ThemedText>
         {session?.user.email ? (
           <ThemedText themeColor="textSecondary" type="small">
@@ -209,6 +221,7 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%', padding: 16, gap: 8 },
+  backLink: { alignSelf: 'flex-start', marginBottom: 4 },
   nameSection: { marginTop: 16, gap: 8 },
   saveNameButton: { alignSelf: 'flex-start' },
   signOutButton: { marginTop: 16 },

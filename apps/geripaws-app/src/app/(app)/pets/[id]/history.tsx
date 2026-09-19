@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
 
 import { DoseRow } from '@/components/dose-row';
-import { TabBar } from '@/components/tab-bar';
+import { DropdownSelect } from '@/components/dropdown-select';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TimelineRow } from '@/components/timeline-row';
@@ -29,7 +29,7 @@ const TYPE_LABEL: Record<HabitLog['type'], string> = {
 type Tab = 'timeline' | 'all' | HabitType | 'medications';
 
 const TABS: { value: Tab; label: string }[] = [
-  { value: 'timeline', label: 'Timeline' },
+  { value: 'timeline', label: 'All' },
   { value: 'all', label: 'Habits' },
   { value: 'walk', label: 'Walk' },
   { value: 'water', label: 'Water' },
@@ -76,7 +76,9 @@ export default function HistoryScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.centered}>
-      <TabBar tabs={TABS} value={tab} onChange={setTab} />
+      <ThemedView style={styles.filterRow}>
+        <DropdownSelect options={TABS} value={tab} onChange={setTab} accessibilityLabel="Showing" />
+      </ThemedView>
       <ThemedView style={styles.body}>
       {error ? <ThemedText themeColor="error">{error}</ThemedText> : null}
 
@@ -222,6 +224,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%' },
+  filterRow: { paddingHorizontal: 16, paddingTop: 12 },
   body: { flex: 1, padding: 16 },
   list: { gap: 4 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
